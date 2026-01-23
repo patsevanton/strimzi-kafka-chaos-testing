@@ -1,0 +1,72 @@
+replicaCount: 1
+
+image:
+  repository: kafka-app
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Kafka configuration
+kafka:
+  brokers: "kafka-broker-1:9092,kafka-broker-2:9092"
+  topic: "test-topic"
+  groupId: "test-group"
+  username: ""
+  password: ""
+
+# Schema Registry configuration
+schemaRegistry:
+  url: "http://schema-registry:8081"
+
+# Secrets configuration
+secrets:
+  # If true, create a secret for Kafka credentials
+  create: false
+  # Secret name (if not using the default)
+  name: ""
+  # Kafka username (will be stored in secret if secrets.create is true)
+  username: ""
+  # Kafka password (will be stored in secret if secrets.create is true)
+  password: ""
