@@ -8,7 +8,7 @@
 - Observability stack:
   - `VictoriaLogs`
   - `victoria-logs-collector`
-  - `VictoriaMetrics` (через `victoria-metrics-k8s-stack`)
+  - `VictoriaMetrics`
 
 ## Kafka Application
 
@@ -23,18 +23,8 @@
 
 ### Сборка приложения
 
-#### Сборка без Docker
 
-```bash
-go mod download
-go build -o kafka-app main.go
-```
 
-#### Сборка с Docker
-
-```bash
-docker build -t kafka-app:latest .
-```
 
 ### Переменные окружения
 
