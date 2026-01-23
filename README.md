@@ -50,43 +50,123 @@ docker build -t kafka-app:latest .
 
 ### Запуск приложения
 
+Приложение развертывается в Kubernetes через Helm-чарты. Доступны два отдельных чарта: `kafka-producer` и `kafka-consumer`.
+
 #### Producer режим
 
 ```bash
-export MODE=producer
-export KAFKA_BROKERS=kafka-broker-1:9092,kafka-broker-2:9092
-export KAFKA_TOPIC=test-topic
-export SCHEMA_REGISTRY_URL=http://schema-registry:8081
-export KAFKA_USERNAME=myuser
-export KAFKA_PASSWORD=mypassword
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set kafka.brokers="kafka-broker-1:9092,kafka-broker-2:9092" \
+  --set kafka.topic="test-topic" \
+  --set schemaRegistry.url="http://schema-registry:8081" \
+  --set kafka.username="myuser" \
+  --set kafka.password="mypassword"
+```
 
-./kafka-app
+Или используйте файл values:
+
+```bash
+# Создайте файл producer-values.yaml
+cat > producer-values.yaml <<EOF
+kafka:
+  brokers: "kafka-broker-1:9092,kafka-broker-2:9092"
+  topic: "test-topic"
+  username: "myuser"
+  password: "mypassword"
+schemaRegistry:
+  url: "http://schema-registry:8081"
+EOF
+
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-app \
+  --create-namespace \
+  -f producer-values.yaml
 ```
 
 #### Consumer режим
 
 ```bash
-export MODE=consumer
-export KAFKA_BROKERS=kafka-broker-1:9092,kafka-broker-2:9092
-export KAFKA_TOPIC=test-topic
-export SCHEMA_REGISTRY_URL=http://schema-registry:8081
-export KAFKA_USERNAME=myuser
-export KAFKA_PASSWORD=mypassword
-export KAFKA_GROUP_ID=my-consumer-group
-
-./kafka-app
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set kafka.brokers="kafka-broker-1:9092,kafka-broker-2:9092" \
+  --set kafka.topic="test-topic" \
+  --set kafka.groupId="my-consumer-group" \
+  --set schemaRegistry.url="http://schema-registry:8081" \
+  --set kafka.username="myuser" \
+  --set kafka.password="mypassword"
 ```
 
-#### Запуск в Docker
+Или используйте файл values:
 
 ```bash
-docker run -e MODE=producer \
-  -e KAFKA_BROKERS=kafka-broker-1:9092 \
-  -e KAFKA_TOPIC=test-topic \
-  -e SCHEMA_REGISTRY_URL=http://schema-registry:8081 \
-  -e KAFKA_USERNAME=myuser \
-  -e KAFKA_PASSWORD=mypassword \
-  kafka-app:latest
+# Создайте файл consumer-values.yaml
+cat > consumer-values.yaml <<EOF
+kafka:
+  brokers: "kafka-broker-1:9092,kafka-broker-2:9092"
+  topic: "test-topic"
+  groupId: "my-consumer-group"
+  username: "myuser"
+  password: "mypassword"
+schemaRegistry:
+  url: "http://schema-registry:8081"
+EOF
+
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-app \
+  --create-namespace \
+  -f consumer-values.yaml
+```
+
+#### Использование Secrets для учетных данных
+
+Для более безопасного хранения учетных данных можно использовать Kubernetes Secrets:
+
+```bash
+# Producer с secrets
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set secrets.create=true \
+  --set secrets.username="myuser" \
+  --set secrets.password="mypassword" \
+  --set kafka.brokers="kafka-broker-1:9092,kafka-broker-2:9092" \
+  --set kafka.topic="test-topic" \
+  --set schemaRegistry.url="http://schema-registry:8081"
+
+# Consumer с secrets
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set secrets.create=true \
+  --set secrets.username="myuser" \
+  --set secrets.password="mypassword" \
+  --set kafka.brokers="kafka-broker-1:9092,kafka-broker-2:9092" \
+  --set kafka.topic="test-topic" \
+  --set kafka.groupId="my-consumer-group" \
+  --set schemaRegistry.url="http://schema-registry:8081"
+```
+
+#### Проверка статуса
+
+```bash
+# Проверка подов
+kubectl get pods -n kafka-app
+
+# Просмотр логов producer
+kubectl logs -n kafka-app -l app.kubernetes.io/name=kafka-producer
+
+# Просмотр логов consumer
+kubectl logs -n kafka-app -l app.kubernetes.io/name=kafka-consumer
+```
+
+#### Удаление
+
+```bash
+helm uninstall kafka-producer -n kafka-app
+helm uninstall kafka-consumer -n kafka-app
 ```
 
 ### Формат сообщений
