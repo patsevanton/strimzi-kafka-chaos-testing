@@ -36,7 +36,7 @@ cat > kafka-cluster.yaml <<EOF
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: my-cluster
+  name: kafka-cluster
   namespace: kafka
 spec:
   kafka:
@@ -83,22 +83,22 @@ kubectl apply -f kafka-cluster.yaml
 kubectl get kafka -n kafka
 
 # Проверка подов Kafka брокеров
-kubectl get pods -n kafka -l strimzi.io/cluster=my-cluster
+kubectl get pods -n kafka -l strimzi.io/cluster=kafka-cluster
 
 # Ожидание готовности кластера (статус Ready)
-kubectl wait kafka/my-cluster -n kafka --for=condition=Ready --timeout=300s
+kubectl wait kafka/kafka-cluster -n kafka --for=condition=Ready --timeout=300s
 ```
 
 После развертывания Kafka кластера адреса брокеров будут доступны через сервис:
 
-- **Bootstrap сервер (plain)**: `my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
-- **Bootstrap сервер (TLS)**: `my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093`
+- **Bootstrap сервер (plain)**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
+- **Bootstrap сервер (TLS)**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093`
 
 Для использования из других namespace:
 
 ```bash
 # Получить адрес bootstrap сервера
-kubectl get svc -n kafka my-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}'
+kubectl get svc -n kafka kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}'
 ```
 
 ### Создание Kafka топиков
@@ -113,7 +113,7 @@ metadata:
   name: test-topic
   namespace: kafka
   labels:
-    strimzi.io/cluster: my-cluster
+    strimzi.io/cluster: kafka-cluster
 spec:
   partitions: 3
   replicas: 3
@@ -149,7 +149,7 @@ metadata:
   name: myuser
   namespace: kafka
   labels:
-    strimzi.io/cluster: my-cluster
+    strimzi.io/cluster: kafka-cluster
 spec:
   authentication:
     type: scram-sha-512
@@ -233,7 +233,7 @@ kubectl apply -f kafka-credentials-secret.yaml
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-app \
   --create-namespace \
-  --set kafka.brokers="my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
   --set kafka.topic="test-topic" \
   --set schemaRegistry.url="http://schema-registry:8081" \
   --set secrets.existingSecret="kafka-credentials" \
@@ -248,7 +248,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-app \
   --create-namespace \
-  --set kafka.brokers="my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
   --set kafka.topic="test-topic" \
   --set schemaRegistry.url="http://schema-registry:8081" \
   --set secrets.existingSecret="myuser" \
@@ -626,7 +626,7 @@ kubectl delete kafkatopic -n kafka --all
 kubectl delete kafkauser -n kafka --all
 
 # Удаление Kafka кластера
-kubectl delete kafka my-cluster -n kafka
+kubectl delete kafka kafka-cluster -n kafka
 
 # Удаление namespace (опционально)
 kubectl delete namespace kafka
