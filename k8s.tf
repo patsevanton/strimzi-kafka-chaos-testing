@@ -23,15 +23,15 @@ resource "time_sleep" "wait_sa" {
 }
 
 # Создание Kubernetes-кластера в Yandex Cloud
-resource "yandex_kubernetes_cluster" "victorialogs" {
-  name       = "victorialogs"                     # Имя кластера
-  network_id = yandex_vpc_network.victorialogs.id # Сеть, к которой подключается кластер
+resource "yandex_kubernetes_cluster" "strimzi" {
+  name       = "strimzi"                     # Имя кластера
+  network_id = yandex_vpc_network.strimzi.id # Сеть, к которой подключается кластер
 
   master {
     version = "1.32" # Версия Kubernetes мастера
     zonal {
-      zone      = yandex_vpc_subnet.victorialogs-a.zone # Зона размещения мастера
-      subnet_id = yandex_vpc_subnet.victorialogs-a.id   # Подсеть для мастера
+      zone      = yandex_vpc_subnet.strimzi-a.zone # Зона размещения мастера
+      subnet_id = yandex_vpc_subnet.strimzi-a.id   # Подсеть для мастера
     }
 
     public_ip = true # Включение публичного IP для доступа к мастеру
@@ -51,7 +51,7 @@ resource "yandex_kubernetes_cluster" "victorialogs" {
 resource "yandex_kubernetes_node_group" "k8s-node-group" {
   description = "Node group for the Managed Service for Kubernetes cluster"
   name        = "k8s-node-group"
-  cluster_id  = yandex_kubernetes_cluster.victorialogs.id
+  cluster_id  = yandex_kubernetes_cluster.strimzi.id
   version     = "1.32" # Версия Kubernetes на нодах
 
   scale_policy {
@@ -62,9 +62,9 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
 
   allocation_policy {
     # Распределение нод по зонам отказоустойчивости
-    location { zone = yandex_vpc_subnet.victorialogs-a.zone }
-    location { zone = yandex_vpc_subnet.victorialogs-b.zone }
-    location { zone = yandex_vpc_subnet.victorialogs-d.zone }
+    location { zone = yandex_vpc_subnet.strimzi-a.zone }
+    location { zone = yandex_vpc_subnet.strimzi-b.zone }
+    location { zone = yandex_vpc_subnet.strimzi-d.zone }
   }
 
   instance_template {
@@ -73,9 +73,9 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
     network_interface {
       nat = true # Включение NAT для доступа в интернет
       subnet_ids = [
-        yandex_vpc_subnet.victorialogs-a.id,
-        yandex_vpc_subnet.victorialogs-b.id,
-        yandex_vpc_subnet.victorialogs-d.id
+        yandex_vpc_subnet.strimzi-a.id,
+        yandex_vpc_subnet.strimzi-b.id,
+        yandex_vpc_subnet.strimzi-d.id
       ]
     }
 
@@ -91,10 +91,21 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
   }
 }
 
+# provider "kubernetes" {
+#   host                   = yandex_kubernetes_cluster.strimzi.master[0].external_v4_endpoint
+#   cluster_ca_certificate = yandex_kubernetes_cluster.strimzi.master[0].cluster_ca_certificate
+
+#   exec {
+#     api_version = "client.authentication.k8s.io/v1beta1"
+#     args        = ["k8s", "create-token"]
+#     command     = "yc"
+#   }
+# }
+
 provider "helm" {
   kubernetes = {
-    host                   = yandex_kubernetes_cluster.victorialogs.master[0].external_v4_endpoint
-    cluster_ca_certificate = yandex_kubernetes_cluster.victorialogs.master[0].cluster_ca_certificate
+    host                   = yandex_kubernetes_cluster.strimzi.master[0].external_v4_endpoint
+    cluster_ca_certificate = yandex_kubernetes_cluster.strimzi.master[0].cluster_ca_certificate
 
     exec = {
       api_version = "client.authentication.k8s.io/v1beta1"
@@ -112,7 +123,7 @@ resource "helm_release" "ingress_nginx" {
   create_namespace = true
 
   depends_on = [
-    yandex_kubernetes_cluster.victorialogs
+    yandex_kubernetes_cluster.strimzi
   ]
 
   values = [
@@ -123,7 +134,7 @@ resource "helm_release" "ingress_nginx" {
         }
         config = {
           log-format-escape-json = "true"
-          log-format-upstream    = trimspace(<<-EOT
+          log-format-upstream = trimspace(<<-EOT
             {"ts":"$time_iso8601","http":{"request_id":"$req_id","method":"$request_method","status_code":$status,"url":"$host$request_uri","host":"$host","uri":"$request_uri","request_time":$request_time,"user_agent":"$http_user_agent","protocol":"$server_protocol","trace_session_id":"$http_trace_session_id","server_protocol":"$server_protocol","content_type":"$sent_http_content_type","bytes_sent":"$bytes_sent"},"nginx":{"x-forward-for":"$proxy_add_x_forwarded_for","remote_addr":"$proxy_protocol_addr","http_referrer":"$http_referer"}}
           EOT
           )
@@ -135,5 +146,5 @@ resource "helm_release" "ingress_nginx" {
 
 # Вывод команды для получения kubeconfig
 output "k8s_cluster_credentials_command" {
-  value = "yc managed-kubernetes cluster get-credentials --id ${yandex_kubernetes_cluster.victorialogs.id} --external --force"
+  value = "yc managed-kubernetes cluster get-credentials --id ${yandex_kubernetes_cluster.strimzi.id} --external --force"
 }
