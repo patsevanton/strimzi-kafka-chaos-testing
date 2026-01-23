@@ -1,7 +1,6 @@
 .cursorignore
 .git
 .gitignore
-ip-dns.tf
 k8s.tf
 LICENSE
 net.tf

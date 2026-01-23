@@ -25,12 +25,6 @@ helm install strimzi strimzi/strimzi-kafka-operator \
 kubectl get pods -n strimzi
 ```
 
-### Удаление Strimzi
-
-```bash
-helm uninstall strimzi -n strimzi
-```
-
 ## Chaos Mesh
 
 **Chaos Mesh** — облачная платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
@@ -61,12 +55,6 @@ kubectl port-forward -n chaos-mesh svc/chaos-dashboard 2333:2333
 ```
 
 Откройте в браузере: `http://localhost:2333`
-
-### Удаление Chaos Mesh
-
-```bash
-helm uninstall chaos-mesh -n chaos-mesh
-```
 
 ## Observability Stack
 
@@ -122,12 +110,6 @@ vlselect:
       - hosts:
         - victorialogs.apatsev.org.ru
         secretName: victorialogs-tls
-```
-
-Удаление:
-
-```bash
-helm uninstall -n victoria-logs-cluster victoria-logs-cluster
 ```
 
 ### victoria-logs-collector
@@ -384,13 +366,6 @@ kubectl logs -n kafka-app -l app.kubernetes.io/name=kafka-producer
 kubectl logs -n kafka-app -l app.kubernetes.io/name=kafka-consumer
 ```
 
-#### Удаление
-
-```bash
-helm uninstall kafka-producer -n kafka-app
-helm uninstall kafka-consumer -n kafka-app
-```
-
 ### Формат сообщений
 
 Приложение использует Avro схему для сериализации сообщений:
@@ -409,3 +384,30 @@ helm uninstall kafka-consumer -n kafka-app
 ```
 
 Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
+
+## Удаление компонентов
+
+### Удаление Strimzi
+
+```bash
+helm uninstall strimzi -n strimzi
+```
+
+### Удаление Chaos Mesh
+
+```bash
+helm uninstall chaos-mesh -n chaos-mesh
+```
+
+### Удаление VictoriaLogs
+
+```bash
+helm uninstall -n victoria-logs-cluster victoria-logs-cluster
+```
+
+### Удаление Kafka Application
+
+```bash
+helm uninstall kafka-producer -n kafka-app
+helm uninstall kafka-consumer -n kafka-app
+```
