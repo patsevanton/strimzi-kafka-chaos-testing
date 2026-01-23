@@ -50,26 +50,7 @@ kubectl get pods -n chaos-mesh
 
 ### Доступ к Dashboard
 
-Для доступа к Dashboard через ingress-nginx, установите Chaos Mesh с включенным ingress:
-
-```bash
-helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
-  --namespace chaos-mesh \
-  --create-namespace \
-  --set chaosDaemon.runtime=containerd \
-  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
-  --set dashboard.ingress.enabled=true \
-  --set dashboard.ingress.ingressClassName=nginx \
-  --set dashboard.ingress.hosts[0].host=chaos-dashboard.apatsev.org.ru \
-  --set dashboard.ingress.hosts[0].paths[0].path=/ \
-  --set dashboard.ingress.hosts[0].paths[0].pathType=Prefix \
-  --set dashboard.ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-prod \
-  --set dashboard.ingress.tls[0].hosts[0]=chaos-dashboard.apatsev.org.ru \
-  --set dashboard.ingress.tls[0].secretName=chaos-dashboard-tls \
-  --wait
-```
-
-Или используйте файл values:
+Для доступа к Dashboard через ingress-nginx используйте файл values:
 
 ```bash
 # Создайте файл chaos-mesh-values.yaml

@@ -1,0 +1,18 @@
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+dashboard:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: chaos-dashboard.apatsev.org.ru
+        paths:
+          - path: /
+            pathType: Prefix
+    # annotations:
+    #   cert-manager.io/cluster-issuer: letsencrypt-prod
+    # tls:
+    #   - hosts:
+    #       - chaos-dashboard.apatsev.org.ru
+    #     secretName: chaos-dashboard-tls
