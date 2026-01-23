@@ -142,8 +142,6 @@ collector:
   msgField:
     - message
     - msg
-    # Поле 'http.uri' для HTTP-запросов, если логи содержат URI как сообщение.
-    - http.uri
 ```
 
 ### VictoriaMetrics (VM K8s Stack)
