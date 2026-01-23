@@ -1,12 +1,79 @@
-# Victoria stack в Kubernetes
+# Strimzi Kafka Chaos Testing в Kubernetes
 
-Ниже оставлены только **описание и установка** для:
+Ниже оставлены **описание и установка** для:
 
-- `VictoriaLogs`
-- `victoria-logs-collector`
-- `VictoriaMetrics` (через `victoria-metrics-k8s-stack`)
+- `Strimzi` — оператор для управления Kafka в Kubernetes
+- `Chaos Mesh` — платформа для chaos engineering
+- Observability stack:
+  - `VictoriaLogs`
+  - `victoria-logs-collector`
+  - `VictoriaMetrics` (через `victoria-metrics-k8s-stack`)
 
-## VictoriaLogs
+## Strimzi
+
+**Strimzi** — оператор Kubernetes для развертывания и управления Apache Kafka в Kubernetes. Предоставляет Custom Resource Definitions (CRDs) для управления Kafka-кластерами, топиками, пользователями и подключениями.
+
+### Установка strimzi
+```bash
+helm repo add strimzi https://strimzi.io/charts/
+helm repo update
+helm install strimzi strimzi/strimzi-kafka-operator \
+  --namespace strimzi \
+  --create-namespace \
+  --wait
+```
+
+Проверка установки:
+
+```bash
+kubectl get pods -n strimzi
+```
+
+### Удаление strimzi
+```bash
+helm uninstall strimzi -n strimzi
+```
+
+## Chaos Mesh
+
+**Chaos Mesh** — облачная платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
+
+### Установка chaos-mesh
+
+```bash
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm repo update
+helm install chaos-mesh chaos-mesh/chaos-mesh \
+  --namespace chaos-mesh \
+  --create-namespace \
+  --set chaosDaemon.runtime=containerd \
+  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
+  --wait
+```
+
+Проверка установки:
+
+```bash
+kubectl get pods -n chaos-mesh
+```
+
+### Доступ к Dashboard
+
+```bash
+kubectl port-forward -n chaos-mesh svc/chaos-dashboard 2333:2333
+```
+
+Откройте в браузере: `http://localhost:2333`
+
+### Удаление chaos-mesh
+
+```bash
+helm uninstall chaos-mesh -n chaos-mesh
+```
+
+## Observability
+
+### VictoriaLogs
 
 **VictoriaLogs** — высокопроизводительное хранилище логов от команды VictoriaMetrics. Оптимизировано для больших объёмов логов, поддерживает эффективное хранение “wide events” (множество полей в записи), быстрые полнотекстовые поиски и масштабирование. LogsQL поддерживается в VictoriaLogs datasource для Grafana.
 
@@ -63,7 +130,7 @@ vlselect:
 helm uninstall -n victoria-logs-cluster victoria-logs-cluster
 ```
 
-## victoria-logs-collector
+### victoria-logs-collector
 
 `victoria-logs-collector` — это Helm-чарт от VictoriaMetrics, развертывающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилища.
 
@@ -104,7 +171,7 @@ collector:
     - http.uri
 ```
 
-## VictoriaMetrics (VM K8s Stack)
+### VictoriaMetrics (VM K8s Stack)
 
 `victoria-metrics-k8s-stack` — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
 
