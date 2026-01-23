@@ -80,13 +80,14 @@ helm uninstall chaos-mesh -n chaos-mesh
 ### Установка: Single Node (рекомендуется для начала)
 
 ```bash
-helm upgrade --install victoria-logs-single \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-single \
-  --namespace victoria-logs \
+helm upgrade --install victoria-logs-cluster \
+  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-cluster \
+  --namespace victoria-logs-cluster \
   --create-namespace \
   --wait \
   --version 0.0.25 \
-  --timeout 15m
+  --timeout 15m \
+  -f victorialogs-cluster-values.yaml
 ```
 
 Single node версия запускает один под, который объединяет все функции (ingest, storage, query). Это упрощает установку и требует меньше ресурсов. При необходимости можно перейти на кластерную версию без миграции данных.
