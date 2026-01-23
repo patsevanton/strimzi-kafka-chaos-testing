@@ -14,7 +14,7 @@
 
 ```bash
 # Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
-kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace kafka-cluster
 
 helm repo add strimzi https://strimzi.io/charts/
 helm repo update
