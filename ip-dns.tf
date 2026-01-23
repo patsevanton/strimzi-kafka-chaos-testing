@@ -3,7 +3,7 @@ resource "yandex_vpc_address" "addr" {
   name = "victorialogs-pip" # Имя ресурса внешнего IP-адреса
 
   external_ipv4_address {
-    zone_id = yandex_vpc_subnet.victorialogs-a.zone # Зона доступности, где будет выделен IP-адрес
+    zone_id = yandex_vpc_subnet.strimzi-a.zone # Зона доступности, где будет выделен IP-адрес
   }
 }
 
@@ -15,7 +15,7 @@ resource "yandex_dns_zone" "apatsev-org-ru" {
   public = true              # Указание, что зона является публичной
 
   # Привязка зоны к VPC-сети, чтобы можно было использовать приватный DNS внутри сети
-  private_networks = [yandex_vpc_network.victorialogs.id]
+  private_networks = [yandex_vpc_network.strimzi.id]
 }
 
 # Создание DNS-записи типа A, указывающей на внешний IP
