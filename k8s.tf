@@ -1,19 +1,15 @@
-# Получаем информацию о конфигурации клиента Yandex
 data "yandex_client_config" "client" {}
 
-# Создание сервисного аккаунта для управления Kubernetes
 resource "yandex_iam_service_account" "sa-k8s-editor" {
-  name = "sa-k8s-editor" # Имя сервисного аккаунта
+  name = "sa-k8s-editor"
 }
 
-# Назначение роли "editor" сервисному аккаунту на уровне папки
 resource "yandex_resourcemanager_folder_iam_member" "sa-k8s-editor-permissions" {
-  role      = "editor" # Роль, дающая полные права на ресурсы папки
+  role      = "editor"
   folder_id = data.yandex_client_config.client.folder_id
-  member    = "serviceAccount:${yandex_iam_service_account.sa-k8s-editor.id}" # Назначаемый участник
+  member    = "serviceAccount:${yandex_iam_service_account.sa-k8s-editor.id}"
 }
 
-# Пауза, чтобы изменения IAM успели примениться до создания кластера
 resource "time_sleep" "wait_sa" {
   create_duration = "20s"
   depends_on = [
@@ -22,56 +18,51 @@ resource "time_sleep" "wait_sa" {
   ]
 }
 
-# Создание Kubernetes-кластера в Yandex Cloud
 resource "yandex_kubernetes_cluster" "strimzi" {
-  name       = "strimzi"                     # Имя кластера
-  network_id = yandex_vpc_network.strimzi.id # Сеть, к которой подключается кластер
+  name       = "strimzi"
+  network_id = yandex_vpc_network.strimzi.id
 
   master {
-    version = "1.32" # Версия Kubernetes мастера
+    version = "1.32"
     zonal {
-      zone      = yandex_vpc_subnet.strimzi-a.zone # Зона размещения мастера
-      subnet_id = yandex_vpc_subnet.strimzi-a.id   # Подсеть для мастера
+      zone      = yandex_vpc_subnet.strimzi-a.zone
+      subnet_id = yandex_vpc_subnet.strimzi-a.id
     }
 
-    public_ip = true # Включение публичного IP для доступа к мастеру
+    public_ip = true
   }
 
-  # Сервисный аккаунт для управления кластером и нодами
   service_account_id      = yandex_iam_service_account.sa-k8s-editor.id
   node_service_account_id = yandex_iam_service_account.sa-k8s-editor.id
 
-  release_channel = "STABLE" # Канал обновлений
+  release_channel = "STABLE"
 
-  # Зависимость от ожидания применения IAM-ролей
   depends_on = [time_sleep.wait_sa]
 }
 
-# Группа узлов для Kubernetes-кластера
 resource "yandex_kubernetes_node_group" "k8s-node-group" {
   description = "Node group for the Managed Service for Kubernetes cluster"
   name        = "k8s-node-group"
   cluster_id  = yandex_kubernetes_cluster.strimzi.id
-  version     = "1.32" # Версия Kubernetes на нодах
+  version     = "1.32"
 
   scale_policy {
     fixed_scale {
-      size = 3 # Фиксированное количество нод
+      size = 3
     }
   }
 
   allocation_policy {
-    # Распределение нод по зонам отказоустойчивости
     location { zone = yandex_vpc_subnet.strimzi-a.zone }
     location { zone = yandex_vpc_subnet.strimzi-b.zone }
     location { zone = yandex_vpc_subnet.strimzi-d.zone }
   }
 
   instance_template {
-    platform_id = "standard-v2" # Тип виртуальной машины
+    platform_id = "standard-v2"
 
     network_interface {
-      nat = true # Включение NAT для доступа в интернет
+      nat = true
       subnet_ids = [
         yandex_vpc_subnet.strimzi-a.id,
         yandex_vpc_subnet.strimzi-b.id,
@@ -80,27 +71,16 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
     }
 
     resources {
-      memory = 20 # ОЗУ
-      cores  = 4  # Кол-во ядер CPU
+      memory = 20
+      cores  = 4
     }
 
     boot_disk {
-      type = "network-ssd" # Тип диска
-      size = 128           # Размер диска
+      type = "network-ssd"
+      size = 128
     }
   }
 }
-
-# provider "kubernetes" {
-#   host                   = yandex_kubernetes_cluster.strimzi.master[0].external_v4_endpoint
-#   cluster_ca_certificate = yandex_kubernetes_cluster.strimzi.master[0].cluster_ca_certificate
-
-#   exec {
-#     api_version = "client.authentication.k8s.io/v1beta1"
-#     args        = ["k8s", "create-token"]
-#     command     = "yc"
-#   }
-# }
 
 provider "helm" {
   kubernetes = {
@@ -144,7 +124,6 @@ resource "helm_release" "ingress_nginx" {
   ]
 }
 
-# Вывод команды для получения kubeconfig
 output "k8s_cluster_credentials_command" {
   value = "yc managed-kubernetes cluster get-credentials --id ${yandex_kubernetes_cluster.strimzi.id} --external --force"
 }

@@ -1,46 +1,40 @@
-# Создание внешнего IP-адреса в Yandex Cloud
 resource "yandex_vpc_address" "addr" {
-  name = "victorialogs-pip" # Имя ресурса внешнего IP-адреса
+  name = "victorialogs-pip"
 
   external_ipv4_address {
-    zone_id = yandex_vpc_subnet.strimzi-a.zone # Зона доступности, где будет выделен IP-адрес
+    zone_id = yandex_vpc_subnet.strimzi-a.zone
   }
 }
 
-# Создание публичной DNS-зоны в Yandex Cloud DNS
 resource "yandex_dns_zone" "apatsev-org-ru" {
-  name = "apatsev-org-ru-zone" # Имя ресурса DNS-зоны
+  name = "apatsev-org-ru-zone"
 
-  zone   = "apatsev.org.ru." # Доменное имя зоны (с точкой в конце)
-  public = true              # Указание, что зона является публичной
+  zone   = "apatsev.org.ru."
+  public = true
 
-  # Привязка зоны к VPC-сети, чтобы можно было использовать приватный DNS внутри сети
   private_networks = [yandex_vpc_network.strimzi.id]
 }
 
-# Создание DNS-записи типа A, указывающей на внешний IP
 resource "yandex_dns_recordset" "grafana" {
-  zone_id = yandex_dns_zone.apatsev-org-ru.id                          # ID зоны, к которой принадлежит запись
-  name    = "grafana.apatsev.org.ru."                                  # Полное имя записи (поддомен)
-  type    = "A"                                                        # Тип записи — A (IPv4-адрес)
-  ttl     = 200                                                        # Время жизни записи в секундах
-  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address] # Значение — внешний IP-адрес, полученный ранее
+  zone_id = yandex_dns_zone.apatsev-org-ru.id
+  name    = "grafana.apatsev.org.ru."
+  type    = "A"
+  ttl     = 200
+  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address]
 }
 
-# Создание DNS-записи типа A, указывающей на внешний IP
 resource "yandex_dns_recordset" "victorialogs" {
-  zone_id = yandex_dns_zone.apatsev-org-ru.id                          # ID зоны, к которой принадлежит запись
-  name    = "victorialogs.apatsev.org.ru."                             # Полное имя записи (поддомен)
-  type    = "A"                                                        # Тип записи — A (IPv4-адрес)
-  ttl     = 200                                                        # Время жизни записи в секундах
-  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address] # Значение — внешний IP-адрес, полученный ранее
+  zone_id = yandex_dns_zone.apatsev-org-ru.id
+  name    = "victorialogs.apatsev.org.ru."
+  type    = "A"
+  ttl     = 200
+  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address]
 }
 
-# Создание DNS-записи типа A, указывающей на внешний IP
 resource "yandex_dns_recordset" "victoriametrics" {
-  zone_id = yandex_dns_zone.apatsev-org-ru.id                          # ID зоны, к которой принадлежит запись
-  name    = "vmselect.apatsev.org.ru."                          # Полное имя записи (поддомен)
-  type    = "A"                                                        # Тип записи — A (IPv4-адрес)
-  ttl     = 200                                                        # Время жизни записи в секундах
-  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address] # Значение — внешний IP-адрес, полученный ранее
+  zone_id = yandex_dns_zone.apatsev-org-ru.id
+  name    = "vmselect.apatsev.org.ru."
+  type    = "A"
+  ttl     = 200
+  data    = [yandex_vpc_address.addr.external_ipv4_address[0].address]
 }
