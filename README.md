@@ -50,11 +50,58 @@ kubectl get pods -n chaos-mesh
 
 ### Доступ к Dashboard
 
+Для доступа к Dashboard через ingress-nginx, установите Chaos Mesh с включенным ingress:
+
 ```bash
-kubectl port-forward -n chaos-mesh svc/chaos-dashboard 2333:2333
+helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
+  --namespace chaos-mesh \
+  --create-namespace \
+  --set chaosDaemon.runtime=containerd \
+  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
+  --set dashboard.ingress.enabled=true \
+  --set dashboard.ingress.ingressClassName=nginx \
+  --set dashboard.ingress.hosts[0].host=chaos-dashboard.apatsev.org.ru \
+  --set dashboard.ingress.hosts[0].paths[0].path=/ \
+  --set dashboard.ingress.hosts[0].paths[0].pathType=Prefix \
+  --set dashboard.ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-prod \
+  --set dashboard.ingress.tls[0].hosts[0]=chaos-dashboard.apatsev.org.ru \
+  --set dashboard.ingress.tls[0].secretName=chaos-dashboard-tls \
+  --wait
 ```
 
-Откройте в браузере: `http://localhost:2333`
+Или используйте файл values:
+
+```bash
+# Создайте файл chaos-mesh-values.yaml
+cat > chaos-mesh-values.yaml <<EOF
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+dashboard:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - host: chaos-dashboard.apatsev.org.ru
+        paths:
+          - path: /
+            pathType: Prefix
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls:
+      - hosts:
+          - chaos-dashboard.apatsev.org.ru
+        secretName: chaos-dashboard-tls
+EOF
+
+helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
+  --namespace chaos-mesh \
+  --create-namespace \
+  -f chaos-mesh-values.yaml \
+  --wait
+```
+
+Откройте в браузере: `https://chaos-dashboard.apatsev.org.ru`
 
 ## Observability Stack
 
