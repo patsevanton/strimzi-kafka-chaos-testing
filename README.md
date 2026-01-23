@@ -31,28 +31,12 @@ kubectl get pods -n strimzi
 
 ### Установка Chaos Mesh
 
-```bash
-helm repo add chaos-mesh https://charts.chaos-mesh.org
-helm repo update
-helm install chaos-mesh chaos-mesh/chaos-mesh \
-  --namespace chaos-mesh \
-  --create-namespace \
-  --set chaosDaemon.runtime=containerd \
-  --set chaosDaemon.socketPath=/run/containerd/containerd.sock \
-  --wait
-```
-
-Проверка установки:
-
-```bash
-kubectl get pods -n chaos-mesh
-```
-
-### Доступ к Dashboard
-
 Для доступа к Dashboard через ingress-nginx используйте файл values:
 
 ```bash
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm repo update
+
 # Создайте файл chaos-mesh-values.yaml
 cat > chaos-mesh-values.yaml <<EOF
 chaosDaemon:
@@ -75,6 +59,12 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --create-namespace \
   -f chaos-mesh-values.yaml \
   --wait
+```
+
+Проверка установки:
+
+```bash
+kubectl get pods -n chaos-mesh
 ```
 
 Откройте в браузере: `https://chaos-dashboard.apatsev.org.ru`
