@@ -67,12 +67,7 @@ dashboard:
         paths:
           - path: /
             pathType: Prefix
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    tls:
-      - hosts:
-          - chaos-dashboard.apatsev.org.ru
-        secretName: chaos-dashboard-tls
+    annotations: {}
 EOF
 
 helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
@@ -132,12 +127,7 @@ vlselect:
           - /
         port: http
     ingressClassName: nginx
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    tls:
-      - hosts:
-        - victorialogs.apatsev.org.ru
-        secretName: victorialogs-tls
+    annotations: {}
 ```
 
 ### victoria-logs-collector
@@ -211,11 +201,6 @@ grafana:
       - grafana.apatsev.org.ru
     annotations:
       nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    tls:
-      - hosts:
-          - grafana.apatsev.org.ru
-        secretName: grafana-tls
 defaultDatasources:
   extra:
     - name: victoriametrics-logs
@@ -242,13 +227,8 @@ vmcluster:
       ingressClassName: nginx
       annotations:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
-        cert-manager.io/cluster-issuer: letsencrypt-prod
       hosts:
         - vmselect.apatsev.org.ru
-      tls:
-        - secretName: victoriametrics-tls
-          hosts:
-            - vmselect.apatsev.org.ru
 ```
 
 Пароль `admin` для Grafana:
