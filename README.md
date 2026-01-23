@@ -2,12 +2,111 @@
 
 Ниже оставлены **описание и установка** для:
 
+- `Kafka Application` — Go приложение для отправки и получения данных из Strimzi Kafka
 - `Strimzi` — оператор для управления Kafka в Kubernetes
 - `Chaos Mesh` — платформа для chaos engineering
 - Observability stack:
   - `VictoriaLogs`
   - `victoria-logs-collector`
   - `VictoriaMetrics` (через `victoria-metrics-k8s-stack`)
+
+## Kafka Application
+
+**Kafka Application** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`.
+
+### Используемые библиотеки
+
+- `segmentio/kafka-go` — клиент для работы с Kafka
+- `riferrei/srclient` — клиент для Schema Registry
+- `goavro` (linkedin/goavro/v2) — работа с Avro схемами
+- `xdg-go/scram` — SASL/SCRAM аутентификация (используется через kafka-go)
+
+### Сборка приложения
+
+#### Сборка без Docker
+
+```bash
+go mod download
+go build -o kafka-app main.go
+```
+
+#### Сборка с Docker
+
+```bash
+docker build -t kafka-app:latest .
+```
+
+### Переменные окружения
+
+| Переменная | Описание | Значение по умолчанию |
+|------------|----------|----------------------|
+| `MODE` | Режим работы: `producer` или `consumer` | `producer` |
+| `KAFKA_BROKERS` | Список брокеров Kafka (через запятую) | `localhost:9092` |
+| `KAFKA_TOPIC` | Название топика | `test-topic` |
+| `SCHEMA_REGISTRY_URL` | URL Schema Registry | `http://localhost:8081` |
+| `KAFKA_USERNAME` | Имя пользователя для SASL/SCRAM | - |
+| `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
+| `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
+
+### Запуск приложения
+
+#### Producer режим
+
+```bash
+export MODE=producer
+export KAFKA_BROKERS=kafka-broker-1:9092,kafka-broker-2:9092
+export KAFKA_TOPIC=test-topic
+export SCHEMA_REGISTRY_URL=http://schema-registry:8081
+export KAFKA_USERNAME=myuser
+export KAFKA_PASSWORD=mypassword
+
+./kafka-app
+```
+
+#### Consumer режим
+
+```bash
+export MODE=consumer
+export KAFKA_BROKERS=kafka-broker-1:9092,kafka-broker-2:9092
+export KAFKA_TOPIC=test-topic
+export SCHEMA_REGISTRY_URL=http://schema-registry:8081
+export KAFKA_USERNAME=myuser
+export KAFKA_PASSWORD=mypassword
+export KAFKA_GROUP_ID=my-consumer-group
+
+./kafka-app
+```
+
+#### Запуск в Docker
+
+```bash
+docker run -e MODE=producer \
+  -e KAFKA_BROKERS=kafka-broker-1:9092 \
+  -e KAFKA_TOPIC=test-topic \
+  -e SCHEMA_REGISTRY_URL=http://schema-registry:8081 \
+  -e KAFKA_USERNAME=myuser \
+  -e KAFKA_PASSWORD=mypassword \
+  kafka-app:latest
+```
+
+### Формат сообщений
+
+Приложение использует Avro схему для сериализации сообщений:
+
+```json
+{
+  "type": "record",
+  "name": "Message",
+  "namespace": "com.example",
+  "fields": [
+    {"name": "id", "type": "long"},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "data", "type": "string"}
+  ]
+}
+```
+
+Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
 
 ## Strimzi
 

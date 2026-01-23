@@ -1,0 +1,15 @@
+.cursorignore
+.git
+.gitignore
+ip-dns.tf
+k8s.tf
+LICENSE
+net.tf
+.terraform
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+versions.tf
+victorialogs-cluster-values.yaml
+victorialogs-collector-values.yaml
+vmks-values.yaml
