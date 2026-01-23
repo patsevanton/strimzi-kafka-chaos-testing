@@ -13,7 +13,7 @@
 ```bash
 helm repo add strimzi https://strimzi.io/charts/
 helm repo update
-helm install strimzi strimzi/strimzi-kafka-operator \
+helm upgrade --install strimzi strimzi/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
   --wait
