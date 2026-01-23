@@ -18,7 +18,7 @@ helm repo update
 helm upgrade --install strimzi strimzi/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
-  --set watchNamespaces={strimzi} \
+  --set 'watchNamespaces={strimzi,kafka-cluster}' \
   --wait
 ```
 
@@ -41,7 +41,7 @@ metadata:
   namespace: kafka-cluster
 spec:
   kafka:
-    version: 3.7.0
+    version: 4.1.1
     replicas: 3
     listeners:
       - name: plain
@@ -54,7 +54,7 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-      inter.broker.protocol.version: "3.7"
+      inter.broker.protocol.version: "4.1"
     storage:
       type: jbod
       volumes:
