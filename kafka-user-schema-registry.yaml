@@ -1,7 +1,7 @@
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaUser
 metadata:
-  name: myuser
+  name: schema-registry
   namespace: kafka-cluster
   labels:
     strimzi.io/cluster: kafka-cluster
@@ -11,9 +11,10 @@ spec:
   authorization:
     type: simple
     acls:
+      # Confluent Schema Registry stores schemas in Kafka topic `_schemas`
       - resource:
           type: topic
-          name: test-topic
+          name: _schemas
           patternType: literal
         operations:
           - Read
@@ -22,16 +23,10 @@ spec:
           - Describe
           - DescribeConfigs
           - AlterConfigs
-      - resource:
-          type: cluster
-          name: kafka-cluster
-          patternType: literal
-        operations:
-          - Describe
-          - IdempotentWrite
+      # Consumer group used by Schema Registry
       - resource:
           type: group
-          name: test-group
+          name: schema-registry
           patternType: literal
         operations:
           - Read
