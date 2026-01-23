@@ -1,0 +1,19 @@
+vlselect:
+  ingress:
+    enabled: true
+    hosts:
+      - name: victorialogs.apatsev.org.ru
+        path:
+          - /
+        port: http
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    # tls:
+    #   - hosts:
+    #     - victorialogs.apatsev.org.ru
+    #     secretName: victorialogs-tls
+vlstorage:
+  retentionPeriod: 1d
+  persistentVolume:
+    size: 200Gi

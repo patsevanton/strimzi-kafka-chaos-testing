@@ -1,0 +1,5 @@
+# Ignore all files
+*
+
+# Allow main.py
+!main.py

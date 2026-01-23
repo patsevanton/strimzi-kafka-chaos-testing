@@ -1,0 +1,12 @@
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-log-generator
+  namespace: python-log-generator
+  labels:
+    app: python-log-generator
+spec:
+  containers:
+  - name: python-log-generator
+    image: antonpatsev/log-generator:2
