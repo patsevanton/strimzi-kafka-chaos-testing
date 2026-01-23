@@ -25,6 +25,258 @@ helm upgrade --install strimzi strimzi/strimzi-kafka-operator \
 kubectl get pods -n strimzi
 ```
 
+### Развертывание Kafka кластера
+
+После установки оператора Strimzi можно развернуть Kafka кластер. Создайте манифест для Kafka кластера:
+
+```bash
+cat > kafka-cluster.yaml <<EOF
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: kafka
+spec:
+  kafka:
+    version: 3.7.0
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      inter.broker.protocol.version: "3.7"
+    storage:
+      type: jbod
+      volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 100Gi
+      deleteClaim: false
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+EOF
+
+kubectl create namespace kafka
+kubectl apply -f kafka-cluster.yaml
+```
+
+Проверка статуса кластера:
+
+```bash
+# Проверка статуса Kafka кластера
+kubectl get kafka -n kafka
+
+# Проверка подов Kafka брокеров
+kubectl get pods -n kafka -l strimzi.io/cluster=my-cluster
+
+# Ожидание готовности кластера (статус Ready)
+kubectl wait kafka/my-cluster -n kafka --for=condition=Ready --timeout=300s
+```
+
+После развертывания Kafka кластера адреса брокеров будут доступны через сервис:
+
+- **Bootstrap сервер (plain)**: `my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
+- **Bootstrap сервер (TLS)**: `my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093`
+
+Для использования из других namespace:
+
+```bash
+# Получить адрес bootstrap сервера
+kubectl get svc -n kafka my-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}'
+```
+
+### Создание Kafka топиков
+
+Создайте Kafka топик через Strimzi KafkaTopic ресурс:
+
+```bash
+cat > kafka-topic.yaml <<EOF
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: test-topic
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 7200000
+    segment.ms: 3600000
+EOF
+
+kubectl apply -f kafka-topic.yaml
+```
+
+Проверка создания топика:
+
+```bash
+# Проверка топиков
+kubectl get kafkatopic -n kafka
+
+# Детальная информация о топике
+kubectl describe kafkatopic test-topic -n kafka
+```
+
+### Создание Kafka пользователей и секретов
+
+Для аутентификации через SASL/SCRAM создайте Kafka пользователя. Strimzi автоматически создаст секрет с credentials.
+
+#### Создание пользователя
+
+```bash
+cat > kafka-user.yaml <<EOF
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: myuser
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: test-topic
+          patternType: literal
+        operations:
+          - Read
+          - Write
+          - Create
+          - Describe
+      - resource:
+          type: group
+          name: test-group
+          patternType: literal
+        operations:
+          - Read
+EOF
+
+kubectl apply -f kafka-user.yaml
+```
+
+После создания KafkaUser, Strimzi автоматически создаст секрет с именем `myuser` в том же namespace, содержащий:
+- `password` — пароль пользователя
+- `ca.crt` — CA сертификат (если используется TLS)
+- `user.crt` и `user.key` — клиентский сертификат (если используется TLS)
+
+#### Получение credentials из секрета
+
+```bash
+# Получить имя пользователя (обычно совпадает с именем KafkaUser)
+USERNAME=myuser
+
+# Получить пароль из секрета
+PASSWORD=$(kubectl get secret myuser -n kafka -o jsonpath='{.data.password}' | base64 -d)
+
+# Получить CA сертификат (если используется TLS)
+kubectl get secret myuser -n kafka -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
+```
+
+#### Создание секрета вручную (альтернативный способ)
+
+Если нужно создать секрет вручную или в другом namespace:
+
+```bash
+# Генерация пароля (опционально, можно использовать любой пароль)
+PASSWORD=$(openssl rand -base64 32)
+
+# Создание секрета с credentials
+kubectl create secret generic kafka-credentials \
+  --namespace kafka-app \
+  --from-literal=username=myuser \
+  --from-literal=password=$PASSWORD
+
+# Или с использованием файла
+cat > kafka-credentials-secret.yaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-credentials
+  namespace: kafka-app
+type: Opaque
+stringData:
+  username: myuser
+  password: mypassword
+EOF
+
+kubectl apply -f kafka-credentials-secret.yaml
+```
+
+#### Использование секрета в приложениях
+
+При использовании Helm чартов для producer/consumer, секрет можно использовать следующим образом:
+
+```bash
+# Producer с использованием существующего секрета
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set kafka.brokers="my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.topic="test-topic" \
+  --set schemaRegistry.url="http://schema-registry:8081" \
+  --set secrets.existingSecret="kafka-credentials" \
+  --set secrets.usernameKey="username" \
+  --set secrets.passwordKey="password"
+```
+
+Или если секрет создан Strimzi автоматически:
+
+```bash
+# Использование секрета, созданного Strimzi для пользователя myuser
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-app \
+  --create-namespace \
+  --set kafka.brokers="my-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.topic="test-topic" \
+  --set schemaRegistry.url="http://schema-registry:8081" \
+  --set secrets.existingSecret="myuser" \
+  --set secrets.existingSecretNamespace="kafka" \
+  --set secrets.usernameKey="username" \
+  --set secrets.passwordKey="password"
+```
+
+#### Проверка пользователей и секретов
+
+```bash
+# Проверка Kafka пользователей
+kubectl get kafkauser -n kafka
+
+# Проверка секретов
+kubectl get secrets -n kafka | grep myuser
+
+# Просмотр содержимого секрета (без пароля)
+kubectl describe secret myuser -n kafka
+
+# Получение пароля из секрета
+kubectl get secret myuser -n kafka -o jsonpath='{.data.password}' | base64 -d && echo
+```
+
 ## Chaos Mesh
 
 **Chaos Mesh** — облачная платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
@@ -367,6 +619,22 @@ kubectl logs -n kafka-app -l app.kubernetes.io/name=kafka-consumer
 Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
 
 ## Удаление компонентов
+
+### Удаление Kafka кластера
+
+```bash
+# Удаление топиков
+kubectl delete kafkatopic -n kafka --all
+
+# Удаление пользователей
+kubectl delete kafkauser -n kafka --all
+
+# Удаление Kafka кластера
+kubectl delete kafka my-cluster -n kafka
+
+# Удаление namespace (опционально)
+kubectl delete namespace kafka
+```
 
 ### Удаление Strimzi
 
