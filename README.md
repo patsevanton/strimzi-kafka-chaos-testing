@@ -47,12 +47,6 @@ spec:
         port: 9092
         type: internal
         tls: false
-      - name: tls
-        port: 9093
-        type: internal
-        tls: true
-        authentication:
-          type: scram-sha-512
     config:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
@@ -91,8 +85,7 @@ kubectl wait kafka/kafka-cluster -n kafka --for=condition=Ready --timeout=300s
 
 После развертывания Kafka кластера адреса брокеров будут доступны через сервис:
 
-- **Bootstrap сервер (plain)**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
-- **Bootstrap сервер (TLS)**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9093`
+- **Bootstrap сервер**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
 
 Для использования из других namespace:
 
@@ -178,8 +171,6 @@ kubectl apply -f kafka-user.yaml
 
 После создания KafkaUser, Strimzi автоматически создаст секрет с именем `myuser` в том же namespace, содержащий:
 - `password` — пароль пользователя
-- `ca.crt` — CA сертификат (если используется TLS)
-- `user.crt` и `user.key` — клиентский сертификат (если используется TLS)
 
 #### Получение credentials из секрета
 
@@ -189,9 +180,6 @@ USERNAME=myuser
 
 # Получить пароль из секрета
 PASSWORD=$(kubectl get secret myuser -n kafka -o jsonpath='{.data.password}' | base64 -d)
-
-# Получить CA сертификат (если используется TLS)
-kubectl get secret myuser -n kafka -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
 ```
 
 #### Создание секрета вручную (альтернативный способ)
