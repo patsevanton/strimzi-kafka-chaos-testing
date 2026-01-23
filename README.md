@@ -38,7 +38,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: kafka-cluster
-  namespace: kafka
+  namespace: kafka-cluster
 spec:
   kafka:
     version: 3.7.0
@@ -67,7 +67,7 @@ spec:
     userOperator: {}
 EOF
 
-kubectl create namespace kafka
+kubectl create namespace kafka-cluster
 kubectl apply -f kafka-cluster.yaml
 ```
 
@@ -75,24 +75,24 @@ kubectl apply -f kafka-cluster.yaml
 
 ```bash
 # Проверка статуса Kafka кластера
-kubectl get kafka -n kafka
+kubectl get kafka -n kafka-cluster
 
 # Проверка подов Kafka брокеров
-kubectl get pods -n kafka -l strimzi.io/cluster=kafka-cluster
+kubectl get pods -n kafka-cluster -l strimzi.io/cluster=kafka-cluster
 
 # Ожидание готовности кластера (статус Ready)
-kubectl wait kafka/kafka-cluster -n kafka --for=condition=Ready --timeout=300s
+kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeout=300s
 ```
 
 После развертывания Kafka кластера адреса брокеров будут доступны через сервис:
 
-- **Bootstrap сервер**: `kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092`
+- **Bootstrap сервер**: `kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092`
 
 Для использования из других namespace:
 
 ```bash
 # Получить адрес bootstrap сервера
-kubectl get svc -n kafka kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}'
+kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[0].port}'
 ```
 
 ### Создание Kafka топиков
@@ -105,7 +105,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
   name: test-topic
-  namespace: kafka
+  namespace: kafka-cluster
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
@@ -123,10 +123,10 @@ kubectl apply -f kafka-topic.yaml
 
 ```bash
 # Проверка топиков
-kubectl get kafkatopic -n kafka
+kubectl get kafkatopic -n kafka-cluster
 
 # Детальная информация о топике
-kubectl describe kafkatopic test-topic -n kafka
+kubectl describe kafkatopic test-topic -n kafka-cluster
 ```
 
 ### Создание Kafka пользователей и секретов
@@ -141,7 +141,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
 metadata:
   name: myuser
-  namespace: kafka
+  namespace: kafka-cluster
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
@@ -180,7 +180,7 @@ kubectl apply -f kafka-user.yaml
 USERNAME=myuser
 
 # Получить пароль из секрета
-PASSWORD=$(kubectl get secret myuser -n kafka -o jsonpath='{.data.password}' | base64 -d)
+PASSWORD=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
 ```
 
 #### Создание секрета вручную (альтернативный способ)
@@ -222,7 +222,7 @@ kubectl apply -f kafka-credentials-secret.yaml
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-app \
   --create-namespace \
-  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set kafka.topic="test-topic" \
   --set schemaRegistry.url="http://schema-registry:8081" \
   --set secrets.existingSecret="kafka-credentials" \
@@ -237,11 +237,11 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-app \
   --create-namespace \
-  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set kafka.topic="test-topic" \
   --set schemaRegistry.url="http://schema-registry:8081" \
   --set secrets.existingSecret="myuser" \
-  --set secrets.existingSecretNamespace="kafka" \
+  --set secrets.existingSecretNamespace="kafka-cluster" \
   --set secrets.usernameKey="username" \
   --set secrets.passwordKey="password"
 ```
@@ -250,16 +250,16 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 
 ```bash
 # Проверка Kafka пользователей
-kubectl get kafkauser -n kafka
+kubectl get kafkauser -n kafka-cluster
 
 # Проверка секретов
-kubectl get secrets -n kafka | grep myuser
+kubectl get secrets -n kafka-cluster | grep myuser
 
 # Просмотр содержимого секрета (без пароля)
-kubectl describe secret myuser -n kafka
+kubectl describe secret myuser -n kafka-cluster
 
 # Получение пароля из секрета
-kubectl get secret myuser -n kafka -o jsonpath='{.data.password}' | base64 -d && echo
+kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d && echo
 ```
 
 ## Chaos Mesh
@@ -613,9 +613,9 @@ helm uninstall kafka-producer -n kafka-app
 helm uninstall kafka-consumer -n kafka-app
 
 # Удаление Kafka кластера
-kubectl delete kafkatopic -n kafka --all
-kubectl delete kafkauser -n kafka --all
-kubectl delete kafka kafka-cluster -n kafka
+kubectl delete kafkatopic -n kafka-cluster --all
+kubectl delete kafkauser -n kafka-cluster --all
+kubectl delete kafka kafka-cluster -n kafka-cluster
 
 # Удаление Strimzi
 helm uninstall strimzi -n strimzi
@@ -632,7 +632,7 @@ helm uninstall vmks -n vmks
 
 # Удаление всех namespace
 kubectl delete namespace kafka-app
-kubectl delete namespace kafka
+kubectl delete namespace kafka-cluster
 kubectl delete namespace strimzi
 kubectl delete namespace chaos-mesh
 kubectl delete namespace victoria-logs-cluster
