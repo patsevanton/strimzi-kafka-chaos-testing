@@ -8,6 +8,8 @@
 
 **Strimzi** — оператор Kubernetes для развертывания и управления Apache Kafka в Kubernetes. Предоставляет Custom Resource Definitions (CRDs) для управления Kafka-кластерами, топиками, пользователями и подключениями.
 
+Данный проект использует **KRaft (Kafka Raft)** — новый механизм управления метаданными в Apache Kafka, который заменяет зависимость от ZooKeeper. KRaft упрощает архитектуру кластера, улучшает производительность и масштабируемость, а также снижает задержки при управлении метаданными.
+
 ### Установка Strimzi
 
 ```bash
@@ -27,7 +29,7 @@ kubectl get pods -n strimzi
 
 ### Развертывание Kafka кластера
 
-После установки оператора Strimzi можно развернуть Kafka кластер. Создайте манифест для Kafka кластера:
+После установки оператора Strimzi можно развернуть Kafka кластер. Создайте манифест для Kafka кластера с использованием KRaft (Kafka Raft). В Strimzi для использования KRaft достаточно просто не указывать секцию `zookeeper` — оператор автоматически настроит кластер в режиме KRaft для Kafka версии 3.3.0 и выше:
 
 ```bash
 cat > kafka-cluster.yaml <<EOF
@@ -65,12 +67,6 @@ spec:
         type: persistent-claim
         size: 100Gi
         deleteClaim: false
-  zookeeper:
-    replicas: 3
-    storage:
-      type: persistent-claim
-      size: 100Gi
-      deleteClaim: false
   entityOperator:
     topicOperator: {}
     userOperator: {}
