@@ -18,6 +18,7 @@ helm repo update
 helm upgrade --install strimzi strimzi/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
+  --set watchNamespaces={strimzi} \
   --wait
 ```
 
@@ -604,43 +605,37 @@ Producer отправляет сообщения каждую секунду с 
 
 ## Удаление компонентов
 
-### Удаление Kafka кластера
+### Удаление всех компонентов и namespace
 
 ```bash
-# Удаление топиков
-kubectl delete kafkatopic -n kafka --all
-
-# Удаление пользователей
-kubectl delete kafkauser -n kafka --all
-
-# Удаление Kafka кластера
-kubectl delete kafka kafka-cluster -n kafka
-
-# Удаление namespace (опционально)
-kubectl delete namespace kafka
-```
-
-### Удаление Strimzi
-
-```bash
-helm uninstall strimzi -n strimzi
-```
-
-### Удаление Chaos Mesh
-
-```bash
-helm uninstall chaos-mesh -n chaos-mesh
-```
-
-### Удаление VictoriaLogs
-
-```bash
-helm uninstall -n victoria-logs-cluster victoria-logs-cluster
-```
-
-### Удаление Kafka Application
-
-```bash
+# Удаление Kafka Application
 helm uninstall kafka-producer -n kafka-app
 helm uninstall kafka-consumer -n kafka-app
+
+# Удаление Kafka кластера
+kubectl delete kafkatopic -n kafka --all
+kubectl delete kafkauser -n kafka --all
+kubectl delete kafka kafka-cluster -n kafka
+
+# Удаление Strimzi
+helm uninstall strimzi -n strimzi
+
+# Удаление Chaos Mesh
+helm uninstall chaos-mesh -n chaos-mesh
+
+# Удаление VictoriaLogs
+helm uninstall victoria-logs-cluster -n victoria-logs-cluster
+helm uninstall victoria-logs-collector -n victoria-logs-collector
+
+# Удаление VictoriaMetrics K8s Stack
+helm uninstall vmks -n vmks
+
+# Удаление всех namespace
+kubectl delete namespace kafka-app
+kubectl delete namespace kafka
+kubectl delete namespace strimzi
+kubectl delete namespace chaos-mesh
+kubectl delete namespace victoria-logs-cluster
+kubectl delete namespace victoria-logs-collector
+kubectl delete namespace vmks
 ```
