@@ -21,7 +21,7 @@ helm upgrade --install strimzi-cluster-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={strimzi,kafka-cluster}' \
-  --wait
+  --wait \
   --version 0.50.0
 ```
 
