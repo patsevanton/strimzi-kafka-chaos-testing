@@ -16,11 +16,13 @@
 # Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
 kubectl create namespace kafka-cluster
 
-helm upgrade --install strimzi-cluster-operator --version 0.50.0 oci://quay.io/strimzi-helm/strimzi-kafka-operator \
+helm upgrade --install strimzi-cluster-operator \
+  oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={strimzi,kafka-cluster}' \
   --wait
+  --version 0.50.0
 ```
 
 Проверка установки:
