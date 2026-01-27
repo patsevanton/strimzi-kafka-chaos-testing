@@ -133,14 +133,18 @@ kubectl describe secret myuser -n kafka-cluster
 kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d && echo
 ```
 
-## Schema Registry (Confluent) для Avro (опционально)
+## Schema Registry (Confluent) для Avro
 
 Go-приложение из этого репозитория использует Avro и Schema Registry. Для удобства здесь добавлены готовые манифесты:
 
 - `kafka-user-schema-registry.yaml` — KafkaUser с правами на `_schemas`
 - `schema-registry.yaml` — Service/Deployment для `confluentinc/cp-schema-registry`
 
-Важно: для Confluent image в Kubernetes в `schema-registry.yaml` включено `enableServiceLinks: false`, иначе Kubernetes добавляет переменную окружения `SCHEMA_REGISTRY_PORT`, и скрипт старта контейнера завершится с ошибкой.
+Важно:
+
+- В `schema-registry.yaml` включено `enableServiceLinks: false`, иначе Kubernetes добавляет переменную окружения `SCHEMA_REGISTRY_PORT`, и скрипт старта контейнера завершится с ошибкой.
+- `SCHEMA_REGISTRY_HOST_NAME` берётся из `status.podIP` (уникально для каждого pod). Это предотвращает ошибку Confluent Schema Registry про “duplicate URLs” при рестартах/масштабировании.
+- В `schema-registry.yaml` используется стратегия `Recreate`, чтобы при обновлениях не было одновременно 2 pod'ов Schema Registry (что часто ломает leader election/coordination в тестовых окружениях).
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
@@ -149,9 +153,15 @@ kubectl apply -f kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Скопировать sasl.jaas.config из секрета Strimzi в Secret в namespace schema-registry
+# Важно: используем --from-literal (а не process substitution), чтобы значение точно не оказалось пустым.
+JAAS=$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d)
 kubectl create secret generic schema-registry-credentials -n schema-registry \
-  --from-file=sasl.jaas.config=<(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d) \
+  --from-literal=sasl.jaas.config="$JAAS" \
   --dry-run=client -o yaml | kubectl apply -f -
+
+# Быстрая проверка (должна выводиться строка с ScramLoginModule ...)
+kubectl get secret schema-registry-credentials -n schema-registry \
+  -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d && echo
 
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
