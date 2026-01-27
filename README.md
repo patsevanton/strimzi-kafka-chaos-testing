@@ -20,7 +20,7 @@ helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
-  --set 'watchNamespaces={strimzi,kafka-cluster}' \
+  --set 'watchNamespaces={kafka-cluster}' \
   --wait \
   --version 0.50.0
 ```
