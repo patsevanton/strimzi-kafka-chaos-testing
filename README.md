@@ -14,7 +14,7 @@
 
 ```bash
 # Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
-kubectl create namespace kafka-cluster
+kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
 
 helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
@@ -433,7 +433,7 @@ kubectl delete kafkauser -n kafka-cluster --all
 kubectl delete kafka kafka-cluster -n kafka-cluster
 
 # Удаление Strimzi
-helm uninstall strimzi -n strimzi
+helm uninstall strimzi-cluster-operator -n strimzi
 
 # Удаление Chaos Mesh
 helm uninstall chaos-mesh -n chaos-mesh
