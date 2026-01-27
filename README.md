@@ -168,10 +168,6 @@ kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
 ```
 
-## Дополнительные компоненты (опционально)
-
-Chaos Mesh, VictoriaLogs, victoria-logs-collector и VictoriaMetrics VM K8s Stack вынесены в `ADDONS.md`.
-
 ## Producer App и Consumer App
 
 **Producer App и Consumer App** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Используется для генерации нагрузки на кластер Kafka во время тестирования.
