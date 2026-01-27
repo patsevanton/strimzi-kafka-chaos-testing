@@ -227,6 +227,41 @@ EOF
   --producer.config /tmp/client.properties"
 ```
 
+### Запуск Producer/Consumer в Kubernetes через Helm
+
+В репозитории есть чарты `helm/kafka-producer` и `helm/kafka-consumer`. Они используют переменные окружения приложения:
+- `KAFKA_BROKERS` → `kafka-cluster-kafka-bootstrap.kafka-cluster:9092`
+- `SCHEMA_REGISTRY_URL` → `http://schema-registry.schema-registry:8081`
+
+Важно: secret `myuser` создаётся Strimzi в namespace `kafka-cluster`, поэтому для приложений в `kafka-apps` нужно создать отдельный secret с тем же логином/паролем.
+
+```bash
+kubectl create namespace kafka-apps --dry-run=client -o yaml | kubectl apply -f -
+
+# Скопировать пароль из секрета Strimzi и создать secret в namespace приложений
+PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+kubectl create secret generic kafka-app-credentials -n kafka-apps \
+  --from-literal=username=myuser \
+  --from-literal=password="$PASS" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-apps \
+  --set secrets.name=kafka-app-credentials
+
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-apps \
+  --set secrets.name=kafka-app-credentials
+
+kubectl rollout status deploy/kafka-producer -n kafka-apps --timeout=5m
+kubectl rollout status deploy/kafka-consumer -n kafka-apps --timeout=5m
+
+kubectl logs -n kafka-apps deploy/kafka-producer --tail=50
+kubectl logs -n kafka-apps deploy/kafka-consumer --tail=50
+```
+
+Примечание: consumer ожидает Avro-сообщения (пишет producer из этого приложения). Если до этого вы генерировали нагрузку `kafka-producer-perf-test.sh`, consumer может логировать ошибки декодирования для «не-Avro» сообщений.
+
 ### Формат сообщений
 
 Приложение использует Avro схему для сериализации сообщений:

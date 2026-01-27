@@ -27,13 +27,20 @@ helm install kafka-consumer ./helm/kafka-consumer \
 
 ### Безопасность
 
-Для использования секретов вместо plain text паролей:
+Для использования секретов вместо plain text паролей (рекомендуется):
 
 ```yaml
 secrets:
   create: true
   username: "myuser"
   password: "mypassword"
+```
+
+Также можно использовать **уже существующий** secret в namespace релиза:
+```bash
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-apps \
+  --set secrets.name=kafka-app-credentials
 ```
 
 ### Пример values.yaml для Strimzi
@@ -46,14 +53,14 @@ image:
   tag: "latest"
 
 kafka:
-  brokers: "my-cluster-kafka-bootstrap:9092"
+  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster:9092"
   topic: "test-topic"
   groupId: "my-consumer-group"
   username: "myuser"
   password: "mypassword"
 
 schemaRegistry:
-  url: "http://schema-registry:8081"
+  url: "http://schema-registry.schema-registry:8081"
 
 secrets:
   create: true

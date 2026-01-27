@@ -14,6 +14,7 @@ import (
 	"github.com/linkedin/goavro/v2"
 	"github.com/riferrei/srclient"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
@@ -133,16 +134,20 @@ func runProducer(ctx context.Context, config *Config) {
 	}
 
 	// Add SASL/SCRAM authentication if credentials provided
+	var mechanism sasl.Mechanism
 	if config.Username != "" && config.Password != "" {
-		mechanism, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
+		m, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
 		if err != nil {
 			log.Fatalf("Failed to create SCRAM mechanism: %v", err)
 		}
-		dialer.SASLMechanism = mechanism
+		mechanism = m
+		// Used by kafka.Reader (Dialer) and also by our custom Transport dial below.
+		dialer.SASLMechanism = m
 	}
 
 	// Setup transport with dialer
 	transport := &kafka.Transport{
+		SASL: mechanism,
 		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return dialer.DialContext(ctx, network, addr)
 		},

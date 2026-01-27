@@ -42,7 +42,7 @@ spec:
               value: {{ .Values.kafka.topic | quote }}
             - name: SCHEMA_REGISTRY_URL
               value: {{ .Values.schemaRegistry.url | quote }}
-            {{- if .Values.secrets.create }}
+            {{- if or .Values.secrets.create .Values.secrets.name }}
             - name: KAFKA_USERNAME
               valueFrom:
                 secretKeyRef:

@@ -50,7 +50,8 @@ autoscaling:
 
 # Kafka configuration
 kafka:
-  brokers: "kafka-broker-1:9092,kafka-broker-2:9092"
+  # Strimzi bootstrap service (works cross-namespace via DNS)
+  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster:9092"
   topic: "test-topic"
   groupId: "test-group"
   username: ""
@@ -58,7 +59,8 @@ kafka:
 
 # Schema Registry configuration
 schemaRegistry:
-  url: "http://schema-registry:8081"
+  # Service is deployed into namespace "schema-registry" in this repo
+  url: "http://schema-registry.schema-registry:8081"
 
 # Secrets configuration
 secrets:
