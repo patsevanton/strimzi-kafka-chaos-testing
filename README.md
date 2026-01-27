@@ -191,37 +191,6 @@ kubectl get svc -n schema-registry schema-registry
 | `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
 | `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
 
-### Генерация нагрузки (без сборки образа)
-
-На момент написания README образ приложения в `ghcr.io/patsevanton/strimzi-kafka-chaos-testing` использует `segmentio/kafka-go` и может требовать обновления/пересборки для полной совместимости с Kafka `4.x`. Чтобы **гарантированно** получить нагрузку без сборки образов, используйте Kafka CLI из образа Strimzi.
-
-Если вы не хотите собирать/публиковать Docker-образ приложения, можно генерировать нагрузку штатными утилитами Kafka из образа Strimzi.
-
-```bash
-kubectl create namespace kafka-app --dry-run=client -o yaml | kubectl apply -f -
-
-# Под-утилита с Kafka CLI
-kubectl run kafka-client -n kafka-app \
-  --image=quay.io/strimzi/kafka:0.50.0-kafka-4.1.1 \
-  --restart=Never --command -- sleep 3600
-kubectl wait pod/kafka-client -n kafka-app --for=condition=Ready --timeout=120s
-
-# Produce нагрузка (пример)
-PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
-kubectl exec -n kafka-app kafka-client -- bash -lc "\
-cat > /tmp/client.properties <<'EOF'
-security.protocol=SASL_PLAINTEXT
-sasl.mechanism=SCRAM-SHA-512
-sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"myuser\" password=\"$PASS\";
-EOF
-/opt/kafka/bin/kafka-producer-perf-test.sh \
-  --topic test-topic \
-  --num-records 100000 \
-  --record-size 256 \
-  --throughput -1 \
-  --producer-props bootstrap.servers=kafka-cluster-kafka-bootstrap.kafka-cluster:9092 \
-  --producer.config /tmp/client.properties"
-```
 
 ### Запуск Producer/Consumer в Kubernetes через Helm
 
