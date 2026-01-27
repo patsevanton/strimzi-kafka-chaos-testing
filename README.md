@@ -225,15 +225,6 @@ kubectl logs -n kafka-apps deploy/kafka-producer --tail=50
 kubectl logs -n kafka-apps deploy/kafka-consumer --tail=50
 ```
 
-Проверьте **consumer group** (состояние и lag):
-
-```bash
-# group id по умолчанию: test-group (см. KAFKA_GROUP_ID)
-kubectl exec -n kafka-cluster -it kafka-cluster-kafka-0 -- \
-  bin/kafka-consumer-groups.sh \
-  --bootstrap-server kafka-cluster-kafka-bootstrap.kafka-cluster:9092 \
-  --describe --group test-group
-```
 
 Примечание: consumer ожидает Avro-сообщения (пишет producer из этого приложения).
 
