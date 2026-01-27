@@ -71,6 +71,50 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
 ```
 
+### Доступ к Kafka извне кластера (ingress-nginx / port-forward)
+
+Для тестов удобнее запускать Go-приложение **локально**, а доступ к Kafka (и при необходимости к Schema Registry) получать через:
+
+- `ingress-nginx` как **TCP proxy** (когда нужен внешний адрес/порт для Kafka)
+- `kubectl port-forward` (быстро и удобно для локальной отладки)
+
+#### Вариант A: port-forward (рекомендуется для локальной отладки)
+
+```bash
+# Kafka bootstrap -> localhost:9092
+kubectl -n kafka-cluster port-forward svc/kafka-cluster-kafka-bootstrap 9092:9092
+
+# Schema Registry (HTTP) -> localhost:8081
+kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
+```
+
+Дальше Go-приложение можно запускать локально, обращаясь к Kafka через `localhost:9092` и Schema Registry через `http://localhost:8081`.
+
+#### Вариант B: ingress-nginx как TCP proxy для Kafka (9092)
+
+Важно: Kafka — это **не HTTP**, поэтому нужен TCP-проброс в `ingress-nginx` (через `tcp-services` ConfigMap).
+
+1) Убедитесь, что `ingress-nginx` установлен и включён `tcp-services` ConfigMap:
+
+```bash
+# Пример для ingress-nginx Helm chart: включаем поддержку TCP services
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace \
+  --set controller.extraArgs.tcp-services-configmap=ingress-nginx/tcp-services
+```
+
+2) Создайте ConfigMap с пробросом порта Kafka:
+
+```bash
+kubectl -n ingress-nginx create configmap tcp-services \
+  --from-literal=9092="kafka-cluster/kafka-cluster-kafka-bootstrap:9092" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+3) Убедитесь, что у `ingress-nginx-controller` открыт порт 9092 (зависит от чарта/значений). После этого Kafka будет доступна на внешнем адресе ingress-nginx **по TCP 9092**.
+
+> Примечание по безопасности: при `SASL_PLAINTEXT` логин/пароль идут без TLS. Для публикации наружу лучше использовать TLS/VPN/внутренний LB.
+
 ### Создание Kafka топиков
 
 Создайте Kafka топик через Strimzi KafkaTopic ресурс:
@@ -153,15 +197,13 @@ kubectl apply -f kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Скопировать sasl.jaas.config из секрета Strimzi в Secret в namespace schema-registry
-# Важно: используем --from-literal (а не process substitution), чтобы значение точно не оказалось пустым.
-JAAS=$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d)
 kubectl create secret generic schema-registry-credentials -n schema-registry \
-  --from-literal=sasl.jaas.config="$JAAS" \
+  --from-literal=sasl.jaas.config="$(kubectl get secret schema-registry -n kafka-cluster -o go-template='{{index .data \"sasl.jaas.config\"}}' | base64 -d)" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Быстрая проверка (должна выводиться строка с ScramLoginModule ...)
 kubectl get secret schema-registry-credentials -n schema-registry \
-  -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d && echo
+  -o go-template='{{index .data \"sasl.jaas.config\"}}' | base64 -d && echo
 
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
@@ -190,6 +232,27 @@ kubectl get svc -n schema-registry schema-registry
 | `KAFKA_USERNAME` | Имя пользователя для SASL/SCRAM | - |
 | `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
 | `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
+
+### Локальный запуск Go-приложения (рекомендуется)
+
+Для быстрых тестов удобнее запускать producer/consumer **локально**, а Kafka/Schema Registry прокидывать через `port-forward` (или публиковать Kafka через `ingress-nginx`, см. выше).
+
+Пример (через port-forward):
+
+```bash
+# В отдельных терминалах держим port-forward:
+# kubectl -n kafka-cluster port-forward svc/kafka-cluster-kafka-bootstrap 9092:9092
+# kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
+
+PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+MODE=producer \
+KAFKA_BROKERS=localhost:9092 \
+KAFKA_TOPIC=test-topic \
+SCHEMA_REGISTRY_URL=http://localhost:8081 \
+KAFKA_USERNAME=myuser \
+KAFKA_PASSWORD="$PASS" \
+go run .
+```
 
 
 ### Запуск Producer/Consumer в Kubernetes через Helm
@@ -223,6 +286,21 @@ kubectl rollout status deploy/kafka-consumer -n kafka-apps --timeout=5m
 
 kubectl logs -n kafka-apps deploy/kafka-producer --tail=50
 kubectl logs -n kafka-apps deploy/kafka-consumer --tail=50
+```
+
+Примечание по отладке:
+
+- Если в логах `kafka-producer` видно `Topic Authorization Failed`, проверьте ACL в `kafka-user.yaml` и пересоздайте `KafkaUser` (и secret в `kafka-apps`).
+- Если `kafka-producer`/`kafka-consumer` пишут `Unknown Topic Or Partition`, а `KafkaTopic` при этом `Ready`, можно быстро проверить доступность топика через Kafka CLI внутри broker pod:
+
+```bash
+PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+kubectl exec -n kafka-cluster kafka-cluster-mixed-0 -- bash -lc "cat > /tmp/client.properties <<'EOF'
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=SCRAM-SHA-512
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"myuser\" password=\"$PASS\";
+EOF
+/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --command-config /tmp/client.properties --describe --topic test-topic"
 ```
 
 

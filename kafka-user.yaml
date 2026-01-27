@@ -11,6 +11,19 @@ spec:
   authorization:
     type: simple
     acls:
+      # Разрешаем доступ ко всем топикам, чтобы приложения могли писать/читать
+      # даже если клиент/брокер используют topicId (в логах Kafka это иногда выглядит как пустое имя).
+      - resource:
+          type: topic
+          name: "*"
+          patternType: literal
+        operations:
+          - Read
+          - Write
+          - Create
+          - Describe
+          - DescribeConfigs
+          - AlterConfigs
       - resource:
           type: topic
           name: test-topic
@@ -24,14 +37,18 @@ spec:
           - AlterConfigs
       - resource:
           type: cluster
-          name: kafka-cluster
-          patternType: literal
         operations:
           - Describe
           - IdempotentWrite
       - resource:
           type: group
           name: test-group
+          patternType: literal
+        operations:
+          - Read
+      - resource:
+          type: group
+          name: "*"
           patternType: literal
         operations:
           - Read
