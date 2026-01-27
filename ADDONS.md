@@ -126,6 +126,8 @@ EOF
   --producer.config /tmp/client.properties"
 ```
 
+Примечание: Если до этого вы генерировали нагрузку `kafka-producer-perf-test.sh`, consumer может логировать ошибки декодирования для «не-Avro» сообщений.
+
 ## Удаление (только для этих компонентов)
 
 ```bash

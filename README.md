@@ -225,7 +225,7 @@ kubectl logs -n kafka-apps deploy/kafka-producer --tail=50
 kubectl logs -n kafka-apps deploy/kafka-consumer --tail=50
 ```
 
-Примечание: consumer ожидает Avro-сообщения (пишет producer из этого приложения). Если до этого вы генерировали нагрузку `kafka-producer-perf-test.sh`, consumer может логировать ошибки декодирования для «не-Avro» сообщений.
+Примечание: consumer ожидает Avro-сообщения (пишет producer из этого приложения).
 
 ### Формат сообщений
 
