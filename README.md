@@ -143,19 +143,19 @@ Go-приложение из этого репозитория использу�
 Важно: для Confluent image в Kubernetes в `schema-registry.yaml` включено `enableServiceLinks: false`, иначе Kubernetes добавляет переменную окружения `SCHEMA_REGISTRY_PORT`, и скрипт старта контейнера завершится с ошибкой.
 
 ```bash
-kubectl create namespace kafka-app --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl apply -f kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
-# Скопировать sasl.jaas.config из секрета Strimzi в Secret в namespace kafka-app
-kubectl create secret generic schema-registry-credentials -n kafka-app \
+# Скопировать sasl.jaas.config из секрета Strimzi в Secret в namespace schema-registry
+kubectl create secret generic schema-registry-credentials -n schema-registry \
   --from-file=sasl.jaas.config=<(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\\.jaas\\.config}' | base64 -d) \
   --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl apply -f schema-registry.yaml
-kubectl rollout status deploy/schema-registry -n kafka-app --timeout=5m
-kubectl get svc -n kafka-app schema-registry
+kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
+kubectl get svc -n schema-registry schema-registry
 ```
 
 ## Chaos Mesh
@@ -425,7 +425,7 @@ Producer отправляет сообщения каждую секунду с 
 # Удаление Kafka Application
 kubectl delete pod kafka-client -n kafka-app
 kubectl delete -f schema-registry.yaml
-kubectl delete secret schema-registry-credentials -n kafka-app
+kubectl delete secret schema-registry-credentials -n schema-registry
 
 # Удаление Kafka кластера
 kubectl delete kafkatopic -n kafka-cluster --all
@@ -447,6 +447,7 @@ helm uninstall vmks -n vmks
 
 # Удаление всех namespace
 kubectl delete namespace kafka-app
+kubectl delete namespace schema-registry
 kubectl delete namespace kafka-cluster
 kubectl delete namespace strimzi
 kubectl delete namespace chaos-mesh
