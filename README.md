@@ -235,28 +235,3 @@ EOF
 ```
 
 Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
-
-## Удаление компонентов
-
-### Удаление всех компонентов и namespace
-
-```bash
-# Удаление Kafka Application
-kubectl delete pod kafka-client -n kafka-app
-kubectl delete -f schema-registry.yaml
-kubectl delete secret schema-registry-credentials -n schema-registry
-
-# Удаление Kafka кластера
-kubectl delete kafkatopic -n kafka-cluster --all
-kubectl delete kafkauser -n kafka-cluster --all
-kubectl delete kafka kafka-cluster -n kafka-cluster
-
-# Удаление Strimzi
-helm uninstall strimzi-cluster-operator -n strimzi
-
-# Удаление всех namespace
-kubectl delete namespace kafka-app
-kubectl delete namespace schema-registry
-kubectl delete namespace kafka-cluster
-kubectl delete namespace strimzi
-```
