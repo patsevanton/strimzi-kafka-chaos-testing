@@ -1,8 +1,8 @@
-# Тестирование Strimzi Kafka под высокой нагрузкой с помощью Chaos Mesh
+# Тестирование Strimzi Kafka под высокой нагрузкой
 
-Тестирование высоконагруженного кластера Apache Kafka, развернутого через оператор Strimzi в Kubernetes, с использованием Chaos Mesh для внедрения различных типов сбоев и проверки отказоустойчивости системы под нагрузкой.
+Тестирование высоконагруженного кластера Apache Kafka, развернутого через оператор Strimzi в Kubernetes, с фокусом на развёртывание Kafka, топиков, пользователей и генерацию нагрузки.
 
-Для обеспечения наблюдаемости во время тестирования используется observability stack на базе VictoriaLogs и VictoriaMetrics, который позволяет отслеживать состояние системы, анализировать логи и метрики в реальном времени.
+Опциональные компоненты (Chaos Mesh, VictoriaLogs, victoria-logs-collector, VictoriaMetrics VM K8s Stack) вынесены в `ADDONS.md`.
 
 ## Strimzi
 
@@ -158,190 +158,9 @@ kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
 ```
 
-## Chaos Mesh
+## Дополнительные компоненты (опционально)
 
-**Chaos Mesh** — облачная платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
-
-### Установка Chaos Mesh
-
-Для доступа к Dashboard через ingress-nginx используйте файл values:
-
-```bash
-helm repo add chaos-mesh https://charts.chaos-mesh.org
-helm repo update
-
-# Создайте файл chaos-mesh-values.yaml
-cat > chaos-mesh-values.yaml <<EOF
-chaosDaemon:
-  runtime: containerd
-  socketPath: /run/containerd/containerd.sock
-dashboard:
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    hosts:
-      - host: chaos-dashboard.apatsev.org.ru
-        paths:
-          - path: /
-            pathType: Prefix
-    annotations: {}
-EOF
-
-helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
-  --namespace chaos-mesh \
-  --create-namespace \
-  -f chaos-mesh-values.yaml \
-  --wait
-```
-
-Проверка установки:
-
-```bash
-kubectl get pods -n chaos-mesh
-```
-
-Откройте в браузере: `https://chaos-dashboard.apatsev.org.ru`
-
-## Observability Stack
-
-Observability stack помогает отслеживать состояние системы во время тестирования, собирая логи и метрики из всех компонентов кластера Kafka и приложений, работающих с ним.
-
-### VictoriaLogs
-
-**VictoriaLogs** — высокопроизводительное хранилище логов от команды VictoriaMetrics. Оптимизировано для больших объёмов логов, поддерживает эффективное хранение "wide events" (множество полей в записи), быстрые полнотекстовые поиски и масштабирование. LogsQL поддерживается в VictoriaLogs datasource для Grafana.
-
-#### Установка: Cluster
-
-```bash
-helm upgrade --install victoria-logs-cluster \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-cluster \
-  --namespace victoria-logs-cluster \
-  --create-namespace \
-  --wait \
-  --version 0.0.25 \
-  --timeout 15m \
-  -f victorialogs-cluster-values.yaml
-```
-
-Пример `victorialogs-cluster-values.yaml`:
-
-```yaml
-vlselect:
-  ingress:
-    enabled: true
-    hosts:
-      - name: victorialogs.apatsev.org.ru
-        path:
-          - /
-        port: http
-    ingressClassName: nginx
-    annotations: {}
-```
-
-### victoria-logs-collector
-
-`victoria-logs-collector` — это Helm-чарт от VictoriaMetrics, развертывающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилища.
-
-#### Установка
-
-```bash
-helm upgrade --install victoria-logs-collector \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-collector \
-  --namespace victoria-logs-collector \
-  --create-namespace \
-  --wait \
-  --version 0.2.5 \
-  --timeout 15m \
-  -f victorialogs-collector-values.yaml
-```
-
-Пример `victorialogs-collector-values.yaml`:
-
-```yaml
-# Настройки отправки логов во внешнее хранилище (VictoriaLogs)
-remoteWrite:
-  - url: http://victoria-logs-cluster-vlinsert.victoria-logs-cluster:9481
-    headers:
-      # Поля, которые будут проигнорированы и не сохранены в VictoriaLogs
-      # Полезно для уменьшения объёма данных и шума
-      VL-Ignore-Fields:
-        - kubernetes.container_id # уникальный ID контейнера, часто меняется и не несет ценной информации
-        - kubernetes.pod_ip # IP адрес пода, динамический и редко полезный для анализа логов
-        - kubernetes.pod_labels.pod-template-hash # хэш шаблона Deployment ReplicaSet, используется для идентификации реплик, но избыточен
-
-# Настройки collector: определяют, как извлекать сообщение лога из входных данных.
-collector:
-  # msgField: список полей, из которых извлекается основное сообщение лога (_msg в VictoriaLogs)
-  msgField:
-    - message
-    - msg
-```
-
-### VictoriaMetrics (VM K8s Stack)
-
-`victoria-metrics-k8s-stack` — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
-
-#### Установка
-
-```bash
-helm upgrade --install vmks \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack \
-  --namespace vmks \
-  --create-namespace \
-  --wait \
-  --version 0.66.1 \
-  --timeout 15m \
-  -f vmks-values.yaml
-```
-
-Пример `vmks-values.yaml`:
-
-```yaml
-grafana:
-  plugins:
-    - victoriametrics-logs-datasource
-  ingress:
-    ingressClassName: nginx
-    enabled: true
-    hosts:
-      - grafana.apatsev.org.ru
-    annotations:
-      nginx.ingress.kubernetes.io/ssl-redirect: "false"
-defaultDatasources:
-  extra:
-    - name: victoriametrics-logs
-      access: proxy
-      type: victoriametrics-logs-datasource
-      url: http://victoria-logs-cluster-vlselect.victoria-logs-cluster.svc.cluster.local:9471
-      jsonData:
-        maxLines: 1000
-      version: 1
-defaultRules:
-  groups:
-    etcd:
-      create: false
-kube-state-metrics:
-  metricLabelsAllowlist:
-    - pods=[*]
-vmsingle:
-  enabled: false
-vmcluster:
-  enabled: true
-  ingress:
-    select:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      hosts:
-        - vmselect.apatsev.org.ru
-```
-
-Пароль `admin` для Grafana:
-
-```bash
-kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
-```
+Chaos Mesh, VictoriaLogs, victoria-logs-collector и VictoriaMetrics VM K8s Stack вынесены в `ADDONS.md`.
 
 ## Producer App и Consumer App
 
@@ -435,23 +254,9 @@ kubectl delete kafka kafka-cluster -n kafka-cluster
 # Удаление Strimzi
 helm uninstall strimzi-cluster-operator -n strimzi
 
-# Удаление Chaos Mesh
-helm uninstall chaos-mesh -n chaos-mesh
-
-# Удаление VictoriaLogs
-helm uninstall victoria-logs-cluster -n victoria-logs-cluster
-helm uninstall victoria-logs-collector -n victoria-logs-collector
-
-# Удаление VictoriaMetrics K8s Stack
-helm uninstall vmks -n vmks
-
 # Удаление всех namespace
 kubectl delete namespace kafka-app
 kubectl delete namespace schema-registry
 kubectl delete namespace kafka-cluster
 kubectl delete namespace strimzi
-kubectl delete namespace chaos-mesh
-kubectl delete namespace victoria-logs-cluster
-kubectl delete namespace victoria-logs-collector
-kubectl delete namespace vmks
 ```
