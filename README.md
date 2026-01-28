@@ -41,7 +41,7 @@ kubectl get pods -n strimzi
 
 В этом репозитории уже есть готовые манифесты:
 
-- `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. Аутентификация отключена для совместимости с клиентом.)
+- `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
 - `kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
 
 Примечание: версия Strimzi из Helm-чарта в примере (`0.42.0`) поддерживает Kafka версии `3.7.x` (например `3.7.0`).
@@ -109,15 +109,29 @@ kubectl describe kafkatopic test-topic -n kafka-cluster
 
 ### Создание Kafka пользователей и секретов
 
-(Опционально) Для аутентификации через SASL/SCRAM можно создать Kafka пользователя.
-В данной конфигурации кластера аутентификация отключена (PLAINTEXT), поэтому создание пользователей не требуется и не будет работать (статус не станет Ready).
+Для работы с Kafka кластером с включённой SASL/SCRAM аутентификацией необходимо создать KafkaUser ресурсы. Strimzi автоматически генерирует секреты с credentials для каждого пользователя.
 
-#### Создание пользователя (только при включенном Auth)
+#### Создание пользователя для приложения
 
 ```bash
-# Пропустить, если auth отключен
-# kubectl apply -f kafka-user.yaml
-# kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
+kubectl apply -f kafka-user.yaml
+kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
+```
+
+После создания пользователя Strimzi создаёт секрет с тем же именем (`myuser`), содержащий:
+- `password` — сгенерированный пароль для SCRAM аутентификации
+- `sasl.jaas.config` — полная JAAS конфигурация
+
+**Важно**: Имя пользователя (username) равно имени KafkaUser/секрета, т.е. `myuser`.
+
+Проверка секрета:
+
+```bash
+# Посмотреть пароль (для отладки)
+kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d; echo
+
+# Посмотреть JAAS config
+kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.config}' | base64 -d; echo
 ```
 
 ### Schema Registry (Karapace) для Avro
@@ -127,18 +141,26 @@ Go-приложение из этого репозитория использу�
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
 - `kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`). Настроен на PLAINTEXT доступ к Kafka.
+- `kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
 
+# Создать топик для схем
 kubectl apply -f kafka-topic-schemas.yaml
 kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s
 
-# Пользователь не нужен для PLAINTEXT
-# kubectl apply -f kafka-user-schema-registry.yaml
-# kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
+# Создать пользователя для Schema Registry (обязательно для SASL аутентификации)
+kubectl apply -f kafka-user-schema-registry.yaml
+kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
+# Скопировать секрет в namespace schema-registry (Strimzi создаёт секрет в kafka-cluster)
+kubectl get secret schema-registry -n kafka-cluster -o json | \
+  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
+  kubectl apply -n schema-registry -f -
+
+# Развернуть Schema Registry
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
@@ -153,6 +175,9 @@ kubectl get pods -n schema-registry
 kubectl describe pod -n schema-registry -l app=schema-registry
 kubectl logs -n schema-registry deploy/schema-registry --all-containers --tail=200
 kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
+
+# Проверить что секрет скопирован
+kubectl get secret schema-registry -n schema-registry
 ```
 
 ## Producer App и Consumer App
@@ -172,10 +197,10 @@ Go-код в `main.go` можно изменять под свои нужды. �
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.1.3 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.2.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.1.3
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.2.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -184,7 +209,7 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.1.3
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-cluster \
   --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="1.1.3"
+  --set image.tag="1.2.0"
 ```
 
 ### Переменные окружения
@@ -203,23 +228,38 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 
 Для запуска приложений в кластере используйте Helm charts из директории `helm`.
 
-#### 1) Установить Producer (без аутентификации)
+**Важно**: Перед запуском убедитесь, что KafkaUser `myuser` создан и готов (см. раздел "Создание Kafka пользователей").
+
+#### 1) Установить Producer (с аутентификацией через Strimzi Secret)
 ```bash
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-cluster \
-  --set kafka.username="" \
-  --set kafka.password="" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
-  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081"
+  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
+  --set secrets.name="myuser"
 ```
 
-#### 2) Установить Consumer (без аутентификации)
+#### 2) Установить Consumer (с аутентификацией через Strimzi Secret)
 ```bash
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-cluster \
-  --set kafka.username="" \
-  --set kafka.password="" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
+  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
+  --set secrets.name="myuser"
+```
+
+Helm charts автоматически берут `username` и `password` из указанного секрета (`myuser`), который был создан Strimzi при создании KafkaUser.
+
+#### Альтернатива: передать credentials напрямую (не рекомендуется для production)
+```bash
+# Получить пароль из секрета Strimzi
+KAFKA_PASSWORD=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-cluster \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
+  --set kafka.username="myuser" \
+  --set kafka.password="$KAFKA_PASSWORD" \
   --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081"
 ```
 

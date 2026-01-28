@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "1.1.3"
+  tag: "1.2.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -67,7 +67,10 @@ secrets:
   # If true, create a secret for Kafka credentials
   create: false
   # Secret name (if not using the default)
+  # For Strimzi: use KafkaUser name (e.g., "myuser")
   name: ""
+  # If true, use Strimzi KafkaUser secret format (username = secret name, only password key exists)
+  strimzi: true
   # Kafka username (will be stored in secret if secrets.create is true)
   username: ""
   # Kafka password (will be stored in secret if secrets.create is true)

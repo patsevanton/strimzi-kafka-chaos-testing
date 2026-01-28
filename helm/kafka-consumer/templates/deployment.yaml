@@ -44,7 +44,30 @@ spec:
               value: {{ .Values.kafka.groupId | quote }}
             - name: SCHEMA_REGISTRY_URL
               value: {{ .Values.schemaRegistry.url | quote }}
-            {{- if or .Values.secrets.create .Values.secrets.name }}
+            {{- if .Values.secrets.name }}
+            {{- if .Values.secrets.strimzi }}
+            # Strimzi KafkaUser secret: username = secret name, password from secret
+            - name: KAFKA_USERNAME
+              value: {{ .Values.secrets.name | quote }}
+            - name: KAFKA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.name }}
+                  key: password
+            {{- else }}
+            # Custom secret with username and password keys
+            - name: KAFKA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kafka-consumer.secretName" . }}
+                  key: username
+            - name: KAFKA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kafka-consumer.secretName" . }}
+                  key: password
+            {{- end }}
+            {{- else if .Values.secrets.create }}
             - name: KAFKA_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -58,10 +81,10 @@ spec:
             {{- else if .Values.kafka.username }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
-            {{- end }}
-            {{- if and (not .Values.secrets.create) .Values.kafka.password }}
+            {{- if .Values.kafka.password }}
             - name: KAFKA_PASSWORD
               value: {{ .Values.kafka.password | quote }}
+            {{- end }}
             {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

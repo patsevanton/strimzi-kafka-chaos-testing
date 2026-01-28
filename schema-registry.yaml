@@ -61,19 +61,18 @@ spec:
             - name: KARAPACE_BOOTSTRAP_URI
               value: kafka-cluster-kafka-bootstrap.kafka-cluster:9092
             - name: KARAPACE_SECURITY_PROTOCOL
-              value: "PLAINTEXT"
-            # - name: KARAPACE_SASL_MECHANISM
-            #   value: "SCRAM-SHA-512"
-            # - name: KARAPACE_SASL_PLAIN_USERNAME
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: schema-registry-credentials
-            #       key: sasl_plain_username
-            # - name: KARAPACE_SASL_PLAIN_PASSWORD
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: schema-registry-credentials
-            #       key: sasl_plain_password
+              value: "SASL_PLAINTEXT"
+            - name: KARAPACE_SASL_MECHANISM
+              value: "SCRAM-SHA-512"
+            # Strimzi KafkaUser: username = KafkaUser name, password from secret
+            - name: KARAPACE_SASL_PLAIN_USERNAME
+              value: "schema-registry"
+            - name: KARAPACE_SASL_PLAIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # Strimzi creates secret with same name as KafkaUser
+                  name: schema-registry
+                  key: password
             - name: KARAPACE_CLIENT_ID
               value: "schema-registry-0"
             - name: KARAPACE_GROUP_ID
