@@ -156,7 +156,7 @@ Go-приложение из этого репозитория использу�
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
 - `kafka-user-schema-registry.yaml` — KafkaUser с правами на `_schemas`
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven/karapace:latest`)
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`)
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -

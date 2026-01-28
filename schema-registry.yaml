@@ -36,9 +36,11 @@ spec:
       enableServiceLinks: false
       containers:
         - name: schema-registry
-          image: ghcr.io/aiven/karapace:latest
+          image: ghcr.io/aiven-open/karapace:latest
           imagePullPolicy: IfNotPresent
-          command: ["python3", "-m", "karapace"]
+          # NOTE: ghcr.io/aiven-open/karapace:latest currently ships a broken console-script entrypoint.
+          # Run the module directly instead.
+          command: ["python3", "-m", "karapace.__main__"]
           ports:
             - containerPort: 8081
               name: http
