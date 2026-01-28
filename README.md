@@ -182,6 +182,34 @@ kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
 ```
 
+### Проблемы и ошибки Schema Registry (Confluent): что бывает и как чинить
+
+- **Падает сразу при старте с ошибкой про `SCHEMA_REGISTRY_PORT`**: если не отключить `enableServiceLinks`, Kubernetes может добавить env-var `SCHEMA_REGISTRY_PORT`, а entrypoint Confluent Schema Registry воспринимает его как обязательный числовой параметр/порт и валится. Решение: держать `enableServiceLinks: false` (как в `schema-registry.yaml`).
+
+- **Ошибки “duplicate URLs” / проблемы при рестартах**: когда Schema Registry рекламирует один и тот же `host:port` после пересоздания pod'а, он может считать, что в кластере уже есть инстанс с тем же URL. Решение: задавать `SCHEMA_REGISTRY_HOST_NAME` из `status.podIP` (как в `schema-registry.yaml`) и в тестовых окружениях использовать `Recreate`, чтобы одновременно не было двух pod'ов.
+
+- **Команда с `-o go-template` может ломаться из‑за экранирования** (например, “unexpected `\\` in operand”): это типично при запуске в разных shell/CI, когда кавычки/слеши “съедаются”. Более устойчивый вариант — использовать `jsonpath` и экранировать точки:
+
+```bash
+# Вариант без go-template: стабильнее с экранированием
+kubectl create secret generic schema-registry-credentials -n schema-registry \
+  --from-literal=sasl.jaas.config="$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.config}' | base64 -d)" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+- **`kubectl rollout status ...` уходит в timeout / pod не становится Ready**: чаще всего это либо неверные креды (`sasl.jaas.config` пустой/не тот secret), либо не поднялись зависимости (Kafka недоступна), либо конфиг Schema Registry не совпадает с security-настройками Kafka. Диагностика:
+
+```bash
+kubectl get pods -n schema-registry
+kubectl describe pod -n schema-registry -l app=schema-registry
+kubectl logs -n schema-registry deploy/schema-registry --all-containers --tail=200
+kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
+```
+
+### Если Confluent Schema Registry нестабилен: попробуйте Karapace
+
+Если Confluent Schema Registry в вашем окружении ведёт себя нестабильно (частые рестарты, проблемы с конфигом/leader election, неожиданные падения entrypoint), стоит попробовать альтернативу — [Karapace Schema Registry](https://github.com/Aiven-Open/karapace). Это open-source drop-in реализация API Confluent Schema Registry, которую часто проще запускать в Kubernetes и локально (Docker) для тестов.
+
 ## Producer App и Consumer App
 
 **Producer App и Consumer App** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Используется для генерации нагрузки на кластер Kafka во время тестирования.
