@@ -71,14 +71,11 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
 ```
 
-### Доступ к Kafka извне кластера (ingress-nginx / port-forward)
+### Доступ к Kafka извне кластера (port-forward)
 
-Для тестов удобнее запускать Go-приложение **локально**, а доступ к Kafka (и при необходимости к Schema Registry) получать через:
+Для тестов удобнее запускать Go-приложение **локально**, а доступ к Kafka (и при необходимости к Schema Registry) получать через `kubectl port-forward`.
 
-- `ingress-nginx` как **TCP proxy** (когда нужен внешний адрес/порт для Kafka)
-- `kubectl port-forward` (быстро и удобно для локальной отладки)
-
-#### Вариант A: port-forward (рекомендуется для локальной отладки)
+#### Port-forward (рекомендуется для локальной отладки)
 
 ```bash
 # Kafka bootstrap -> localhost:9092
@@ -89,31 +86,6 @@ kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
 ```
 
 Дальше Go-приложение можно запускать локально, обращаясь к Kafka через `localhost:9092` и Schema Registry через `http://localhost:8081`.
-
-#### Вариант B: ingress-nginx как TCP proxy для Kafka (9092)
-
-Важно: Kafka — это **не HTTP**, поэтому нужен TCP-проброс в `ingress-nginx` (через `tcp-services` ConfigMap).
-
-1) Убедитесь, что `ingress-nginx` установлен и включён `tcp-services` ConfigMap:
-
-```bash
-# Пример для ingress-nginx Helm chart: включаем поддержку TCP services
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-  --namespace ingress-nginx --create-namespace \
-  --set controller.extraArgs.tcp-services-configmap=ingress-nginx/tcp-services
-```
-
-2) Создайте ConfigMap с пробросом порта Kafka:
-
-```bash
-kubectl -n ingress-nginx create configmap tcp-services \
-  --from-literal=9092="kafka-cluster/kafka-cluster-kafka-bootstrap:9092" \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-3) Убедитесь, что у `ingress-nginx-controller` открыт порт 9092 (зависит от чарта/значений). После этого Kafka будет доступна на внешнем адресе ingress-nginx **по TCP 9092**.
-
-> Примечание по безопасности: при `SASL_PLAINTEXT` логин/пароль идут без TLS. Для публикации наружу лучше использовать TLS/VPN/внутренний LB.
 
 ### Создание Kafka топиков
 
@@ -235,7 +207,7 @@ kubectl get svc -n schema-registry schema-registry
 
 ### Локальный запуск Go-приложения (рекомендуется)
 
-Для быстрых тестов удобнее запускать producer/consumer **локально**, а Kafka/Schema Registry прокидывать через `port-forward` (или публиковать Kafka через `ingress-nginx`, см. выше).
+Для быстрых тестов удобнее запускать producer/consumer **локально**, а Kafka/Schema Registry прокидывать через `port-forward`.
 
 Пример (через port-forward):
 
