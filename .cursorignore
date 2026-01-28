@@ -4,7 +4,6 @@
 .gitignore
 .terraform
 .terraform.lock.hcl
-ADDONS.md
 LICENSE
 chaos-mesh-values.yaml
 ip-dns.tf
