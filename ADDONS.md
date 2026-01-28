@@ -128,6 +128,81 @@ EOF
 
 Примечание: Если до этого вы генерировали нагрузку `kafka-producer-perf-test.sh`, consumer может логировать ошибки декодирования для «не-Avro» сообщений.
 
+
+
+
+### Запуск Producer/Consumer в Kubernetes через Helm
+
+В репозитории есть чарты `helm/kafka-producer` и `helm/kafka-consumer`. Они используют переменные окружения приложения:
+- `KAFKA_BROKERS` → `kafka-cluster-kafka-bootstrap.kafka-cluster:9092`
+- `SCHEMA_REGISTRY_URL` → `http://schema-registry.schema-registry:8081`
+
+Важно: secret `myuser` создаётся Strimzi в namespace `kafka-cluster`, поэтому для приложений в `kafka-apps` нужно создать отдельный secret с тем же логином/паролем.
+
+```bash
+kubectl create namespace kafka-apps --dry-run=client -o yaml | kubectl apply -f -
+
+# Скопировать пароль из секрета Strimzi и создать secret в namespace приложений
+PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+kubectl create secret generic kafka-app-credentials -n kafka-apps \
+  --from-literal=username=myuser \
+  --from-literal=password="$PASS" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-apps \
+  --set secrets.name=kafka-app-credentials
+
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-apps \
+  --set secrets.name=kafka-app-credentials
+
+kubectl rollout status deploy/kafka-producer -n kafka-apps --timeout=5m
+kubectl rollout status deploy/kafka-consumer -n kafka-apps --timeout=5m
+
+kubectl logs -n kafka-apps deploy/kafka-producer --tail=50
+kubectl logs -n kafka-apps deploy/kafka-consumer --tail=50
+```
+
+Примечание по отладке:
+
+- Если в логах `kafka-producer` видно `Topic Authorization Failed`, проверьте ACL в `kafka-user.yaml` и пересоздайте `KafkaUser` (и secret в `kafka-apps`).
+- Если `kafka-producer`/`kafka-consumer` пишут `Unknown Topic Or Partition`, а `KafkaTopic` при этом `Ready`, можно быстро проверить доступность топика через Kafka CLI внутри broker pod:
+
+```bash
+PASS=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
+kubectl exec -n kafka-cluster kafka-cluster-mixed-0 -- bash -lc "cat > /tmp/client.properties <<'EOF'
+security.protocol=SASL_PLAINTEXT
+sasl.mechanism=SCRAM-SHA-512
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username=\"myuser\" password=\"$PASS\";
+EOF
+/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --command-config /tmp/client.properties --describe --topic test-topic"
+```
+
+
+Примечание: consumer ожидает Avro-сообщения (пишет producer из этого приложения).
+
+### Формат сообщений
+
+Приложение использует Avro схему для сериализации сообщений:
+
+```json
+{
+  "type": "record",
+  "name": "Message",
+  "namespace": "com.example",
+  "fields": [
+    {"name": "id", "type": "long"},
+    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
+    {"name": "data", "type": "string"}
+  ]
+}
+```
+
+Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
+
+
+
 ## Удаление (только для этих компонентов)
 
 ```bash
