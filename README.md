@@ -78,17 +78,6 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
 ```
 
-### Доступ к Kafka извне кластера (port-forward)
-
-Для тестов удобнее запускать Go-приложение **в кластере** с помощью Helm, так как `kubectl port-forward` имеет ограничения при работе с многоброкерными конфигурациями Kafka.
-
-При необходимости доступа к Schema Registry:
-
-```bash
-# Schema Registry (HTTP) -> localhost:8081
-kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
-```
-
 ### Создание Kafka топиков
 
 Создайте Kafka топик через Strimzi KafkaTopic ресурс:
