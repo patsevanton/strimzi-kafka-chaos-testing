@@ -165,6 +165,9 @@ func runProducer(ctx context.Context, config *Config) {
 
 	// Setup Schema Registry client
 	schemaRegistryClient := srclient.CreateSchemaRegistryClient(config.SchemaRegistryURL)
+	// Schema Registry (Karapace) may take some time to respond after rollout/port-forward.
+	// Bump HTTP timeout to avoid flaky startup failures.
+	schemaRegistryClient.SetTimeout(2 * time.Minute)
 
 	// Get or create Avro schema
 	schema, err := getOrCreateSchema(schemaRegistryClient, config.Topic)
@@ -255,6 +258,8 @@ func runConsumer(ctx context.Context, config *Config) {
 
 	// Setup Schema Registry client
 	schemaRegistryClient := srclient.CreateSchemaRegistryClient(config.SchemaRegistryURL)
+	// See producer: avoid flaky startup failures when SR is still warming up.
+	schemaRegistryClient.SetTimeout(2 * time.Minute)
 
 	for {
 		select {
