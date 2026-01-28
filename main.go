@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/linkedin/goavro/v2"
 	"github.com/riferrei/srclient"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
@@ -127,39 +125,24 @@ func parseBrokers(brokers string) []string {
 func runProducer(ctx context.Context, config *Config) {
 	log.Printf("Starting producer. Brokers: %v, Topic: %s", config.Brokers, config.Topic)
 
-	// Setup Kafka dialer
-	dialer := &kafka.Dialer{
-		Timeout:       10 * time.Second,
-		DualStack:     true,
+	// Create writer with simplified configuration
+	writer := &kafka.Writer{
+		Addr:                   kafka.TCP(config.Brokers...),
+		Topic:                  config.Topic,
+		Balancer:               &kafka.LeastBytes{},
+		RequiredAcks:           kafka.RequireAll,
+		AllowAutoTopicCreation: true,
 	}
 
 	// Add SASL/SCRAM authentication if credentials provided
-	var mechanism sasl.Mechanism
 	if config.Username != "" && config.Password != "" {
-		m, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
+		mechanism, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
 		if err != nil {
 			log.Fatalf("Failed to create SCRAM mechanism: %v", err)
 		}
-		mechanism = m
-		// Used by kafka.Reader (Dialer) and also by our custom Transport dial below.
-		dialer.SASLMechanism = m
-	}
-
-	// Setup transport with dialer
-	transport := &kafka.Transport{
-		SASL: mechanism,
-		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, addr)
-		},
-	}
-
-	writer := &kafka.Writer{
-		Addr:         kafka.TCP(config.Brokers...),
-		Topic:        config.Topic,
-		Balancer:     &kafka.RoundRobin{},
-		RequiredAcks: kafka.RequireOne,
-		Async:        false,
-		Transport:    transport,
+		writer.Transport = &kafka.Transport{
+			SASL: mechanism,
+		}
 	}
 	defer writer.Close()
 
@@ -179,6 +162,10 @@ func runProducer(ctx context.Context, config *Config) {
 	if err != nil {
 		log.Fatalf("Failed to create Avro codec: %v", err)
 	}
+
+	// Wait for metadata to be fetched
+	log.Println("Waiting for Kafka metadata...")
+	time.Sleep(5 * time.Second)
 
 	messageID := int64(0)
 	ticker := time.NewTicker(1 * time.Second)

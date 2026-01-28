@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/patsevanton/strimzi-kafka-chaos-testing
+  repository: antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "1.1.0"
+  tag: "1.1.3"
 
 imagePullSecrets: []
 nameOverride: ""

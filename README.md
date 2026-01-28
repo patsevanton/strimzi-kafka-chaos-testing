@@ -166,6 +166,27 @@ kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
 - `goavro` (linkedin/goavro/v2) — работа с Avro схемами
 - `xdg-go/scram` — SASL/SCRAM аутентификация (используется через kafka-go)
 
+### Сборка и публикация Docker образа
+
+Go-код в `main.go` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
+
+```bash
+# Сборка образа (используйте podman или docker)
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.1.3 .
+
+# Публикация в Docker Hub
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.1.3
+```
+
+После публикации обновите версию образа в Helm values или передайте через `--set`:
+
+```bash
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-cluster \
+  --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
+  --set image.tag="1.1.3"
+```
+
 ### Переменные окружения
 
 | Переменная | Описание | Значение по умолчанию |
