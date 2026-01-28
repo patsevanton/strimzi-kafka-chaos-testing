@@ -34,6 +34,7 @@ kubectl delete namespace vmks
 Этот блок описывает **что именно удаляется**:
 - **Producer/Consumer приложения**: Helm-релизы `kafka-producer` и `kafka-consumer` в namespace релиза.
 - **Schema Registry (Karapace)**: `Service/Deployment` из `schema-registry.yaml` в namespace `schema-registry` + секрет `schema-registry` (скопированный из `kafka-cluster`).
+- **Kafka UI**: `Service/Deployment` из `kafka-ui.yaml` в namespace `kafka-ui` + KafkaUser `kafka-ui-user`.
 - **Kafka (Strimzi CRs)**: ресурсы `Kafka`, `KafkaNodePool`, `KafkaTopic`, `KafkaUser` в namespace `kafka-cluster`.
 - **Strimzi operator**: Helm-релиз `strimzi-cluster-operator` в namespace `strimzi`.
 
@@ -56,6 +57,19 @@ kubectl delete secret schema-registry -n schema-registry
 # Удалить KafkaUser/топик для Schema Registry в kafka-cluster
 kubectl delete -f kafka-user-schema-registry.yaml
 kubectl delete -f kafka-topic-schemas.yaml
+```
+
+### Удаление Kafka UI
+
+```bash
+# Удалить Deployment/Service
+kubectl delete -f kafka-ui.yaml
+
+# Удалить секрет в namespace kafka-ui
+kubectl delete secret kafka-ui-user -n kafka-ui
+
+# Удалить KafkaUser для Kafka UI
+kubectl delete -f kafka-user-ui.yaml
 ```
 
 ### Удаление Kafka ресурсов (kafka-cluster)
@@ -85,6 +99,7 @@ kubectl delete namespace kafka-producer
 kubectl delete namespace kafka-consumer
 
 # Namespace'ы основной установки из этого репозитория:
+kubectl delete namespace kafka-ui
 kubectl delete namespace schema-registry
 kubectl delete namespace kafka-cluster
 kubectl delete namespace strimzi
