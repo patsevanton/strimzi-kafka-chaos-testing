@@ -6,7 +6,7 @@ Helm чарт для развертывания Go приложения в ре�
 
 ```bash
 helm install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-apps \
+  --namespace kafka-producer \
   --create-namespace \
   -f helm/kafka-producer/values.yaml
 ```
@@ -38,7 +38,7 @@ secrets:
 Также можно использовать **уже существующий** secret в namespace релиза:
 ```bash
 helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-apps \
+  --namespace kafka-producer \
   --set secrets.name=kafka-app-credentials
 ```
 
@@ -70,12 +70,12 @@ secrets:
 
 ```bash
 helm upgrade kafka-producer ./helm/kafka-producer \
-  --namespace kafka-apps \
+  --namespace kafka-producer \
   -f helm/kafka-producer/values.yaml
 ```
 
 ## Удаление
 
 ```bash
-helm uninstall kafka-producer --namespace kafka-apps
+helm uninstall kafka-producer --namespace kafka-producer
 ```

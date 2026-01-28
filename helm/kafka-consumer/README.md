@@ -6,7 +6,7 @@ Helm чарт для развертывания Go приложения в ре�
 
 ```bash
 helm install kafka-consumer ./helm/kafka-consumer \
-  --namespace kafka-apps \
+  --namespace kafka-consumer \
   --create-namespace \
   -f helm/kafka-consumer/values.yaml
 ```
@@ -39,7 +39,7 @@ secrets:
 Также можно использовать **уже существующий** secret в namespace релиза:
 ```bash
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
-  --namespace kafka-apps \
+  --namespace kafka-consumer \
   --set secrets.name=kafka-app-credentials
 ```
 
@@ -72,12 +72,12 @@ secrets:
 
 ```bash
 helm upgrade kafka-consumer ./helm/kafka-consumer \
-  --namespace kafka-apps \
+  --namespace kafka-consumer \
   -f helm/kafka-consumer/values.yaml
 ```
 
 ## Удаление
 
 ```bash
-helm uninstall kafka-consumer --namespace kafka-apps
+helm uninstall kafka-consumer --namespace kafka-consumer
 ```

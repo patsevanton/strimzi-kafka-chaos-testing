@@ -156,15 +156,9 @@ kubectl delete namespace vmks
 
 ### Удаление приложений (Helm)
 
-В этом репозитории есть два варианта, где запускать приложения:
-- `kafka-cluster` (как в основном `README.md`)
-- `kafka-apps` (как в `helm/kafka-producer/README.md` и `helm/kafka-consumer/README.md`)
-
 ```bash
-APP_NS="kafka-cluster" # или "kafka-apps"
-
-helm uninstall kafka-producer -n "$APP_NS"
-helm uninstall kafka-consumer -n "$APP_NS"
+helm uninstall kafka-producer -n kafka-producer
+helm uninstall kafka-consumer -n kafka-consumer
 ```
 
 ### Удаление Schema Registry (Karapace)
@@ -203,8 +197,9 @@ helm uninstall strimzi-cluster-operator -n strimzi
 
 ```bash
 # Удаляйте только если namespace’ы не используются ничем другим
-# Если вы ставили приложения в отдельный namespace:
-kubectl delete namespace kafka-apps
+# Если вы ставили приложения в отдельные namespace:
+kubectl delete namespace kafka-producer
+kubectl delete namespace kafka-consumer
 
 # Namespace’ы основной установки из этого репозитория:
 kubectl delete namespace schema-registry

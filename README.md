@@ -199,7 +199,8 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.2.0
 
 ```bash
 helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-cluster \
+  --namespace kafka-producer \
+  --create-namespace \
   --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
   --set image.tag="1.2.0"
 ```
@@ -222,10 +223,30 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 
 **Важно**: Перед запуском убедитесь, что KafkaUser `myuser` создан и готов (см. раздел "Создание Kafka пользователей").
 
+Также важно: **Strimzi создаёт secret `myuser` в namespace `kafka-cluster`**, а Kubernetes secrets **не доступны между namespace**.
+Если вы запускаете приложения в отдельных namespace, сначала скопируйте secret в каждый namespace приложения:
+
+```bash
+# Namespaces для приложений
+kubectl create namespace kafka-producer --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace kafka-consumer --dry-run=client -o yaml | kubectl apply -f -
+
+# Скопировать secret myuser из kafka-cluster → kafka-producer
+kubectl get secret myuser -n kafka-cluster -o json | \
+  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
+  kubectl apply -n kafka-producer -f -
+
+# Скопировать secret myuser из kafka-cluster → kafka-consumer
+kubectl get secret myuser -n kafka-cluster -o json | \
+  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
+  kubectl apply -n kafka-consumer -f -
+```
+
 #### 1) Установить Producer (с аутентификацией через Strimzi Secret)
 ```bash
 helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-cluster \
+  --namespace kafka-producer \
+  --create-namespace \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
   --set secrets.name="myuser"
@@ -234,7 +255,8 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 #### 2) Установить Consumer (с аутентификацией через Strimzi Secret)
 ```bash
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
-  --namespace kafka-cluster \
+  --namespace kafka-consumer \
+  --create-namespace \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
   --set secrets.name="myuser"
@@ -248,7 +270,8 @@ Helm charts автоматически берут `username` и `password` из 
 KAFKA_PASSWORD=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
 
 helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-cluster \
+  --namespace kafka-producer \
+  --create-namespace \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
   --set kafka.username="myuser" \
   --set kafka.password="$KAFKA_PASSWORD" \
@@ -258,8 +281,8 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 #### 3) Проверка логов
 ```bash
 # Producer logs
-kubectl logs -n kafka-cluster -l app.kubernetes.io/name=kafka-producer -f
+kubectl logs -n kafka-producer -l app.kubernetes.io/name=kafka-producer -f
 
 # Consumer logs
-kubectl logs -n kafka-cluster -l app.kubernetes.io/name=kafka-consumer -f
+kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 ```
