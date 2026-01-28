@@ -36,29 +36,48 @@ spec:
       enableServiceLinks: false
       containers:
         - name: schema-registry
-          image: confluentinc/cp-schema-registry:7.6.0
+          image: ghcr.io/aiven/karapace:latest
           imagePullPolicy: IfNotPresent
+          command: ["python3", "-m", "karapace"]
           ports:
             - containerPort: 8081
               name: http
           env:
-            - name: SCHEMA_REGISTRY_HOST_NAME
+            # Karapace is a Confluent Schema Registry API compatible implementation.
+            - name: KARAPACE_KARAPACE_REGISTRY
+              value: "true"
+            - name: KARAPACE_KARAPACE_REST
+              value: "false"
+            - name: KARAPACE_HOST
+              value: "0.0.0.0"
+            - name: KARAPACE_PORT
+              value: "8081"
+            - name: KARAPACE_ADVERTISED_HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: SCHEMA_REGISTRY_LISTENERS
-              value: http://0.0.0.0:8081
-            - name: SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS
+            - name: KARAPACE_BOOTSTRAP_URI
               value: kafka-cluster-kafka-bootstrap.kafka-cluster:9092
-            - name: SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL
-              value: SASL_PLAINTEXT
-            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_MECHANISM
-              value: SCRAM-SHA-512
-            - name: SCHEMA_REGISTRY_KAFKASTORE_SASL_JAAS_CONFIG
+            - name: KARAPACE_SECURITY_PROTOCOL
+              value: "SASL_PLAINTEXT"
+            - name: KARAPACE_SASL_MECHANISM
+              value: "SCRAM-SHA-512"
+            - name: KARAPACE_SASL_PLAIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: schema-registry-credentials
-                  key: sasl.jaas.config
+                  key: sasl_plain_username
+            - name: KARAPACE_SASL_PLAIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: schema-registry-credentials
+                  key: sasl_plain_password
+            - name: KARAPACE_CLIENT_ID
+              value: "schema-registry-0"
+            - name: KARAPACE_GROUP_ID
+              value: "schema-registry"
+            - name: KARAPACE_TOPIC_NAME
+              value: "_schemas"
           readinessProbe:
             httpGet:
               path: /subjects

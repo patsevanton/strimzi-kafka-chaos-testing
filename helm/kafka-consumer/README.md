@@ -23,7 +23,7 @@ helm install kafka-consumer ./helm/kafka-consumer \
 - `kafka.password` - пароль для SASL/SCRAM (опционально)
 
 ### Schema Registry
-- `schemaRegistry.url` - URL Schema Registry
+- `schemaRegistry.url` - URL Schema Registry API (Karapace/Confluent-compatible)
 
 ### Безопасность
 

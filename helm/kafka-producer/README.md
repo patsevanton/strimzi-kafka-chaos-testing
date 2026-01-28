@@ -22,7 +22,7 @@ helm install kafka-producer ./helm/kafka-producer \
 - `kafka.password` - пароль для SASL/SCRAM (опционально)
 
 ### Schema Registry
-- `schemaRegistry.url` - URL Schema Registry
+- `schemaRegistry.url` - URL Schema Registry API (Karapace/Confluent-compatible)
 
 ### Безопасность
 

@@ -11,7 +11,7 @@ spec:
   authorization:
     type: simple
     acls:
-      # Confluent Schema Registry stores schemas in Kafka topic `_schemas`
+      # Karapace (Schema Registry API compatible) stores schemas in Kafka topic `_schemas`
       - resource:
           type: topic
           name: _schemas

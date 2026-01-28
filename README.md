@@ -149,18 +149,14 @@ kubectl describe secret myuser -n kafka-cluster
 kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d && echo
 ```
 
-## Schema Registry (Confluent) для Avro
+## Schema Registry (Karapace) для Avro
 
-Go-приложение из этого репозитория использует Avro и Schema Registry. Для удобства здесь добавлены готовые манифесты:
+Go-приложение из этого репозитория использует Avro и Schema Registry API. Для удобства здесь добавлены готовые манифесты для **Karapace** — open-source реализации API Confluent Schema Registry (drop-in replacement): https://github.com/Aiven-Open/karapace
+
+Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
 - `kafka-user-schema-registry.yaml` — KafkaUser с правами на `_schemas`
-- `schema-registry.yaml` — Service/Deployment для `confluentinc/cp-schema-registry`
-
-Важно:
-
-- В `schema-registry.yaml` включено `enableServiceLinks: false`, иначе Kubernetes добавляет переменную окружения `SCHEMA_REGISTRY_PORT`, и скрипт старта контейнера завершится с ошибкой.
-- `SCHEMA_REGISTRY_HOST_NAME` берётся из `status.podIP` (уникально для каждого pod). Это предотвращает ошибку Confluent Schema Registry про “duplicate URLs” при рестартах/масштабировании.
-- В `schema-registry.yaml` используется стратегия `Recreate`, чтобы при обновлениях не было одновременно 2 pod'ов Schema Registry (что часто ломает leader election/coordination в тестовых окружениях).
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven/karapace:latest`)
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
@@ -168,36 +164,25 @@ kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl appl
 kubectl apply -f kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
-# Скопировать sasl.jaas.config из секрета Strimzi в Secret в namespace schema-registry
+# Создать Secret с учётными данными для SASL/SCRAM в namespace schema-registry
+# (username = имя KafkaUser, password берём из секрета Strimzi)
 kubectl create secret generic schema-registry-credentials -n schema-registry \
-  --from-literal=sasl.jaas.config="$(kubectl get secret schema-registry -n kafka-cluster -o go-template='{{index .data \"sasl.jaas.config\"}}' | base64 -d)" \
+  --from-literal=sasl_plain_username="schema-registry" \
+  --from-literal=sasl_plain_password="$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Быстрая проверка (должна выводиться строка с ScramLoginModule ...)
-kubectl get secret schema-registry-credentials -n schema-registry \
-  -o go-template='{{index .data \"sasl.jaas.config\"}}' | base64 -d && echo
+# Быстрая проверка (должны выводиться username и password)
+kubectl get secret schema-registry-credentials -n schema-registry -o jsonpath='{.data.sasl_plain_username}' | base64 -d && echo
+kubectl get secret schema-registry-credentials -n schema-registry -o jsonpath='{.data.sasl_plain_password}' | base64 -d && echo
 
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
 ```
 
-### Проблемы и ошибки Schema Registry (Confluent): что бывает и как чинить
+### Если Schema Registry не поднимается: быстрая диагностика
 
-- **Падает сразу при старте с ошибкой про `SCHEMA_REGISTRY_PORT`**: если не отключить `enableServiceLinks`, Kubernetes может добавить env-var `SCHEMA_REGISTRY_PORT`, а entrypoint Confluent Schema Registry воспринимает его как обязательный числовой параметр/порт и валится. Решение: держать `enableServiceLinks: false` (как в `schema-registry.yaml`).
-
-- **Ошибки “duplicate URLs” / проблемы при рестартах**: когда Schema Registry рекламирует один и тот же `host:port` после пересоздания pod'а, он может считать, что в кластере уже есть инстанс с тем же URL. Решение: задавать `SCHEMA_REGISTRY_HOST_NAME` из `status.podIP` (как в `schema-registry.yaml`) и в тестовых окружениях использовать `Recreate`, чтобы одновременно не было двух pod'ов.
-
-- **Команда с `-o go-template` может ломаться из‑за экранирования** (например, “unexpected `\\` in operand”): это типично при запуске в разных shell/CI, когда кавычки/слеши “съедаются”. Более устойчивый вариант — использовать `jsonpath` и экранировать точки:
-
-```bash
-# Вариант без go-template: стабильнее с экранированием
-kubectl create secret generic schema-registry-credentials -n schema-registry \
-  --from-literal=sasl.jaas.config="$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.config}' | base64 -d)" \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-- **`kubectl rollout status ...` уходит в timeout / pod не становится Ready**: чаще всего это либо неверные креды (`sasl.jaas.config` пустой/не тот secret), либо не поднялись зависимости (Kafka недоступна), либо конфиг Schema Registry не совпадает с security-настройками Kafka. Диагностика:
+- **`kubectl rollout status ...` уходит в timeout / pod не становится Ready**: чаще всего это либо неверные креды (не тот пароль/username), либо Kafka недоступна, либо security-настройки не совпадают (например, Kafka требует SASL, а Karapace запущен с PLAINTEXT). Диагностика:
 
 ```bash
 kubectl get pods -n schema-registry
@@ -206,10 +191,6 @@ kubectl logs -n schema-registry deploy/schema-registry --all-containers --tail=2
 kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
 ```
 
-### Если Confluent Schema Registry нестабилен: попробуйте Karapace
-
-Если Confluent Schema Registry в вашем окружении ведёт себя нестабильно (частые рестарты, проблемы с конфигом/leader election, неожиданные падения entrypoint), стоит попробовать альтернативу — [Karapace Schema Registry](https://github.com/Aiven-Open/karapace). Это open-source drop-in реализация API Confluent Schema Registry, которую часто проще запускать в Kubernetes и локально (Docker) для тестов.
-
 ## Producer App и Consumer App
 
 **Producer App и Consumer App** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Используется для генерации нагрузки на кластер Kafka во время тестирования.
@@ -217,7 +198,7 @@ kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
 ### Используемые библиотеки
 
 - `segmentio/kafka-go` — клиент для работы с Kafka
-- `riferrei/srclient` — клиент для Schema Registry
+- `riferrei/srclient` — клиент для Schema Registry API (совместим с Karapace)
 - `goavro` (linkedin/goavro/v2) — работа с Avro схемами
 - `xdg-go/scram` — SASL/SCRAM аутентификация (используется через kafka-go)
 
