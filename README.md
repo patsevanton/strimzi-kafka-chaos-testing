@@ -46,9 +46,12 @@ kubectl get pods -n strimzi
 
 Примечание: версия Strimzi из Helm-чарта в примере (`0.42.0`) поддерживает Kafka версии `3.7.x` (например `3.7.0`).
 
+Важно: при включённых node pools (`strimzi.io/node-pools: enabled`) лучше сначала создать `KafkaNodePool`, а затем `Kafka`.
+Иначе оператор Strimzi может логировать ошибку вида `KafkaNodePools are enabled, but no KafkaNodePools found...` до момента создания node pool.
+
 ```bash
-kubectl apply -f kafka-cluster.yaml
 kubectl apply -f kafka-nodepool.yaml
+kubectl apply -f kafka-cluster.yaml
 ```
 
 Если PVC остаются в `Pending` с ошибкой `ResourceExhausted`, уменьшите размер дисков в `kafka-nodepool.yaml`
@@ -116,10 +119,10 @@ kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=1
 Проверка секрета:
 
 ```bash
-# Посмотреть пароль (для отладки)
+# Посмотреть пароль (только для отладки; не публикуйте этот вывод)
 kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d; echo
 
-# Посмотреть JAAS config
+# Посмотреть JAAS config (только для отладки; не публикуйте этот вывод)
 kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.config}' | base64 -d; echo
 ```
 
