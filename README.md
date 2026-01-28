@@ -16,13 +16,14 @@
 # Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
 kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
 
+# Используем версию Strimzi 0.42.0 (совместима с Kafka 3.7.x и клиентом kafka-go в приложении)
 helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={kafka-cluster}' \
   --wait \
-  --version 0.50.0
+  --version 0.42.0
 ```
 
 Проверка установки:
@@ -37,10 +38,10 @@ kubectl get pods -n strimzi
 
 В этом репозитории уже есть готовые манифесты:
 
-- `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled`)
+- `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. Аутентификация отключена для совместимости с клиентом.)
 - `kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
 
-Примечание: версия Strimzi из Helm-чарта в примере (`0.50.0`) поддерживает Kafka версии `4.x` (например `4.1.1`).
+Примечание: версия Strimzi из Helm-чарта в примере (`0.42.0`) поддерживает Kafka версии `3.7.x` (например `3.7.0`).
 
 ```bash
 kubectl apply -f kafka-cluster.yaml
@@ -73,19 +74,14 @@ kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.me
 
 ### Доступ к Kafka извне кластера (port-forward)
 
-Для тестов удобнее запускать Go-приложение **локально**, а доступ к Kafka (и при необходимости к Schema Registry) получать через `kubectl port-forward`.
+Для тестов удобнее запускать Go-приложение **в кластере** с помощью Helm, так как `kubectl port-forward` имеет ограничения при работе с многоброкерными конфигурациями Kafka.
 
-#### Port-forward (рекомендуется для локальной отладки)
+При необходимости доступа к Schema Registry:
 
 ```bash
-# Kafka bootstrap -> localhost:9092
-kubectl -n kafka-cluster port-forward svc/kafka-cluster-kafka-bootstrap 9092:9092
-
 # Schema Registry (HTTP) -> localhost:8081
 kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
 ```
-
-Дальше Go-приложение можно запускать локально, обращаясь к Kafka через `localhost:9092` и Schema Registry через `http://localhost:8081`.
 
 ### Создание Kafka топиков
 
@@ -107,7 +103,7 @@ kubectl describe kafkatopic test-topic -n kafka-cluster
 
 ### Создание Kafka пользователей и секретов
 
-Для аутентификации через SASL/SCRAM создайте Kafka пользователя. Strimzi автоматически создаст секрет с credentials.
+(Опционально) Для аутентификации через SASL/SCRAM можно создать Kafka пользователя, но в данной конфигурации кластера аутентификация отключена.
 
 #### Создание пользователя
 
@@ -116,40 +112,7 @@ kubectl apply -f kafka-user.yaml
 kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
 ```
 
-После создания KafkaUser, Strimzi автоматически создаст секрет с именем `myuser` в том же namespace, содержащий:
-- `password` — пароль пользователя
-
-#### Получение credentials из секрета
-
-```bash
-# Получить имя пользователя (обычно совпадает с именем KafkaUser)
-USERNAME=myuser
-
-# Получить пароль из секрета
-PASSWORD=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
-```
-
-#### Использование credentials в приложениях
-
-Strimzi создаёт секрет `myuser` в namespace `kafka-cluster`. Для приложений в других namespace обычно проще **считать пароль** из этого секрета и передать его как переменную окружения/helm value, либо скопировать secret в нужный namespace отдельной командой (зависит от ваших практик безопасности).
-
-#### Проверка пользователей и секретов
-
-```bash
-# Проверка Kafka пользователей
-kubectl get kafkauser -n kafka-cluster
-
-# Проверка секретов
-kubectl get secret myuser -n kafka-cluster
-
-# Просмотр содержимого секрета (без пароля)
-kubectl describe secret myuser -n kafka-cluster
-
-# Получение пароля из секрета
-kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d && echo
-```
-
-## Schema Registry (Karapace) для Avro
+### Schema Registry (Karapace) для Avro
 
 Go-приложение из этого репозитория использует Avro и Schema Registry API. Для удобства здесь добавлены готовые манифесты для **Karapace** — open-source реализации API Confluent Schema Registry (drop-in replacement): https://github.com/Aiven-Open/karapace
 
@@ -167,17 +130,6 @@ kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --t
 
 kubectl apply -f kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
-
-# Создать Secret с учётными данными для SASL/SCRAM в namespace schema-registry
-# (username = имя KafkaUser, password берём из секрета Strimzi)
-kubectl create secret generic schema-registry-credentials -n schema-registry \
-  --from-literal=sasl_plain_username="schema-registry" \
-  --from-literal=sasl_plain_password="$(kubectl get secret schema-registry -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-# Быстрая проверка (должны выводиться username и password)
-kubectl get secret schema-registry-credentials -n schema-registry -o jsonpath='{.data.sasl_plain_username}' | base64 -d && echo
-kubectl get secret schema-registry-credentials -n schema-registry -o jsonpath='{.data.sasl_plain_password}' | base64 -d && echo
 
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
@@ -218,56 +170,35 @@ kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
 | `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
 | `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
 
-### Запуск Producer/Consumer локально используя port-forward
+### Запуск Producer/Consumer в кластере используя Helm
 
-Условия:
+Для запуска приложений в кластере используйте Helm charts из директории `helm`.
 
-- есть доступ в Kubernetes через `kubectl`
-- локально установлен Go (`go`)
-
-#### 1) Прокинуть Kafka и Schema Registry на localhost
-
-Держите эти команды запущенными в отдельных терминалах:
-
+#### 1) Установить Producer (без аутентификации)
 ```bash
-# Kafka bootstrap -> localhost:9092
-kubectl -n kafka-cluster port-forward svc/kafka-cluster-kafka-bootstrap 9092:9092
-
-# Schema Registry (HTTP) -> localhost:8081
-kubectl -n schema-registry port-forward svc/schema-registry 8081:8081
+helm upgrade --install kafka-producer ./helm/kafka-producer \
+  --namespace kafka-cluster \
+  --set kafka.username="" \
+  --set kafka.password="" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
+  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081"
 ```
 
-#### 2) (Опционально) Получить пароль для SASL/SCRAM из секрета Strimzi
-
-Если Kafka у вас **без** аутентификации, шаг можно пропустить (не задавайте `KAFKA_USERNAME`/`KAFKA_PASSWORD`).
-
+#### 2) Установить Consumer (без аутентификации)
 ```bash
-export KAFKA_USERNAME=myuser
-export KAFKA_PASSWORD="$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)"
+helm upgrade --install kafka-consumer ./helm/kafka-consumer \
+  --namespace kafka-cluster \
+  --set kafka.username="" \
+  --set kafka.password="" \
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
+  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081"
 ```
 
-#### 3) Запустить producer локально
-
+#### 3) Проверка логов
 ```bash
-MODE=producer \
-KAFKA_BROKERS=localhost:9092 \
-KAFKA_TOPIC=test-topic \
-SCHEMA_REGISTRY_URL=http://localhost:8081 \
-KAFKA_USERNAME="${KAFKA_USERNAME:-}" \
-KAFKA_PASSWORD="${KAFKA_PASSWORD:-}" \
-go run .
+# Producer logs
+kubectl logs -n kafka-cluster -l app.kubernetes.io/name=kafka-producer -f
+
+# Consumer logs
+kubectl logs -n kafka-cluster -l app.kubernetes.io/name=kafka-consumer -f
 ```
-
-#### 4) Запустить consumer локально
-
-```bash
-MODE=consumer \
-KAFKA_BROKERS=localhost:9092 \
-KAFKA_TOPIC=test-topic \
-KAFKA_GROUP_ID=test-group \
-SCHEMA_REGISTRY_URL=http://localhost:8081 \
-KAFKA_USERNAME="${KAFKA_USERNAME:-}" \
-KAFKA_PASSWORD="${KAFKA_PASSWORD:-}" \
-go run .
-```
-

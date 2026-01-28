@@ -61,9 +61,9 @@ spec:
             - name: KARAPACE_BOOTSTRAP_URI
               value: kafka-cluster-kafka-bootstrap.kafka-cluster:9092
             - name: KARAPACE_SECURITY_PROTOCOL
-              value: "SASL_PLAINTEXT"
-            - name: KARAPACE_SASL_MECHANISM
-              value: "SCRAM-SHA-512"
+              value: "PLAINTEXT"
+            # - name: KARAPACE_SASL_MECHANISM
+            #   value: "SCRAM-SHA-512"
             - name: KARAPACE_SASL_PLAIN_USERNAME
               valueFrom:
                 secretKeyRef:
