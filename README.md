@@ -287,10 +287,6 @@ kubectl logs -n kafka-producer -l app.kubernetes.io/name=kafka-producer -f
 kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 ```
 
-## Дополнительные компоненты (пока не используются)
-
-Ниже собраны компоненты, которые можно подключать **опционально** (Chaos Engineering и Observability).
-
 ### Chaos Mesh
 
 **Chaos Mesh** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
