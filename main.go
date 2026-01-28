@@ -156,7 +156,7 @@ func runProducer(ctx context.Context, config *Config) {
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(config.Brokers...),
 		Topic:        config.Topic,
-		Balancer:     &kafka.LeastBytes{},
+		Balancer:     &kafka.RoundRobin{},
 		RequiredAcks: kafka.RequireOne,
 		Async:        false,
 		Transport:    transport,

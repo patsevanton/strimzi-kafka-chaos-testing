@@ -64,16 +64,16 @@ spec:
               value: "PLAINTEXT"
             # - name: KARAPACE_SASL_MECHANISM
             #   value: "SCRAM-SHA-512"
-            - name: KARAPACE_SASL_PLAIN_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: schema-registry-credentials
-                  key: sasl_plain_username
-            - name: KARAPACE_SASL_PLAIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: schema-registry-credentials
-                  key: sasl_plain_password
+            # - name: KARAPACE_SASL_PLAIN_USERNAME
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: schema-registry-credentials
+            #       key: sasl_plain_username
+            # - name: KARAPACE_SASL_PLAIN_PASSWORD
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: schema-registry-credentials
+            #       key: sasl_plain_password
             - name: KARAPACE_CLIENT_ID
               value: "schema-registry-0"
             - name: KARAPACE_GROUP_ID

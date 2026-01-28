@@ -103,13 +103,15 @@ kubectl describe kafkatopic test-topic -n kafka-cluster
 
 ### Создание Kafka пользователей и секретов
 
-(Опционально) Для аутентификации через SASL/SCRAM можно создать Kafka пользователя, но в данной конфигурации кластера аутентификация отключена.
+(Опционально) Для аутентификации через SASL/SCRAM можно создать Kafka пользователя.
+В данной конфигурации кластера аутентификация отключена (PLAINTEXT), поэтому создание пользователей не требуется и не будет работать (статус не станет Ready).
 
-#### Создание пользователя
+#### Создание пользователя (только при включенном Auth)
 
 ```bash
-kubectl apply -f kafka-user.yaml
-kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
+# Пропустить, если auth отключен
+# kubectl apply -f kafka-user.yaml
+# kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
 ```
 
 ### Schema Registry (Karapace) для Avro
@@ -118,9 +120,8 @@ Go-приложение из этого репозитория использу�
 
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
-- `kafka-user-schema-registry.yaml` — KafkaUser с правами на `_schemas`
 - `kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`)
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`). Настроен на PLAINTEXT доступ к Kafka.
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
@@ -128,8 +129,9 @@ kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl appl
 kubectl apply -f kafka-topic-schemas.yaml
 kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s
 
-kubectl apply -f kafka-user-schema-registry.yaml
-kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
+# Пользователь не нужен для PLAINTEXT
+# kubectl apply -f kafka-user-schema-registry.yaml
+# kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
