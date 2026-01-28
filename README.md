@@ -24,6 +24,9 @@ helm upgrade --install strimzi-cluster-operator \
   --set 'watchNamespaces={kafka-cluster}' \
   --wait \
   --version 0.42.0
+
+# Установить CRDs Strimzi (обязательно перед созданием Kafka ресурсов)
+helm show crds oci://quay.io/strimzi-helm/strimzi-kafka-operator --version 0.42.0 | kubectl apply -f -
 ```
 
 Проверка установки:
@@ -47,6 +50,9 @@ kubectl get pods -n strimzi
 kubectl apply -f kafka-cluster.yaml
 kubectl apply -f kafka-nodepool.yaml
 ```
+
+Если PVC остаются в `Pending` с ошибкой `ResourceExhausted`, уменьшите размер дисков в `kafka-nodepool.yaml`
+или укажите подходящий `storageClass` для вашего кластера.
 
 Проверка статуса кластера:
 

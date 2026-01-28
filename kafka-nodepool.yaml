@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: mixed
@@ -15,5 +15,5 @@ spec:
     volumes:
     - id: 0
       type: persistent-claim
-      size: 100Gi
+      size: 10Gi
       deleteClaim: false
