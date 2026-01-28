@@ -16,4 +16,5 @@ spec:
     - id: 0
       type: persistent-claim
       size: 10Gi
+      class: yc-network-ssd
       deleteClaim: false
