@@ -114,22 +114,18 @@ kubectl get pdb -n kafka-cluster
 
 ### ServiceMonitor для Kafka метрик
 
-Для сбора метрик Kafka в VictoriaMetrics/Prometheus примените ServiceMonitor:
+Для сбора метрик Kafka в VictoriaMetrics примените VMServiceScrape:
 
 ```bash
 kubectl apply -f kafka-servicemonitor.yaml
 ```
 
-**Примечание**: Требуется установленный VictoriaMetrics Operator или Prometheus Operator. Файл содержит оба варианта (VMServiceScrape и ServiceMonitor).
+**Примечание**: Требуется установленный VictoriaMetrics Operator (устанавливается в составе vmks в разделе Observability). Если VictoriaMetrics Operator ещё не установлен, этот шаг можно выполнить позже.
 
 Проверка сбора метрик:
 
 ```bash
-# Для VictoriaMetrics
 kubectl get vmservicescrape -n kafka-cluster
-
-# Для Prometheus Operator
-kubectl get servicemonitor -n kafka-cluster
 ```
 
 ### Создание Kafka топиков

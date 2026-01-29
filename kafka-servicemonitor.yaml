@@ -1,5 +1,6 @@
-# ServiceMonitor for Strimzi Kafka metrics
-# Requires VictoriaMetrics Operator or Prometheus Operator
+# VMServiceScrape for Strimzi Kafka metrics (VictoriaMetrics Operator)
+# NOTE: Use this file with VictoriaMetrics Operator.
+# If using Prometheus Operator, use kafka-servicemonitor-prometheus.yaml instead.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
@@ -22,32 +23,9 @@ spec:
       interval: 30s
       scrapeTimeout: 10s
 ---
-# Alternative: Prometheus Operator ServiceMonitor (if not using VictoriaMetrics Operator)
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: kafka-cluster
-  namespace: kafka-cluster
-  labels:
-    app: kafka
-    strimzi.io/cluster: kafka-cluster
-spec:
-  selector:
-    matchLabels:
-      strimzi.io/cluster: kafka-cluster
-      strimzi.io/kind: Kafka
-  namespaceSelector:
-    matchNames:
-      - kafka-cluster
-  endpoints:
-    - port: tcp-prometheus
-      path: /metrics
-      interval: 30s
-      scrapeTimeout: 10s
----
-# ServiceMonitor for Strimzi Entity Operator (Topic and User Operators)
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+# VMServiceScrape for Strimzi Entity Operator (Topic and User Operators)
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
 metadata:
   name: kafka-entity-operator
   namespace: kafka-cluster
