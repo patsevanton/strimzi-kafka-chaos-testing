@@ -9,11 +9,7 @@ vlselect:
     ingressClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
-    # tls:
-    #   - hosts:
-    #     - victorialogs.apatsev.org.ru
-    #     secretName: victorialogs-tls
 vlstorage:
   retentionPeriod: 1d
   persistentVolume:
-    size: 200Gi
+    size: 20Gi
