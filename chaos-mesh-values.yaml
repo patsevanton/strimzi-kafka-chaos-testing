@@ -11,9 +11,3 @@ dashboard:
           - path: /
             pathType: Prefix
     annotations: {}
-    # annotations:
-    #   cert-manager.io/cluster-issuer: letsencrypt-prod
-    # tls:
-    #   - hosts:
-    #       - chaos-dashboard.apatsev.org.ru
-    #     secretName: chaos-dashboard-tls

@@ -20,15 +20,6 @@ spec:
           - Describe
           - Read
         host: "*"
-      # Разрешение на запись во все топики (для отправки сообщений через UI)
-      - resource:
-          type: topic
-          name: "*"
-          patternType: literal
-        operations:
-          - Write
-          - Create
-        host: "*"
       # Разрешение на работу с consumer groups
       - resource:
           type: group
@@ -44,13 +35,4 @@ spec:
         operations:
           - Describe
           - DescribeConfigs
-        host: "*"
-      # Разрешение на работу с транзакциями (для отправки сообщений)
-      - resource:
-          type: transactionalId
-          name: "*"
-          patternType: literal
-        operations:
-          - Describe
-          - Write
         host: "*"
