@@ -1,6 +1,30 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования отказоустойчивости и производительности высоконагруженного кластера Apache Kafka в Kubernetes. Кластер разворачивается с помощью оператора Strimzi. Включает инструменты для хаос-тестирования через Chaos Mesh, мониторинг через VictoriaMetrics, Schema Registry для управления схемами данных, Kafka UI для веб-интерфейса управления кластером, а также примеры producer и consumer приложений на Go.
+Проект для тестирования отказоустойчивости и производительности высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Включает инструменты для хаос-тестирования через Chaos Mesh, мониторинг через VictoriaMetrics, Schema Registry для управления схемами данных, Kafka UI для веб-интерфейса управления кластером, а также примеры producer и consumer приложений на Go.
+
+## Содержание
+
+- [Strimzi](#strimzi)
+  - [Установка Strimzi](#установка-strimzi)
+  - [Развертывание Kafka кластера](#развертывание-kafka-кластера)
+  - [Создание Kafka топиков](#создание-kafka-топиков)
+  - [Создание Kafka пользователей и секретов](#создание-kafka-пользователей-и-секретов)
+  - [Schema Registry (Karapace) для Avro](#schema-registry-karapace-для-avro)
+  - [Если Schema Registry не поднимается: быстрая диагностика](#если-schema-registry-не-поднимается-быстрая-диагностика)
+- [Producer App и Consumer App](#producer-app-и-consumer-app)
+  - [Используемые библиотеки](#используемые-библиотеки)
+  - [Сборка и публикация Docker образа](#сборка-и-публикация-docker-образа)
+  - [Переменные окружения](#переменные-окружения)
+  - [Запуск Producer/Consumer в кластере используя Helm](#запуск-producerconsumer-в-кластере-используя-helm)
+- [Kafka UI, Chaos Mesh и Observability](#kafka-ui-chaos-mesh-и-observability)
+  - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
+  - [Chaos Mesh](#chaos-mesh)
+  - [Observability Stack](#observability-stack)
+    - [VictoriaLogs](#victorialogs)
+    - [victoria-logs-collector](#victoria-logs-collector)
+    - [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
+  - [Формат сообщений](#формат-сообщений)
+- [Удаление (Helm / приложения / Strimzi / Kafka)](#удаление-helm--приложения--strimzi--kafka)
 
 ## Strimzi
 
