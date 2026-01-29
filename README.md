@@ -10,11 +10,10 @@
 
 ### Установка Strimzi
 
+Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
 ```bash
-# Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
 kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
 
-# Используем версию Strimzi 0.50.0 (совместима с Kafka 4.x и клиентом kafka-go в приложении)
 helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
@@ -71,8 +70,8 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 
 Для использования из других namespace:
 
+Получить адрес bootstrap сервера
 ```bash
-# Получить адрес bootstrap сервера
 kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
 ```
 
@@ -286,9 +285,7 @@ kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 
 ### Kafka UI (Kafbat UI)
 
-**Kafka UI** — веб-интерфейс с открытым исходным кодом для управления и мониторинга Apache Kafka кластеров. Позволяет просматривать топики, сообщения, consumer groups, брокеры и конфигурации кластера через удобный графический интерфейс.
-
-GitHub: https://github.com/kafbat/kafka-ui
+**[Kafka UI](https://github.com/kafbat/kafka-ui)** — веб-интерфейс с открытым исходным кодом для управления и мониторинга Apache Kafka кластеров. Позволяет просматривать топики, сообщения, consumer groups, брокеры и конфигурации кластера через удобный графический интерфейс.
 
 Основные возможности:
 - Просмотр и управление топиками (создание, удаление, конфигурация)
@@ -334,14 +331,6 @@ kubectl get svc -n kafka-ui kafka-ui
 
 #### Доступ к Kafka UI
 
-Для локального доступа через port-forward:
-
-```bash
-kubectl port-forward -n kafka-ui svc/kafka-ui 8080:8080
-```
-
-После этого откройте в браузере: http://localhost:8080
-
 Для production-окружения рекомендуется настроить Ingress:
 
 ```yaml
@@ -355,7 +344,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: kafka-ui.example.com
+    - host: kafka-ui.apatsev.org.ru
       http:
         paths:
           - path: /
@@ -368,22 +357,6 @@ spec:
 ```
 
 #### Диагностика проблем Kafka UI
-
-Если Kafka UI не запускается:
-
-```bash
-# Проверить события
-kubectl get events -n kafka-ui --sort-by=.lastTimestamp | tail -n 20
-
-# Проверить логи
-kubectl logs -n kafka-ui deploy/kafka-ui --all-containers --tail=200
-
-# Проверить секрет
-kubectl get secret kafka-ui-user -n kafka-ui -o yaml
-
-# Проверить подключение к Kafka (из пода kafka-ui)
-kubectl exec -n kafka-ui deploy/kafka-ui -- env | grep KAFKA
-```
 
 ### Chaos Mesh
 
