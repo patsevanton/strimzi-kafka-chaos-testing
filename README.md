@@ -74,9 +74,6 @@ kubectl apply -f kafka-nodepool.yaml
 kubectl apply -f kafka-cluster.yaml
 ```
 
-Если PVC остаются в `Pending` с ошибкой `ResourceExhausted`, уменьшите размер дисков в `kafka-nodepool.yaml`
-или укажите подходящий `storageClass` для вашего кластера.
-
 Проверка статуса кластера:
 
 ```bash
