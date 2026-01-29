@@ -11,7 +11,7 @@ kubectl delete -f schema-registry.yaml
 kubectl delete secret schema-registry -n schema-registry
 kubectl delete -f kafka-user-schema-registry.yaml
 kubectl delete -f kafka-topic-schemas.yaml
-kubectl delete -f kafka-ui.yaml
+helm uninstall kafka-ui -n kafka-ui
 kubectl delete secret kafka-ui-user -n kafka-ui
 kubectl delete -f kafka-user-ui.yaml
 kubectl delete -f kafka-topic.yaml

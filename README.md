@@ -335,9 +335,15 @@ kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
   jq '.data.username = ("kafka-ui-user" | @base64)' | \
   kubectl apply -n kafka-ui -f -
 
-# Развернуть Kafka UI
-kubectl apply -f kafka-ui.yaml
-kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=5m
+# Добавить репозиторий Helm
+helm repo add kafbat-ui https://kafbat.github.io/helm-charts
+helm repo update
+
+# Развернуть Kafka UI через Helm
+helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
+  --namespace kafka-ui \
+  -f helm/kafka-ui-values.yaml \
+  --wait
 ```
 
 #### Проверка установки
@@ -347,37 +353,23 @@ kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=5m
 kubectl get pods -n kafka-ui
 
 # Проверить логи
-kubectl logs -n kafka-ui -l app=kafka-ui --tail=100
+kubectl logs -n kafka-ui -l app.kubernetes.io/name=kafka-ui --tail=100
 
 # Получить сервис
-kubectl get svc -n kafka-ui kafka-ui
+kubectl get svc -n kafka-ui
 ```
 
 #### Доступ к Kafka UI
 
-Для production-окружения рекомендуется настроить Ingress:
+Ingress уже настроен в `helm/kafka-ui-values.yaml`. По умолчанию используется хост `kafka-ui.apatsev.org.ru` с nginx ingress class.
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kafka-ui
-  namespace: kafka-ui
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: kafka-ui.apatsev.org.ru
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: kafka-ui
-                port:
-                  number: 8080
+Для изменения хоста отредактируйте секцию `ingress` в values файле или передайте через `--set`:
+
+```bash
+helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
+  --namespace kafka-ui \
+  -f helm/kafka-ui-values.yaml \
+  --set ingress.host=your-host.example.com
 ```
 
 #### Диагностика проблем Kafka UI
