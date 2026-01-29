@@ -538,26 +538,8 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 | `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
 | `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
 | `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
-| `io-fault.yaml` | IOChaos | I/O ошибки на диске |
 | `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
 | `memory-stress.yaml` | StressChaos | Нагрузка на память |
-
-> **Ограничения IOChaos (`io-fault.yaml`)**
->
-> IOChaos требует дополнительной настройки Chaos Mesh:
-> - Необходимо установить Chaos Mesh с включенным `chaosDaemon.privileged: true`
-> - Требуется injection sidecar `toda` для перехвата I/O операций
-> - При ошибке `toda startup takes too long or an error occurs: No such file or directory` — IOChaos не применится
->
-> Для включения IOChaos при установке Chaos Mesh:
-> ```bash
-> helm upgrade chaos-mesh chaos-mesh/chaos-mesh -n chaos-mesh \
->   --set chaosDaemon.privileged=true \
->   --set chaosDaemon.runtime=containerd \
->   --set chaosDaemon.socketPath=/run/containerd/containerd.sock
-> ```
->
-> Документация: https://chaos-mesh.org/docs/simulate-io-chaos-on-kubernetes/
 
 #### Запуск всех экспериментов
 
@@ -568,7 +550,6 @@ kubectl apply -f chaos-experiments/pod-failure.yaml
 kubectl apply -f chaos-experiments/network-delay.yaml
 kubectl apply -f chaos-experiments/network-partition.yaml
 kubectl apply -f chaos-experiments/network-loss.yaml
-kubectl apply -f chaos-experiments/io-fault.yaml
 kubectl apply -f chaos-experiments/cpu-stress.yaml
 kubectl apply -f chaos-experiments/memory-stress.yaml
 ```
@@ -582,14 +563,11 @@ kubectl get podchaos -n kafka-cluster
 # Проверить NetworkChaos эксперименты
 kubectl get networkchaos -n kafka-cluster
 
-# Проверить IOChaos эксперименты
-kubectl get iochaos -n kafka-cluster
-
 # Проверить StressChaos эксперименты
 kubectl get stresschaos -n kafka-cluster
 
 # Проверить все эксперименты
-kubectl get podchaos,networkchaos,iochaos,stresschaos -n kafka-cluster
+kubectl get podchaos,networkchaos,stresschaos -n kafka-cluster
 ```
 
 #### Остановка всех экспериментов
@@ -601,7 +579,6 @@ kubectl delete -f chaos-experiments/pod-failure.yaml
 kubectl delete -f chaos-experiments/network-delay.yaml
 kubectl delete -f chaos-experiments/network-partition.yaml
 kubectl delete -f chaos-experiments/network-loss.yaml
-kubectl delete -f chaos-experiments/io-fault.yaml
 kubectl delete -f chaos-experiments/cpu-stress.yaml
 kubectl delete -f chaos-experiments/memory-stress.yaml
 ```
