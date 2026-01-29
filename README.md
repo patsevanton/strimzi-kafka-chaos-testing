@@ -28,7 +28,7 @@
 
 ## Strimzi
 
-**Strimzi** — оператор Kubernetes для развертывания и управления Apache Kafka в Kubernetes. Предоставляет Custom Resource Definitions (CRDs) для управления Kafka-кластерами, топиками, пользователями и подключениями.
+**[Strimzi](https://github.com/strimzi/strimzi-kafka-operator)** — оператор Kubernetes для развертывания и управления Apache Kafka в Kubernetes. Предоставляет Custom Resource Definitions (CRDs) для управления Kafka-кластерами, топиками, пользователями и подключениями.
 
 В Данном тестировании Kafka использует **KRaft (Kafka Raft)** — новый механизм управления метаданными в Apache Kafka, который заменяет зависимость от ZooKeeper. KRaft упрощает архитектуру кластера, улучшает производительность и масштабируемость, а также снижает задержки при управлении метаданными.
 
@@ -146,7 +146,7 @@ kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.confi
 
 ### Schema Registry (Karapace) для Avro
 
-Go-приложение из этого репозитория использует Avro и Schema Registry API. Для удобства здесь добавлены готовые манифесты для **Karapace** — open-source реализации API Confluent Schema Registry (drop-in replacement): https://github.com/Aiven-Open/karapace
+Go-приложение из этого репозитория использует Avro и Schema Registry API. Для удобства здесь добавлены готовые манифесты для **[Karapace](https://github.com/Aiven-Open/karapace)** — open-source реализации API Confluent Schema Registry (drop-in replacement).
 
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
@@ -196,10 +196,10 @@ kubectl get secret schema-registry -n schema-registry
 
 ### Используемые библиотеки
 
-- `segmentio/kafka-go` — клиент для работы с Kafka
-- `riferrei/srclient` — клиент для Schema Registry API (совместим с Karapace)
-- `goavro` (linkedin/goavro/v2) — работа с Avro схемами
-- `xdg-go/scram` — SASL/SCRAM аутентификация (используется через kafka-go)
+- **[segmentio/kafka-go](https://github.com/segmentio/kafka-go)** — клиент для работы с Kafka
+- **[riferrei/srclient](https://github.com/riferrei/srclient)** — клиент для Schema Registry API (совместим с Karapace)
+- **[linkedin/goavro](https://github.com/linkedin/goavro)** — работа с Avro схемами
+- **[xdg-go/scram](https://github.com/xdg-go/scram)** — SASL/SCRAM аутентификация (используется через kafka-go)
 
 ### Сборка и публикация Docker образа
 
@@ -384,7 +384,7 @@ spec:
 
 ### Chaos Mesh
 
-**Chaos Mesh** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
+**[Chaos Mesh](https://github.com/chaos-mesh/chaos-mesh)** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
 
 #### Установка Chaos Mesh
 
@@ -414,7 +414,7 @@ Observability stack помогает отслеживать состояние �
 
 #### VictoriaLogs
 
-**VictoriaLogs** — высокопроизводительное хранилище логов от команды VictoriaMetrics. Оптимизировано для больших объёмов логов, поддерживает эффективное хранение "wide events" (множество полей в записи), быстрые полнотекстовые поиски и масштабирование. LogsQL поддерживается в VictoriaLogs datasource для Grafana.
+**[VictoriaLogs](https://github.com/VictoriaMetrics/VictoriaMetrics/tree/master/docs/victorialogs)** — высокопроизводительное хранилище логов от команды VictoriaMetrics. Оптимизировано для больших объёмов логов, поддерживает эффективное хранение "wide events" (множество полей в записи), быстрые полнотекстовые поиски и масштабирование. LogsQL поддерживается в VictoriaLogs datasource для Grafana.
 
 ##### Установка: Cluster
 
@@ -433,7 +433,7 @@ helm upgrade --install victoria-logs-cluster \
 
 #### victoria-logs-collector
 
-`victoria-logs-collector` — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
+**[victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
 
 ##### Установка
 
@@ -452,7 +452,7 @@ helm upgrade --install victoria-logs-collector \
 
 #### VictoriaMetrics (VM K8s Stack)
 
-`victoria-metrics-k8s-stack` — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
+**[victoria-metrics-k8s-stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack)** — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
 
 ##### Установка
 
