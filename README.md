@@ -14,14 +14,14 @@
 # Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
 kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
 
-# Используем версию Strimzi 0.42.0 (совместима с Kafka 3.7.x и клиентом kafka-go в приложении)
+# Используем версию Strimzi 0.50.0 (совместима с Kafka 4.x и клиентом kafka-go в приложении)
 helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={kafka-cluster}' \
   --wait \
-  --version 0.42.0
+  --version 0.50.0
 ```
 
 Проверка установки:
@@ -39,7 +39,7 @@ kubectl get pods -n strimzi
 - `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
 - `kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
 
-Примечание: версия Strimzi из Helm-чарта в примере (`0.42.0`) поддерживает Kafka версии `3.7.x` (например `3.7.0`).
+Примечание: версия Strimzi из Helm-чарта в примере (`0.50.0`) поддерживает Kafka версии `4.x` (например `4.1.1`).
 
 Важно: при включённых node pools (`strimzi.io/node-pools: enabled`) лучше сначала создать `KafkaNodePool`, а затем `Kafka`.
 Иначе оператор Strimzi может логировать ошибку вида `KafkaNodePools are enabled, but no KafkaNodePools found...` до момента создания node pool.
@@ -129,7 +129,7 @@ Karapace поднимается как обычный HTTP-сервис и хр�
 
 - `kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
 - `kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:latest`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.2`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
@@ -184,10 +184,10 @@ Go-код в `main.go` можно изменять под свои нужды. �
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.2.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.0.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:1.2.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.0.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -197,7 +197,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="1.2.0"
+  --set image.tag="3.0.0"
 ```
 
 ### Переменные окружения

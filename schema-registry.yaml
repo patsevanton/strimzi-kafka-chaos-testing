@@ -36,7 +36,7 @@ spec:
       enableServiceLinks: false
       containers:
         - name: schema-registry
-          image: ghcr.io/aiven-open/karapace:latest
+          image: ghcr.io/aiven-open/karapace:5.0.2
           imagePullPolicy: IfNotPresent
           # NOTE: ghcr.io/aiven-open/karapace:latest currently ships a broken console-script entrypoint.
           # Run the module directly instead.
