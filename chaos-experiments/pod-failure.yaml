@@ -1,0 +1,39 @@
+# PodChaos: Simulate pod failure (container crash)
+# Tests: Kafka broker crash and recovery
+# Expected: StatefulSet should restart the pod, cluster recovers
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-pod-failure
+  namespace: kafka-cluster
+spec:
+  action: pod-failure
+  mode: one
+  duration: "60s"
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+---
+# PodChaos: Simulate multiple broker failures (dangerous - may break quorum)
+# Use with caution: killing 2 of 3 brokers will break min.insync.replicas=2
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-multi-pod-failure
+  namespace: kafka-cluster
+  annotations:
+    description: "WARNING: This may break cluster quorum"
+spec:
+  action: pod-failure
+  mode: fixed-percent
+  value: "60"  # ~60% of pods (2 of 3)
+  duration: "30s"
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka

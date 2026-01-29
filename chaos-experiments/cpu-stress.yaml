@@ -1,0 +1,41 @@
+# StressChaos: CPU stress on Kafka brokers
+# Tests: Kafka performance under CPU pressure
+# Expected: Increased latency, possible timeouts, but cluster should remain stable
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: kafka-cpu-stress
+  namespace: kafka-cluster
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  stressors:
+    cpu:
+      workers: 2
+      load: 80  # 80% CPU load
+  duration: "2m"
+---
+# StressChaos: High CPU stress (simulate overload)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: kafka-cpu-stress-high
+  namespace: kafka-cluster
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  stressors:
+    cpu:
+      workers: 4
+      load: 95  # 95% CPU load
+  duration: "1m"

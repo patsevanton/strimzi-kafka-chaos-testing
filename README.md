@@ -7,6 +7,8 @@
 - [Strimzi](#strimzi)
   - [Установка Strimzi](#установка-strimzi)
   - [Развертывание Kafka кластера](#развертывание-kafka-кластера)
+  - [PodDisruptionBudget для Kafka](#poddisruptionbudget-для-kafka)
+  - [ServiceMonitor для Kafka метрик](#servicemonitor-для-kafka-метрик)
   - [Создание Kafka топиков](#создание-kafka-топиков)
   - [Создание Kafka пользователей и секретов](#создание-kafka-пользователей-и-секретов)
   - [Schema Registry (Karapace) для Avro](#schema-registry-karapace-для-avro)
@@ -18,6 +20,7 @@
 - [Kafka UI, Chaos Mesh и Observability](#kafka-ui-chaos-mesh-и-observability)
   - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
   - [Chaos Mesh](#chaos-mesh)
+    - [Примеры Chaos-экспериментов](#примеры-chaos-экспериментов)
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
     - [victoria-logs-collector](#victoria-logs-collector)
@@ -96,6 +99,40 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 Получить адрес bootstrap сервера
 ```bash
 kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
+```
+
+### PodDisruptionBudget для Kafka
+
+PodDisruptionBudget (PDB) защищает кластер Kafka от чрезмерных нарушений во время плановых операций (rolling update, node drain и т.д.). Гарантирует, что как минимум 2 брокера всегда доступны.
+
+```bash
+kubectl apply -f kafka-pdb.yaml
+```
+
+Проверка:
+
+```bash
+kubectl get pdb -n kafka-cluster
+```
+
+### ServiceMonitor для Kafka метрик
+
+Для сбора метрик Kafka в VictoriaMetrics/Prometheus примените ServiceMonitor:
+
+```bash
+kubectl apply -f kafka-servicemonitor.yaml
+```
+
+**Примечание**: Требуется установленный VictoriaMetrics Operator или Prometheus Operator. Файл содержит оба варианта (VMServiceScrape и ServiceMonitor).
+
+Проверка сбора метрик:
+
+```bash
+# Для VictoriaMetrics
+kubectl get vmservicescrape -n kafka-cluster
+
+# Для Prometheus Operator
+kubectl get servicemonitor -n kafka-cluster
 ```
 
 ### Создание Kafka топиков
@@ -219,6 +256,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 | `KAFKA_USERNAME` | Имя пользователя для SASL/SCRAM | - |
 | `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
 | `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
+| `HEALTH_PORT` | Порт для health-проверок (liveness/readiness) | `8080` |
 
 ### Запуск Producer/Consumer в кластере используя Helm
 
@@ -407,6 +445,36 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 Скопируйте полученный токен и используйте его для входа в Chaos Mesh Dashboard.
 
 **Примечание**: Этот ServiceAccount имеет права администратора (Manager) на уровне всего кластера для управления всеми chaos-экспериментами.
+
+#### Примеры Chaos-экспериментов
+
+В директории `chaos-experiments/` находятся готовые примеры экспериментов для тестирования отказоустойчивости Kafka:
+
+| Файл | Тип | Описание |
+|------|-----|----------|
+| `pod-kill.yaml` | PodChaos | Убийство брокера Kafka |
+| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
+| `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
+| `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
+| `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
+| `io-fault.yaml` | IOChaos | I/O ошибки на диске |
+| `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
+| `memory-stress.yaml` | StressChaos | Нагрузка на память |
+
+Запуск эксперимента:
+
+```bash
+# Применить эксперимент
+kubectl apply -f chaos-experiments/pod-kill.yaml
+
+# Проверить статус
+kubectl get podchaos -n kafka-cluster
+
+# Остановить эксперимент
+kubectl delete -f chaos-experiments/pod-kill.yaml
+```
+
+Подробная документация в файле `chaos-experiments/README.md`.
 
 ### Observability Stack
 

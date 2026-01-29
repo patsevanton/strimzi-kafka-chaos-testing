@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -19,6 +21,12 @@ import (
 const (
 	ModeProducer = "producer"
 	ModeConsumer = "consumer"
+)
+
+// Health status for probes
+var (
+	isReady   atomic.Bool
+	isHealthy atomic.Bool
 )
 
 type Config struct {
@@ -43,6 +51,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start health check server
+	go startHealthServer()
+
 	// Handle graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -50,6 +61,8 @@ func main() {
 	go func() {
 		<-sigChan
 		log.Println("Shutting down...")
+		isHealthy.Store(false)
+		isReady.Store(false)
 		cancel()
 	}()
 
@@ -60,6 +73,45 @@ func main() {
 		runConsumer(ctx, config)
 	default:
 		log.Fatalf("Invalid mode: %s. Use 'producer' or 'consumer'", config.Mode)
+	}
+}
+
+// startHealthServer starts HTTP server for health probes
+func startHealthServer() {
+	healthPort := os.Getenv("HEALTH_PORT")
+	if healthPort == "" {
+		healthPort = "8080"
+	}
+
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if isHealthy.Load() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("not healthy"))
+		}
+	})
+
+	http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if isReady.Load() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("not ready"))
+		}
+	})
+
+	http.HandleFunc("/livez", func(w http.ResponseWriter, r *http.Request) {
+		// Liveness is always ok if server is running
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
+	log.Printf("Starting health server on port %s", healthPort)
+	if err := http.ListenAndServe(":"+healthPort, nil); err != nil {
+		log.Printf("Health server error: %v", err)
 	}
 }
 
@@ -125,6 +177,9 @@ func parseBrokers(brokers string) []string {
 func runProducer(ctx context.Context, config *Config) {
 	log.Printf("Starting producer. Brokers: %v, Topic: %s", config.Brokers, config.Topic)
 
+	// Mark as healthy (process is running)
+	isHealthy.Store(true)
+
 	// Create writer with simplified configuration
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(config.Brokers...),
@@ -166,6 +221,10 @@ func runProducer(ctx context.Context, config *Config) {
 	// Wait for metadata to be fetched
 	log.Println("Waiting for Kafka metadata...")
 	time.Sleep(5 * time.Second)
+
+	// Mark as ready (connected to Kafka and Schema Registry)
+	isReady.Store(true)
+	log.Println("Producer is ready")
 
 	messageID := int64(0)
 	ticker := time.NewTicker(1 * time.Second)
@@ -217,10 +276,13 @@ func runProducer(ctx context.Context, config *Config) {
 func runConsumer(ctx context.Context, config *Config) {
 	log.Printf("Starting consumer. Brokers: %v, Topic: %s, GroupID: %s", config.Brokers, config.Topic, config.GroupID)
 
+	// Mark as healthy (process is running)
+	isHealthy.Store(true)
+
 	// Setup Kafka dialer
 	dialer := &kafka.Dialer{
-		Timeout:       10 * time.Second,
-		DualStack:     true,
+		Timeout:   10 * time.Second,
+		DualStack: true,
 	}
 
 	// Add SASL/SCRAM authentication if credentials provided
@@ -247,6 +309,10 @@ func runConsumer(ctx context.Context, config *Config) {
 	schemaRegistryClient := srclient.CreateSchemaRegistryClient(config.SchemaRegistryURL)
 	// See producer: avoid flaky startup failures when SR is still warming up.
 	schemaRegistryClient.SetTimeout(2 * time.Minute)
+
+	// Mark as ready (connected to Kafka and Schema Registry)
+	isReady.Store(true)
+	log.Println("Consumer is ready")
 
 	for {
 		select {

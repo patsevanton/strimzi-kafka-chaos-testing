@@ -1,0 +1,41 @@
+# NetworkChaos: Packet loss on Kafka brokers
+# Tests: Kafka resilience to unreliable network
+# Expected: Increased retries, potential message redelivery
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-loss
+  namespace: kafka-cluster
+spec:
+  action: loss
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  loss:
+    loss: "10"
+    correlation: "50"
+  duration: "2m"
+---
+# NetworkChaos: Heavy packet loss (degraded network)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-heavy-loss
+  namespace: kafka-cluster
+spec:
+  action: loss
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  loss:
+    loss: "30"
+    correlation: "75"
+  duration: "1m"

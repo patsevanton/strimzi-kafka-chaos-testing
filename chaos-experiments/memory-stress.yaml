@@ -1,0 +1,44 @@
+# StressChaos: Memory stress on Kafka brokers
+# Tests: Kafka behavior under memory pressure
+# Expected: Possible OOM events, GC pauses, degraded performance
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: kafka-memory-stress
+  namespace: kafka-cluster
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  stressors:
+    memory:
+      workers: 2
+      size: "256MB"
+  duration: "2m"
+---
+# StressChaos: Combined CPU and Memory stress
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: kafka-combined-stress
+  namespace: kafka-cluster
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  stressors:
+    cpu:
+      workers: 2
+      load: 60
+    memory:
+      workers: 1
+      size: "128MB"
+  duration: "2m"

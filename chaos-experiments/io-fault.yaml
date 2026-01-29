@@ -1,0 +1,44 @@
+# IOChaos: Inject I/O errors on Kafka broker disk
+# Tests: Kafka behavior when disk operations fail
+# Expected: Broker may become unhealthy, leader election occurs
+# IMPORTANT: Requires Chaos Mesh with IOChaos enabled (needs privileged container)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: kafka-io-error
+  namespace: kafka-cluster
+spec:
+  action: fault
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  volumePath: /var/lib/kafka/data
+  path: "**/*"
+  errno: 5  # EIO (I/O error)
+  percent: 50
+  duration: "1m"
+---
+# IOChaos: Slow disk I/O (simulate disk saturation)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: kafka-io-latency
+  namespace: kafka-cluster
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  volumePath: /var/lib/kafka/data
+  path: "**/*"
+  delay: "100ms"
+  percent: 100
+  duration: "2m"

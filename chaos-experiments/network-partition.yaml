@@ -1,0 +1,46 @@
+# NetworkChaos: Network partition - isolate one broker
+# Tests: Kafka cluster behavior during network split-brain
+# Expected: Isolated broker loses leadership, cluster continues with 2 brokers
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-partition
+  namespace: kafka-cluster
+spec:
+  action: partition
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  direction: both
+  duration: "2m"
+---
+# NetworkChaos: Block traffic between brokers and producer
+# Tests: Producer behavior when cannot reach Kafka
+# Expected: Producer retries, messages buffered, eventual reconnection
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-producer-partition
+  namespace: kafka-cluster
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  direction: both
+  target:
+    selector:
+      namespaces:
+        - kafka-producer
+      labelSelectors:
+        app.kubernetes.io/name: kafka-producer
+    mode: all
+  duration: "1m"

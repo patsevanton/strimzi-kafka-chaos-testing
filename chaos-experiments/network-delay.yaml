@@ -1,0 +1,43 @@
+# NetworkChaos: Add network latency to Kafka brokers
+# Tests: Impact of network delays on producer/consumer performance
+# Expected: Increased message latency, possible timeouts
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-delay
+  namespace: kafka-cluster
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  delay:
+    latency: "100ms"
+    jitter: "20ms"
+    correlation: "50"
+  duration: "2m"
+---
+# NetworkChaos: High latency scenario (simulate cross-region replication)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-network-high-delay
+  namespace: kafka-cluster
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  delay:
+    latency: "500ms"
+    jitter: "100ms"
+    correlation: "75"
+  duration: "2m"

@@ -1,0 +1,70 @@
+# ServiceMonitor for Strimzi Kafka metrics
+# Requires VictoriaMetrics Operator or Prometheus Operator
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kafka-cluster
+  namespace: kafka-cluster
+  labels:
+    app: kafka
+    strimzi.io/cluster: kafka-cluster
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  namespaceSelector:
+    matchNames:
+      - kafka-cluster
+  endpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+# Alternative: Prometheus Operator ServiceMonitor (if not using VictoriaMetrics Operator)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-cluster
+  namespace: kafka-cluster
+  labels:
+    app: kafka
+    strimzi.io/cluster: kafka-cluster
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  namespaceSelector:
+    matchNames:
+      - kafka-cluster
+  endpoints:
+    - port: tcp-prometheus
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+# ServiceMonitor for Strimzi Entity Operator (Topic and User Operators)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka-entity-operator
+  namespace: kafka-cluster
+  labels:
+    app: kafka-entity-operator
+    strimzi.io/cluster: kafka-cluster
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+      strimzi.io/name: kafka-cluster-entity-operator
+  namespaceSelector:
+    matchNames:
+      - kafka-cluster
+  endpoints:
+    - port: healthcheck
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

@@ -74,3 +74,17 @@ secrets:
   username: ""
   # Kafka password (will be stored in secret if secrets.create is true)
   password: ""
+
+# Health check configuration
+health:
+  port: 8080
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
