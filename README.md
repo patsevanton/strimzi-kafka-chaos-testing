@@ -10,7 +10,6 @@
   - [Создание Kafka топиков](#создание-kafka-топиков)
   - [Создание Kafka пользователей и секретов](#создание-kafka-пользователей-и-секретов)
   - [Schema Registry (Karapace) для Avro](#schema-registry-karapace-для-avro)
-  - [Если Schema Registry не поднимается: быстрая диагностика](#если-schema-registry-не-поднимается-быстрая-диагностика)
 - [Producer App и Consumer App](#producer-app-и-consumer-app)
   - [Используемые библиотеки](#используемые-библиотеки)
   - [Сборка и публикация Docker образа](#сборка-и-публикация-docker-образа)
@@ -174,20 +173,6 @@ kubectl get secret schema-registry -n kafka-cluster -o json | \
 kubectl apply -f schema-registry.yaml
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
 kubectl get svc -n schema-registry schema-registry
-```
-
-### Если Schema Registry не поднимается: быстрая диагностика
-
-- **`kubectl rollout status ...` уходит в timeout / pod не становится Ready**: чаще всего это либо неверные креды (не тот пароль/username), либо Kafka недоступна, либо security-настройки не совпадают (например, Kafka требует SASL, а Karapace запущен с PLAINTEXT). Диагностика:
-
-```bash
-kubectl get pods -n schema-registry
-kubectl describe pod -n schema-registry -l app=schema-registry
-kubectl logs -n schema-registry deploy/schema-registry --all-containers --tail=200
-kubectl get events -n schema-registry --sort-by=.lastTimestamp | tail -n 30
-
-# Проверить что секрет скопирован
-kubectl get secret schema-registry -n schema-registry
 ```
 
 ## Producer App и Consumer App
