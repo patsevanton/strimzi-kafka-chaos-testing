@@ -129,7 +129,7 @@ Karapace поднимается как обычный HTTP-сервис и хр�
 
 - `kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
 - `kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.2`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
@@ -401,6 +401,7 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --namespace chaos-mesh \
   --create-namespace \
   -f chaos-mesh-values.yaml \
+  --version 2.8.1 \
   --wait
 ```
 
@@ -447,7 +448,7 @@ helm upgrade --install victoria-logs-collector \
   --namespace victoria-logs-collector \
   --create-namespace \
   --wait \
-  --version 0.2.5 \
+  --version 0.2.8 \
   --timeout 15m \
   -f victorialogs-collector-values.yaml
 ```
@@ -466,7 +467,7 @@ helm upgrade --install vmks \
   --namespace vmks \
   --create-namespace \
   --wait \
-  --version 0.66.1 \
+  --version 0.68.0 \
   --timeout 15m \
   -f vmks-values.yaml
 ```

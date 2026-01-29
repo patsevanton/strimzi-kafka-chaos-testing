@@ -40,7 +40,7 @@ spec:
     spec:
       containers:
         - name: kafka-ui
-          image: ghcr.io/kafbat/kafka-ui:latest
+          image: ghcr.io/kafbat/kafka-ui:v1.4.2
           ports:
             - containerPort: 8080
               name: http
