@@ -400,6 +400,29 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
 kubectl get pods -n chaos-mesh
 ```
 
+#### Настройка аутентификации Dashboard
+
+Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh-rbac.yaml`:
+
+```bash
+# Создать ServiceAccount, ClusterRole, ClusterRoleBinding и Secret с токеном
+kubectl apply -f chaos-mesh-rbac.yaml
+
+# Дождаться создания токена (несколько секунд)
+sleep 3
+```
+
+Получение токена для входа в Dashboard:
+
+```bash
+# Получить токен из Secret
+kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
+```
+
+Скопируйте полученный токен и используйте его для входа в Chaos Mesh Dashboard.
+
+**Примечание**: Этот ServiceAccount имеет права администратора (Manager) на уровне всего кластера для управления всеми chaos-экспериментами.
+
 ### Observability Stack
 
 Observability stack помогает отслеживать состояние системы во время тестирования, собирая логи и метрики из компонентов кластера Kafka и приложений.

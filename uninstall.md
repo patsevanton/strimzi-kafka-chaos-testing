@@ -2,6 +2,7 @@
 
 ```bash
 helm uninstall chaos-mesh -n chaos-mesh
+kubectl delete -f chaos-mesh-rbac.yaml
 helm uninstall victoria-logs-cluster -n victoria-logs-cluster
 helm uninstall victoria-logs-collector -n victoria-logs-collector
 helm uninstall vmks -n vmks
