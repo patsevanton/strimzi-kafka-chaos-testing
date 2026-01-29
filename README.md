@@ -22,9 +22,6 @@ helm upgrade --install strimzi-cluster-operator \
   --set 'watchNamespaces={kafka-cluster}' \
   --wait \
   --version 0.42.0
-
-# Установить CRDs Strimzi (обязательно перед созданием Kafka ресурсов)
-helm show crds oci://quay.io/strimzi-helm/strimzi-kafka-operator --version 0.42.0 | kubectl apply -f -
 ```
 
 Проверка установки:
