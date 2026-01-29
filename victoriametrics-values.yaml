@@ -1,6 +1,9 @@
 grafana:
   plugins:
     - victoriametrics-logs-datasource
+  sidecar:
+    dashboards:
+      enabled: false
   ingress:
     ingressClassName: nginx
     enabled: true

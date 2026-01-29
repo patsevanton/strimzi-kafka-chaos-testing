@@ -442,10 +442,12 @@ helm upgrade --install victoria-logs-collector \
 
 Для установки используйте `victoriametrics-values.yaml` из репозитория.
 
+**Важно**: Имя релиза и namespace `vmks` выбраны намеренно короткими, чтобы избежать ошибки `must be no more than 63 characters` для имён Kubernetes ресурсов (Service, ConfigMap и др.), которые формируются как `{release}-{chart}-{component}`.
+
 ```bash
-helm upgrade --install victoriametrics \
+helm upgrade --install vmks \
   oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack \
-  --namespace victoriametrics \
+  --namespace vmks \
   --create-namespace \
   --wait \
   --version 0.68.0 \
@@ -453,10 +455,17 @@ helm upgrade --install victoriametrics \
   -f victoriametrics-values.yaml
 ```
 
+**Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` установлено `grafana.sidecar.dashboards.enabled: false`, потому что Helm-чарт не позволяет использовать одновременно sidecar и секцию `grafana.dashboards`. При использовании `grafana.dashboards` для загрузки дашбордов напрямую (по URL или gnetId) необходимо отключить sidecar.
+
+**Примечание о Node Exporter**: `prometheus-node-exporter` разворачивается как DaemonSet и должен запускаться на каждой ноде. Если поды остаются в статусе `Pending`, проверьте:
+- Наличие taints на нодах (node exporter по умолчанию имеет tolerations для master/control-plane)
+- Достаточность ресурсов на нодах
+- nodeSelector в values файле
+
 Пароль `admin` для Grafana:
 
 ```bash
-kubectl get secret victoriametrics-grafana -n victoriametrics -o jsonpath='{.data.admin-password}' | base64 --decode; echo
+kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
 ```
 
 ### Формат сообщений
