@@ -3,4 +3,4 @@ name: kafka-producer
 description: Helm chart for Kafka Producer application
 type: application
 version: 0.2.0
-appVersion: "3.0.0"
+appVersion: "3.1.0"
