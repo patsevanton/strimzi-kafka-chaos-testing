@@ -122,7 +122,7 @@ kubectl get pdb -n kafka-cluster
 kubectl apply -f kafka-servicemonitor.yaml
 ```
 
-**Примечание**: Требуется установленный VictoriaMetrics Operator (устанавливается в составе vmks в разделе Observability). Если VictoriaMetrics Operator ещё не установлен, этот шаг можно выполнить позже.
+**Примечание**: Требуется установленный VictoriaMetrics Operator (устанавливается в составе victoriametrics в разделе Observability). Если VictoriaMetrics Operator ещё не установлен, этот шаг можно выполнить позже.
 
 Проверка сбора метрик:
 
@@ -440,23 +440,23 @@ helm upgrade --install victoria-logs-collector \
 
 ##### Установка
 
-Для установки используйте `vmks-values.yaml` из репозитория.
+Для установки используйте `victoriametrics-values.yaml` из репозитория.
 
 ```bash
-helm upgrade --install vmks \
+helm upgrade --install victoriametrics \
   oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack \
-  --namespace vmks \
+  --namespace victoriametrics \
   --create-namespace \
   --wait \
   --version 0.68.0 \
   --timeout 15m \
-  -f vmks-values.yaml
+  -f victoriametrics-values.yaml
 ```
 
 Пароль `admin` для Grafana:
 
 ```bash
-kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
+kubectl get secret victoriametrics-grafana -n victoriametrics -o jsonpath='{.data.admin-password}' | base64 --decode; echo
 ```
 
 ### Формат сообщений

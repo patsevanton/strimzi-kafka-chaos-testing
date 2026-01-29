@@ -11,7 +11,7 @@ kubectl delete -f chaos-mesh-rbac.yaml
 # Удаление Observability stack
 helm uninstall victoria-logs-cluster -n victoria-logs-cluster
 helm uninstall victoria-logs-collector -n victoria-logs-collector
-helm uninstall vmks -n vmks
+helm uninstall victoriametrics -n victoriametrics
 
 # Удаление приложений
 helm uninstall kafka-producer -n kafka-producer
@@ -45,7 +45,7 @@ helm uninstall strimzi-cluster-operator -n strimzi
 kubectl delete namespace chaos-mesh
 kubectl delete namespace victoria-logs-cluster
 kubectl delete namespace victoria-logs-collector
-kubectl delete namespace vmks
+kubectl delete namespace victoriametrics
 kubectl delete namespace kafka-producer
 kubectl delete namespace kafka-consumer
 kubectl delete namespace kafka-ui
