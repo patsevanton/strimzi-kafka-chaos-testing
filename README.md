@@ -17,15 +17,17 @@
   - [Сборка и публикация Docker образа](#сборка-и-публикация-docker-образа)
   - [Переменные окружения](#переменные-окружения)
   - [Запуск Producer/Consumer в кластере используя Helm](#запуск-producerconsumer-в-кластере-используя-helm)
-- [Kafka UI, Chaos Mesh и Observability](#kafka-ui-chaos-mesh-и-observability)
+- [Kafka UI и Observability](#kafka-ui-и-observability)
   - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
-  - [Chaos Mesh](#chaos-mesh)
-    - [Примеры Chaos-экспериментов](#примеры-chaos-экспериментов)
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
     - [victoria-logs-collector](#victoria-logs-collector)
     - [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
   - [Формат сообщений](#формат-сообщений)
+- [Chaos Mesh](#chaos-mesh)
+  - [Установка Chaos Mesh](#установка-chaos-mesh)
+  - [Настройка аутентификации Dashboard](#настройка-аутентификации-dashboard)
+  - [Запуск всех Chaos-экспериментов](#запуск-всех-chaos-экспериментов)
 - [Удаление (Helm / приложения / Strimzi / Kafka)](#удаление-helm--приложения--strimzi--kafka)
 
 ## Strimzi
@@ -321,7 +323,7 @@ kubectl logs -n kafka-producer -l app.kubernetes.io/name=kafka-producer -f
 kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 ```
 
-## Kafka UI, Chaos Mesh и Observability
+## Kafka UI и Observability
 
 ### Kafka UI (Kafbat UI)
 
@@ -389,85 +391,6 @@ helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
 ```
 
 #### Диагностика проблем Kafka UI
-
-### Chaos Mesh
-
-**[Chaos Mesh](https://github.com/chaos-mesh/chaos-mesh)** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
-
-#### Установка Chaos Mesh
-
-Для доступа к Dashboard через `ingress-nginx` используйте файл `chaos-mesh-values.yaml` из репозитория.
-
-```bash
-helm repo add chaos-mesh https://charts.chaos-mesh.org
-helm repo update
-
-helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
-  --namespace chaos-mesh \
-  --create-namespace \
-  -f chaos-mesh-values.yaml \
-  --version 2.8.1 \
-  --wait
-```
-
-Проверка установки:
-
-```bash
-kubectl get pods -n chaos-mesh
-```
-
-#### Настройка аутентификации Dashboard
-
-Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh-rbac.yaml`:
-
-```bash
-# Создать ServiceAccount, ClusterRole, ClusterRoleBinding и Secret с токеном
-kubectl apply -f chaos-mesh-rbac.yaml
-
-# Дождаться создания токена (несколько секунд)
-sleep 3
-```
-
-Получение токена для входа в Dashboard:
-
-```bash
-# Получить токен из Secret
-kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
-```
-
-Скопируйте полученный токен и используйте его для входа в Chaos Mesh Dashboard.
-
-**Примечание**: Этот ServiceAccount имеет права администратора (Manager) на уровне всего кластера для управления всеми chaos-экспериментами.
-
-#### Примеры Chaos-экспериментов
-
-В директории `chaos-experiments/` находятся готовые примеры экспериментов для тестирования отказоустойчивости Kafka:
-
-| Файл | Тип | Описание |
-|------|-----|----------|
-| `pod-kill.yaml` | PodChaos | Убийство брокера Kafka |
-| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
-| `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
-| `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
-| `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
-| `io-fault.yaml` | IOChaos | I/O ошибки на диске |
-| `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
-| `memory-stress.yaml` | StressChaos | Нагрузка на память |
-
-Запуск эксперимента:
-
-```bash
-# Применить эксперимент
-kubectl apply -f chaos-experiments/pod-kill.yaml
-
-# Проверить статус
-kubectl get podchaos -n kafka-cluster
-
-# Остановить эксперимент
-kubectl delete -f chaos-experiments/pod-kill.yaml
-```
-
-Подробная документация в файле `chaos-experiments/README.md`.
 
 ### Observability Stack
 
@@ -554,6 +477,136 @@ kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | b
 ```
 
 Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
+
+## Chaos Mesh
+
+**[Chaos Mesh](https://github.com/chaos-mesh/chaos-mesh)** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
+
+### Установка Chaos Mesh
+
+Для доступа к Dashboard через `ingress-nginx` используйте файл `chaos-mesh-values.yaml` из репозитория.
+
+```bash
+helm repo add chaos-mesh https://charts.chaos-mesh.org
+helm repo update
+
+helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
+  --namespace chaos-mesh \
+  --create-namespace \
+  -f chaos-mesh-values.yaml \
+  --version 2.8.1 \
+  --wait
+```
+
+Проверка установки:
+
+```bash
+kubectl get pods -n chaos-mesh
+```
+
+### Настройка аутентификации Dashboard
+
+Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh-rbac.yaml`:
+
+```bash
+# Создать ServiceAccount, ClusterRole, ClusterRoleBinding и Secret с токеном
+kubectl apply -f chaos-mesh-rbac.yaml
+
+# Дождаться создания токена (несколько секунд)
+sleep 3
+```
+
+Получение токена для входа в Dashboard:
+
+```bash
+# Получить токен из Secret
+kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
+```
+
+Скопируйте полученный токен и используйте его для входа в Chaos Mesh Dashboard.
+
+**Примечание**: Этот ServiceAccount имеет права администратора (Manager) на уровне всего кластера для управления всеми chaos-экспериментами.
+
+### Запуск всех Chaos-экспериментов
+
+В директории `chaos-experiments/` находятся готовые эксперименты для тестирования отказоустойчивости Kafka:
+
+| Файл | Тип | Описание |
+|------|-----|----------|
+| `pod-kill.yaml` | PodChaos | Убийство брокера Kafka |
+| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
+| `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
+| `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
+| `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
+| `io-fault.yaml` | IOChaos | I/O ошибки на диске |
+| `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
+| `memory-stress.yaml` | StressChaos | Нагрузка на память |
+
+> **Ограничения IOChaos (`io-fault.yaml`)**
+>
+> IOChaos требует дополнительной настройки Chaos Mesh:
+> - Необходимо установить Chaos Mesh с включенным `chaosDaemon.privileged: true`
+> - Требуется injection sidecar `toda` для перехвата I/O операций
+> - При ошибке `toda startup takes too long or an error occurs: No such file or directory` — IOChaos не применится
+>
+> Для включения IOChaos при установке Chaos Mesh:
+> ```bash
+> helm upgrade chaos-mesh chaos-mesh/chaos-mesh -n chaos-mesh \
+>   --set chaosDaemon.privileged=true \
+>   --set chaosDaemon.runtime=containerd \
+>   --set chaosDaemon.socketPath=/run/containerd/containerd.sock
+> ```
+>
+> Документация: https://chaos-mesh.org/docs/simulate-io-chaos-on-kubernetes/
+
+#### Запуск всех экспериментов
+
+```bash
+# Применить все эксперименты
+kubectl apply -f chaos-experiments/pod-kill.yaml
+kubectl apply -f chaos-experiments/pod-failure.yaml
+kubectl apply -f chaos-experiments/network-delay.yaml
+kubectl apply -f chaos-experiments/network-partition.yaml
+kubectl apply -f chaos-experiments/network-loss.yaml
+kubectl apply -f chaos-experiments/io-fault.yaml
+kubectl apply -f chaos-experiments/cpu-stress.yaml
+kubectl apply -f chaos-experiments/memory-stress.yaml
+```
+
+#### Проверка статуса экспериментов
+
+```bash
+# Проверить PodChaos эксперименты
+kubectl get podchaos -n kafka-cluster
+
+# Проверить NetworkChaos эксперименты
+kubectl get networkchaos -n kafka-cluster
+
+# Проверить IOChaos эксперименты
+kubectl get iochaos -n kafka-cluster
+
+# Проверить StressChaos эксперименты
+kubectl get stresschaos -n kafka-cluster
+
+# Проверить все эксперименты
+kubectl get podchaos,networkchaos,iochaos,stresschaos -n kafka-cluster
+```
+
+#### Остановка всех экспериментов
+
+```bash
+# Остановить все эксперименты
+kubectl delete -f chaos-experiments/pod-kill.yaml
+kubectl delete -f chaos-experiments/pod-failure.yaml
+kubectl delete -f chaos-experiments/network-delay.yaml
+kubectl delete -f chaos-experiments/network-partition.yaml
+kubectl delete -f chaos-experiments/network-loss.yaml
+kubectl delete -f chaos-experiments/io-fault.yaml
+kubectl delete -f chaos-experiments/cpu-stress.yaml
+kubectl delete -f chaos-experiments/memory-stress.yaml
+```
+
+Подробная документация в файле `chaos-experiments/README.md`.
 
 ## Удаление (Helm / приложения / Strimzi / Kafka)
 
