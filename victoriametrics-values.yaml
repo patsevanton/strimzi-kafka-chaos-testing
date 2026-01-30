@@ -88,3 +88,6 @@ vmcluster:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
       hosts:
         - vmselect.apatsev.org.ru
+
+
+# todo добавить полезные дашборды https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples/metrics/grafana-dashboards
