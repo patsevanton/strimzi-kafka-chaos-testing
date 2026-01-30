@@ -22,6 +22,7 @@
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
     - [victoria-logs-collector](#victoria-logs-collector)
+    - [Prometheus CRDs](#prometheus-crds)
     - [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
   - [Формат сообщений](#формат-сообщений)
 - [Chaos Mesh](#chaos-mesh)
@@ -437,6 +438,35 @@ helm upgrade --install victoria-logs-collector \
   --version 0.2.8 \
   --timeout 15m \
   -f victorialogs-collector-values.yaml
+```
+
+#### Prometheus CRDs
+
+Перед установкой VictoriaMetrics K8s Stack необходимо установить Prometheus CRDs (Custom Resource Definitions). Эти CRDs используются для определения ресурсов мониторинга, таких как ServiceMonitor, PodMonitor, PrometheusRule и др.
+
+```bash
+kubectl apply --server-side -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.82.2/stripped-down-crds.yaml
+```
+
+Проверка установки CRDs:
+
+```bash
+kubectl get crds | grep monitoring.coreos.com
+```
+
+Ожидаемый вывод:
+
+```
+alertmanagerconfigs.monitoring.coreos.com
+alertmanagers.monitoring.coreos.com
+podmonitors.monitoring.coreos.com
+probes.monitoring.coreos.com
+prometheusagents.monitoring.coreos.com
+prometheuses.monitoring.coreos.com
+prometheusrules.monitoring.coreos.com
+scrapeconfigs.monitoring.coreos.com
+servicemonitors.monitoring.coreos.com
+thanosrulers.monitoring.coreos.com
 ```
 
 #### VictoriaMetrics (VM K8s Stack)
