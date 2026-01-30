@@ -1,8 +1,9 @@
-# VMServiceScrape для метрик Strimzi Kafka (VictoriaMetrics Operator)
-# ПРИМЕЧАНИЕ: Используйте этот файл с VictoriaMetrics Operator.
-# Если используете Prometheus Operator, используйте kafka-servicemonitor-prometheus.yaml.
+# VMPodScrape для метрик Strimzi Kafka (VictoriaMetrics Operator)
+# ПРИМЕЧАНИЕ: Используем VMPodScrape вместо VMServiceScrape, потому что
+# Strimzi Kafka 4.x не экспонирует порт tcp-prometheus (9404) в сервисе.
+# Метрики доступны только напрямую с подов.
 apiVersion: operator.victoriametrics.com/v1beta1
-kind: VMServiceScrape
+kind: VMPodScrape
 metadata:
   name: kafka-cluster
   namespace: kafka-cluster
@@ -14,10 +15,11 @@ spec:
     matchLabels:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
+      strimzi.io/name: kafka-cluster-kafka
   namespaceSelector:
     matchNames:
       - kafka-cluster
-  endpoints:
+  podMetricsEndpoints:
     - port: tcp-prometheus
       path: /metrics
       interval: 30s
