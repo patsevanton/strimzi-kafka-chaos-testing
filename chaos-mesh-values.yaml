@@ -3,18 +3,15 @@ chaosDaemon:
   socketPath: /run/containerd/containerd.sock
   # JSON logging format
   env:
-    - name: LOG_FORMAT
-      value: json
+    LOG_FORMAT: json
 controllerManager:
   # JSON logging format
   env:
-    - name: LOG_FORMAT
-      value: json
+    LOG_FORMAT: json
 dashboard:
   # JSON logging format
   env:
-    - name: LOG_FORMAT
-      value: json
+    LOG_FORMAT: json
   ingress:
     enabled: true
     ingressClassName: nginx

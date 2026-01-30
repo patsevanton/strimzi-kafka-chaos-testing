@@ -79,11 +79,6 @@ spec:
               value: "schema-registry"
             - name: KARAPACE_TOPIC_NAME
               value: "_schemas"
-            # JSON logging format
-            - name: KARAPACE_LOG_FORMAT
-              value: "json"
-            - name: LOG_FORMAT
-              value: "json"
           readinessProbe:
             httpGet:
               path: /subjects
