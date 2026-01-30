@@ -48,9 +48,13 @@ helm upgrade --install strimzi-cluster-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={kafka-cluster}' \
+  --set dashboards.enabled=true \
   --wait \
   --version 0.50.0
 ```
+
+**Параметры мониторинга** (default values):
+- `dashboards.enabled: false` — создание ConfigMap с Grafana dashboards для Strimzi (требует Grafana sidecar)
 
 Проверка установки:
 
@@ -371,6 +375,11 @@ helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
   --wait
 ```
 
+**Параметры мониторинга** (default values):
+- Kafka UI не имеет встроенного ServiceMonitor в Helm chart
+- Метрики доступны через Spring Boot Actuator на `/actuator/prometheus` (требует настройки в `yamlApplicationConfig`)
+- Для сбора метрик создайте ServiceMonitor вручную
+
 #### Проверка установки
 
 ```bash
@@ -419,8 +428,17 @@ helm upgrade --install victoria-logs-cluster \
   --wait \
   --version 0.0.25 \
   --timeout 15m \
-  -f victorialogs-cluster-values.yaml
+  -f victorialogs-cluster-values.yaml \
+  --set vlselect.vmServiceScrape.enabled=true \
+  --set vlinsert.vmServiceScrape.enabled=true \
+  --set vlstorage.vmServiceScrape.enabled=true
 ```
+
+**Параметры мониторинга** (default values):
+- `vlselect.vmServiceScrape.enabled: false` — VMServiceScrape для vlselect компонента
+- `vlinsert.vmServiceScrape.enabled: false` — VMServiceScrape для vlinsert компонента
+- `vlstorage.vmServiceScrape.enabled: false` — VMServiceScrape для vlstorage компонента
+- `*.vmServiceScrape.useServiceMonitor: false` — использовать ServiceMonitor вместо VMServiceScrape
 
 #### victoria-logs-collector
 
@@ -438,8 +456,13 @@ helm upgrade --install victoria-logs-collector \
   --wait \
   --version 0.2.8 \
   --timeout 15m \
-  -f victorialogs-collector-values.yaml
+  -f victorialogs-collector-values.yaml \
+  --set podMonitor.enabled=true
 ```
+
+**Параметры мониторинга** (default values):
+- `podMonitor.enabled: false` — PodMonitor для сбора метрик collector
+- `podMonitor.vm: false` — использовать VMPodScrape вместо PodMonitor
 
 #### Prometheus CRDs
 
@@ -500,6 +523,12 @@ helm upgrade --install vmks \
   -f victoriametrics-values.yaml
 ```
 
+**Параметры мониторинга** (default values):
+- `victoria-metrics-operator.enabled: true` — включает оператор VictoriaMetrics
+- `victoria-metrics-operator.serviceMonitor.enabled: true` — ServiceMonitor для оператора
+- Автоматически конвертирует Prometheus ServiceMonitor/PodMonitor в VMServiceScrape/VMPodScrape
+- Включает scrape конфигурации для kubelet, kube-proxy и других компонентов кластера
+
 **Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` установлено `grafana.sidecar.dashboards.enabled: false`, потому что Helm-чарт не позволяет использовать одновременно sidecar и секцию `grafana.dashboards`. При использовании `grafana.dashboards` для загрузки дашбордов напрямую (по URL или gnetId) необходимо отключить sidecar.
 
 **Примечание о Node Exporter**: `prometheus-node-exporter` разворачивается как DaemonSet и должен запускаться на каждой ноде. Если поды остаются в статусе `Pending`, проверьте:
@@ -552,13 +581,19 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --wait
 ```
 
+**Параметры мониторинга** (default values):
+- `chaosDaemon.service.scrape.enabled: true` — annotations для Prometheus scraping (включено по умолчанию)
+- `prometheus.create: false` — встроенный Prometheus (не нужен при использовании VictoriaMetrics)
+- `controllerManager.env.METRICS_PORT: 10080` — порт метрик controller-manager
+- `dashboard.env.METRIC_PORT: 2334` — порт метрик dashboard
+
 Проверка установки:
 
 ```bash
 kubectl get pods -n chaos-mesh
 ```
 
-Для сбора метрик Chaos Mesh примените ServiceMonitor:
+Для сбора метрик Chaos Mesh через VictoriaMetrics/Prometheus Operator примените ServiceMonitor:
 
 ```bash
 kubectl apply -f chaos-mesh-servicemonitor.yaml
