@@ -243,23 +243,17 @@ func runProducer(ctx context.Context, config *Config) {
 				Data:      fmt.Sprintf("Test message #%d", messageID),
 			}
 
-			// Convert message to Avro
-			avroData, err := encodeAvroMessage(codec, msg)
+			// Convert message to Avro with Confluent wire format
+			avroData, err := encodeAvroMessage(codec, schema.ID(), msg)
 			if err != nil {
 				log.Printf("Failed to encode message: %v", err)
 				continue
 			}
 
-			// Prepare Kafka message with schema ID
+			// Prepare Kafka message (schema ID is now embedded in the value)
 			kafkaMsg := kafka.Message{
 				Key:   []byte(fmt.Sprintf("key-%d", messageID)),
 				Value: avroData,
-				Headers: []kafka.Header{
-					{
-						Key:   "schemaId",
-						Value: []byte(fmt.Sprintf("%d", schema.ID())),
-					},
-				},
 			}
 
 			err = writer.WriteMessages(ctx, kafkaMsg)
@@ -330,40 +324,8 @@ func runConsumer(ctx context.Context, config *Config) {
 				continue
 			}
 
-			// Get schema ID from headers
-			var schemaID int
-			for _, header := range msg.Headers {
-				if header.Key == "schemaId" {
-					fmt.Sscanf(string(header.Value), "%d", &schemaID)
-					break
-				}
-			}
-
-			// Get schema from Schema Registry
-			var schema *srclient.Schema
-			if schemaID > 0 {
-				schema, err = schemaRegistryClient.GetSchema(schemaID)
-				if err != nil {
-					log.Printf("Failed to get schema %d: %v", schemaID, err)
-					continue
-				}
-			} else {
-				// Fallback: get latest schema for topic
-				schema, err = schemaRegistryClient.GetLatestSchema(config.Topic)
-				if err != nil {
-					log.Printf("Failed to get latest schema: %v", err)
-					continue
-				}
-			}
-
-			// Decode Avro message
-			codec, err := goavro.NewCodec(schema.Schema())
-			if err != nil {
-				log.Printf("Failed to create codec: %v", err)
-				continue
-			}
-
-			decoded, _, err := codec.NativeFromBinary(msg.Value)
+			// Decode message using Confluent wire format
+			decoded, err := decodeAvroMessage(schemaRegistryClient, msg.Value)
 			if err != nil {
 				log.Printf("Failed to decode message: %v", err)
 				continue
@@ -401,7 +363,40 @@ func getOrCreateSchema(client *srclient.SchemaRegistryClient, subject string) (*
 	return schema, nil
 }
 
-func encodeAvroMessage(codec *goavro.Codec, msg Message) ([]byte, error) {
+func decodeAvroMessage(client *srclient.SchemaRegistryClient, data []byte) (interface{}, error) {
+	// Confluent wire format: magic byte (0) + schema ID (4 bytes big-endian) + Avro data
+	if len(data) < 5 {
+		return nil, fmt.Errorf("message too short: %d bytes", len(data))
+	}
+
+	if data[0] != 0 {
+		return nil, fmt.Errorf("invalid magic byte: %d", data[0])
+	}
+
+	// Extract schema ID (big-endian)
+	schemaID := int(data[1])<<24 | int(data[2])<<16 | int(data[3])<<8 | int(data[4])
+
+	// Get schema from Schema Registry
+	schema, err := client.GetSchema(schemaID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get schema %d: %w", schemaID, err)
+	}
+
+	// Create codec and decode
+	codec, err := goavro.NewCodec(schema.Schema())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create codec: %w", err)
+	}
+
+	decoded, _, err := codec.NativeFromBinary(data[5:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode Avro: %w", err)
+	}
+
+	return decoded, nil
+}
+
+func encodeAvroMessage(codec *goavro.Codec, schemaID int, msg Message) ([]byte, error) {
 	// Convert Message to map for Avro encoding
 	avroMap := map[string]interface{}{
 		"id":        msg.ID,
@@ -409,5 +404,21 @@ func encodeAvroMessage(codec *goavro.Codec, msg Message) ([]byte, error) {
 		"data":      msg.Data,
 	}
 
-	return codec.BinaryFromNative(nil, avroMap)
+	// Encode to Avro binary
+	avroData, err := codec.BinaryFromNative(nil, avroMap)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use Confluent wire format: magic byte (0) + schema ID (4 bytes big-endian) + Avro data
+	// This is the standard format expected by Schema Registry consumers
+	buf := make([]byte, 5+len(avroData))
+	buf[0] = 0 // Magic byte
+	buf[1] = byte(schemaID >> 24)
+	buf[2] = byte(schemaID >> 16)
+	buf[3] = byte(schemaID >> 8)
+	buf[4] = byte(schemaID)
+	copy(buf[5:], avroData)
+
+	return buf, nil
 }

@@ -12,6 +12,9 @@ yamlApplicationConfig:
       - name: kafka-cluster
         bootstrapServers: kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092
         schemaRegistry: http://schema-registry.schema-registry.svc.cluster.local:8081
+        # Use Schema Registry for Avro deserialization
+        defaultKeySerde: String
+        defaultValueSerde: SchemaRegistry
         properties:
           security.protocol: SASL_PLAINTEXT
           sasl.mechanism: SCRAM-SHA-512
@@ -69,3 +72,5 @@ ingress:
   host: kafka-ui.apatsev.org.ru
   path: /
   pathType: Prefix
+
+# todo сделай команду для получения default values из helm charts для kafka-ui
