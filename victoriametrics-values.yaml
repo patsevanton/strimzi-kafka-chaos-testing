@@ -84,7 +84,7 @@ grafana:
             value: VictoriaMetrics
     victorialogs:
       victorialogs:
-        gnetId: 22759
+        gnetId: 24585
         revision: 1
         datasource: victoriametrics-logs
 defaultDatasources:

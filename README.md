@@ -127,6 +127,7 @@ kubectl get pods -n strimzi
 
 В этом репозитории уже есть готовые манифесты:
 
+- `strimzi/kafka-metrics-config.yaml` — ConfigMap с конфигурацией JMX Exporter для метрик Prometheus
 - `strimzi/kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
 - `strimzi/kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
 

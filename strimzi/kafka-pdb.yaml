@@ -15,4 +15,4 @@ spec:
     matchLabels:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-      strimzi.io/name: kafka-cluster-mixed
+      strimzi.io/name: kafka-cluster-kafka
