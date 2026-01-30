@@ -48,3 +48,26 @@ spec:
       path: /metrics
       interval: 30s
       scrapeTimeout: 10s
+---
+# PodMonitor для Strimzi Cluster Operator
+# Экспортирует метрики strimzi_resources, strimzi_reconciliations и др.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: strimzi-cluster-operator
+  namespace: strimzi
+  labels:
+    app: strimzi-cluster-operator
+spec:
+  selector:
+    matchLabels:
+      name: strimzi-cluster-operator
+      strimzi.io/kind: cluster-operator
+  namespaceSelector:
+    matchNames:
+      - strimzi
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
