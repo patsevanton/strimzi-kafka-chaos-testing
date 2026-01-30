@@ -54,7 +54,9 @@ grafana:
       chaos-mesh-overview:
         gnetId: 15918 # 15706
         revision: 1
-        datasource: VictoriaMetrics
+        datasource:
+          - name: DS_PROMETHEUS
+            value: VictoriaMetrics
     victorialogs:
       victorialogs:
         gnetId: 22759

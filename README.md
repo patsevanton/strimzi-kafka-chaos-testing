@@ -72,6 +72,7 @@ kubectl get pods -n strimzi
 Иначе оператор Strimzi может логировать ошибку вида `KafkaNodePools are enabled, but no KafkaNodePools found...` до момента создания node pool.
 
 ```bash
+kubectl apply -f strimzi/kafka-metrics-config.yaml
 kubectl apply -f strimzi/kafka-nodepool.yaml
 kubectl apply -f strimzi/kafka-cluster.yaml
 ```
@@ -356,6 +357,9 @@ kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
 # Добавить репозиторий Helm
 helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
+
+# Получить default values из Helm chart (опционально, для ознакомления)
+helm show values kafbat-ui/kafka-ui --version 1.4.2
 
 # Развернуть Kafka UI через Helm
 helm upgrade --install kafka-ui kafbat-ui/kafka-ui \

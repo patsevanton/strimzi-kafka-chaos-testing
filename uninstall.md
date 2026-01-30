@@ -37,6 +37,7 @@ kubectl delete -f strimzi/kafka-topic.yaml
 kubectl delete -f strimzi/kafka-user.yaml
 kubectl delete -f strimzi/kafka-cluster.yaml
 kubectl delete -f strimzi/kafka-nodepool.yaml
+kubectl delete -f strimzi/kafka-metrics-config.yaml
 
 # Удаление Strimzi оператора
 helm uninstall strimzi-cluster-operator -n strimzi
