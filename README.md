@@ -23,7 +23,7 @@
   - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
-    - [victoria-logs-collector](#victoria-logs-collector)
+    - [victorialogs-collector](#victorialogs-collector)
   - [Формат сообщений](#формат-сообщений)
 - [Chaos Mesh](#chaos-mesh)
   - [Установка Chaos Mesh](#установка-chaos-mesh)
@@ -48,32 +48,11 @@ helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-
   --version 19.1.0
 ```
 
-Проверка установки CRDs:
-
-```bash
-kubectl get crds | grep monitoring.coreos.com
-```
-
-Ожидаемый вывод:
-
-```
-alertmanagerconfigs.monitoring.coreos.com
-alertmanagers.monitoring.coreos.com
-podmonitors.monitoring.coreos.com
-probes.monitoring.coreos.com
-prometheusagents.monitoring.coreos.com
-prometheuses.monitoring.coreos.com
-prometheusrules.monitoring.coreos.com
-scrapeconfigs.monitoring.coreos.com
-servicemonitors.monitoring.coreos.com
-thanosrulers.monitoring.coreos.com
-```
-
 ## VictoriaMetrics (VM K8s Stack)
 
 **[victoria-metrics-k8s-stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack)** — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
 
-**Важно**: VictoriaMetrics устанавливается сразу после Prometheus CRDs, так как он предоставляет CRDs (VMServiceScrape, VMPodScrape и др.), которые используются другими компонентами (VictoriaLogs, collector и др.).
+**Важно**: VictoriaMetrics устанавливается вначале, так как он предоставляет CRDs (VMServiceScrape, VMPodScrape и др.), которые используются другими компонентами (VictoriaLogs, collector и др.).
 
 ### Установка
 
@@ -499,9 +478,9 @@ Observability stack помогает отслеживать состояние �
 Для установки используйте `victorialogs-cluster-values.yaml` из репозитория.
 
 ```bash
-helm upgrade --install victoria-logs-cluster \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-cluster \
-  --namespace victoria-logs-cluster \
+helm upgrade --install victorialogs-cluster \
+  oci://ghcr.io/victoriametrics/helm-charts/victorialogs-cluster \
+  --namespace victorialogs-cluster \
   --create-namespace \
   --wait \
   --version 0.0.25 \
@@ -518,18 +497,18 @@ helm upgrade --install victoria-logs-cluster \
 - `vlstorage.vmServiceScrape.enabled: false` — VMServiceScrape для vlstorage компонента
 - `*.vmServiceScrape.useServiceMonitor: false` — использовать ServiceMonitor вместо VMServiceScrape
 
-#### victoria-logs-collector
+#### VictoriaLogs Collector
 
-**[victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
+**[VictoriaLogs Collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victorialogs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
 
 ##### Установка
 
 Для установки используйте `victorialogs-collector-values.yaml` из репозитория.
 
 ```bash
-helm upgrade --install victoria-logs-collector \
-  oci://ghcr.io/victoriametrics/helm-charts/victoria-logs-collector \
-  --namespace victoria-logs-collector \
+helm upgrade --install victorialogs-collector \
+  oci://ghcr.io/victoriametrics/helm-charts/victorialogs-collector \
+  --namespace victorialogs-collector \
   --create-namespace \
   --wait \
   --version 0.2.8 \

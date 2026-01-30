@@ -13,8 +13,8 @@ helm uninstall chaos-mesh -n chaos-mesh --wait --timeout=2m || true
 kubectl delete -f chaos-mesh-rbac.yaml --ignore-not-found
 
 # 2. Observability и приложения (параллельно)
-helm uninstall victoria-logs-cluster -n victoria-logs-cluster --wait --timeout=2m &
-helm uninstall victoria-logs-collector -n victoria-logs-collector --wait --timeout=2m &
+helm uninstall victorialogs-cluster -n victorialogs-cluster --wait --timeout=2m &
+helm uninstall victorialogs-collector -n victorialogs-collector --wait --timeout=2m &
 helm uninstall vmks -n vmks --wait --timeout=2m &
 helm uninstall kafka-producer -n kafka-producer --wait --timeout=2m &
 helm uninstall kafka-consumer -n kafka-consumer --wait --timeout=2m &
@@ -42,7 +42,7 @@ helm uninstall strimzi-cluster-operator -n strimzi --wait --timeout=2m || true
 helm uninstall prometheus-operator-crds -n prometheus-crds --wait --timeout=2m || true
 
 # 7. Namespaces
-NS="chaos-mesh victoria-logs-cluster victoria-logs-collector vmks kafka-producer kafka-consumer kafka-ui schema-registry kafka-cluster strimzi prometheus-crds"
+NS="chaos-mesh victorialogs-cluster victorialogs-collector vmks kafka-producer kafka-consumer kafka-ui schema-registry kafka-cluster strimzi prometheus-crds"
 for ns in $NS; do kubectl delete ns $ns --ignore-not-found & done; wait
 ```
 
