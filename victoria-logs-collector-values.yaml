@@ -1,6 +1,6 @@
 # Настройки отправки логов во внешнее хранилище (VictoriaLogs)
 remoteWrite:
-  - url: http://victorialogs-cluster-vlinsert.victorialogs-cluster:9481
+  - url: http://victorialogs-cluster-victoria-logs-cluster-vlinsert.victorialogs-cluster:9481
     headers:
       # Поля, которые будут проигнорированы и не сохранены в VictoriaLogs
       # Полезно для уменьшения объёма данных и шума

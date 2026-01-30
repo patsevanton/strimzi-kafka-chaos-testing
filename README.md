@@ -23,7 +23,7 @@
   - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
-    - [victorialogs-collector](#victorialogs-collector)
+    - [victoria-logs-collector](#victoria-logs-collector)
   - [Формат сообщений](#формат-сообщений)
 - [Chaos Mesh](#chaos-mesh)
   - [Установка Chaos Mesh](#установка-chaos-mesh)
@@ -478,12 +478,15 @@ Observability stack помогает отслеживать состояние �
 Для установки используйте `victorialogs-cluster-values.yaml` из репозитория.
 
 ```bash
-helm upgrade --install victorialogs-cluster \
-  oci://ghcr.io/victoriametrics/helm-charts/victorialogs-cluster \
+# Добавить Helm репозиторий VictoriaMetrics
+helm repo add vm https://victoriametrics.github.io/helm-charts/
+helm repo update
+
+helm upgrade --install victorialogs-cluster vm/victoria-logs-cluster \
   --namespace victorialogs-cluster \
   --create-namespace \
   --wait \
-  --version 0.0.25 \
+  --version 0.0.26 \
   --timeout 15m \
   -f victorialogs-cluster-values.yaml \
   --set vlselect.vmServiceScrape.enabled=true \
@@ -497,23 +500,22 @@ helm upgrade --install victorialogs-cluster \
 - `vlstorage.vmServiceScrape.enabled: false` — VMServiceScrape для vlstorage компонента
 - `*.vmServiceScrape.useServiceMonitor: false` — использовать ServiceMonitor вместо VMServiceScrape
 
-#### VictoriaLogs Collector
+#### victoria-logs-collector
 
-**[VictoriaLogs Collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victorialogs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
+**[victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
 
 ##### Установка
 
-Для установки используйте `victorialogs-collector-values.yaml` из репозитория.
+Для установки используйте `victoria-logs-collector-values.yaml` из репозитория.
 
 ```bash
-helm upgrade --install victorialogs-collector \
-  oci://ghcr.io/victoriametrics/helm-charts/victorialogs-collector \
-  --namespace victorialogs-collector \
+helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
+  --namespace victoria-logs-collector \
   --create-namespace \
   --wait \
   --version 0.2.8 \
   --timeout 15m \
-  -f victorialogs-collector-values.yaml \
+  -f victoria-logs-collector-values.yaml \
   --set podMonitor.enabled=true
 ```
 
