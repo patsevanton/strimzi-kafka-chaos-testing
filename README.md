@@ -282,6 +282,12 @@ kubectl get svc -n schema-registry schema-registry
 - **[linkedin/goavro](https://github.com/linkedin/goavro)** — работа с Avro схемами
 - **[xdg-go/scram](https://github.com/xdg-go/scram)** — SASL/SCRAM аутентификация (используется через kafka-go)
 
+### Структура исходного кода
+
+- `main.go` — основной код Go-приложения (producer/consumer)
+- `go.mod`, `go.sum` — файлы зависимостей Go модуля
+- `Dockerfile` — многоэтапная сборка Docker образа
+
 ### Сборка и публикация Docker образа
 
 Go-код в `main.go` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
@@ -699,3 +705,9 @@ kubectl delete -f chaos-experiments/http-chaos.yaml
 ## Удаление (Helm / приложения / Strimzi / Kafka)
 
 Инструкции по удалению вынесены в отдельный файл: `uninstall.md`.
+
+Также доступен автоматизированный скрипт удаления:
+
+```bash
+./uninstall.sh
+```
