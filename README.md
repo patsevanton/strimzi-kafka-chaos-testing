@@ -4,6 +4,7 @@
 
 ## Содержание
 
+- [Prometheus CRDs](#prometheus-crds)
 - [Strimzi](#strimzi)
   - [Установка Strimzi](#установка-strimzi)
   - [Развертывание Kafka кластера](#развертывание-kafka-кластера)
@@ -22,7 +23,6 @@
   - [Observability Stack](#observability-stack)
     - [VictoriaLogs](#victorialogs)
     - [victoria-logs-collector](#victoria-logs-collector)
-    - [Prometheus CRDs](#prometheus-crds)
     - [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
   - [Формат сообщений](#формат-сообщений)
 - [Chaos Mesh](#chaos-mesh)
@@ -30,6 +30,44 @@
   - [Настройка аутентификации Dashboard](#настройка-аутентификации-dashboard)
   - [Запуск всех Chaos-экспериментов](#запуск-всех-chaos-экспериментов)
 - [Удаление (Helm / приложения / Strimzi / Kafka)](#удаление-helm--приложения--strimzi--kafka)
+
+## Prometheus CRDs
+
+Перед установкой любых компонентов мониторинга (VictoriaMetrics, ServiceMonitor, PodMonitor и др.) необходимо установить Prometheus CRDs (Custom Resource Definitions). Эти CRDs используются для определения ресурсов мониторинга.
+
+**Важно**: Устанавливайте Prometheus CRDs **в самом начале**, до установки Strimzi, Kafka и других компонентов.
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-operator-crds \
+  --namespace prometheus-crds \
+  --create-namespace \
+  --wait \
+  --version 19.1.0
+```
+
+Проверка установки CRDs:
+
+```bash
+kubectl get crds | grep monitoring.coreos.com
+```
+
+Ожидаемый вывод:
+
+```
+alertmanagerconfigs.monitoring.coreos.com
+alertmanagers.monitoring.coreos.com
+podmonitors.monitoring.coreos.com
+probes.monitoring.coreos.com
+prometheusagents.monitoring.coreos.com
+prometheuses.monitoring.coreos.com
+prometheusrules.monitoring.coreos.com
+scrapeconfigs.monitoring.coreos.com
+servicemonitors.monitoring.coreos.com
+thanosrulers.monitoring.coreos.com
+```
 
 ## Strimzi
 
@@ -127,8 +165,6 @@ kubectl get pdb -n kafka-cluster
 ```bash
 kubectl apply -f kafka-servicemonitor.yaml
 ```
-
-**Примечание**: Требуются установленные Prometheus CRDs (устанавливаются через Helm chart `prometheus-operator-crds` в разделе Observability). Если CRDs ещё не установлены, этот шаг можно выполнить позже.
 
 Проверка сбора метрик:
 
@@ -463,44 +499,6 @@ helm upgrade --install victoria-logs-collector \
 **Параметры мониторинга** (default values):
 - `podMonitor.enabled: false` — PodMonitor для сбора метрик collector
 - `podMonitor.vm: false` — использовать VMPodScrape вместо PodMonitor
-
-#### Prometheus CRDs
-
-Перед установкой VictoriaMetrics K8s Stack необходимо установить Prometheus CRDs (Custom Resource Definitions). Эти CRDs используются для определения ресурсов мониторинга, таких как ServiceMonitor, PodMonitor, PrometheusRule и др.
-
-**Важно**: Устанавливайте Prometheus CRDs через Helm **в самом начале**, до установки любых компонентов мониторинга.
-
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-operator-crds \
-  --namespace prometheus-crds \
-  --create-namespace \
-  --wait \
-  --version 19.1.0
-```
-
-Проверка установки CRDs:
-
-```bash
-kubectl get crds | grep monitoring.coreos.com
-```
-
-Ожидаемый вывод:
-
-```
-alertmanagerconfigs.monitoring.coreos.com
-alertmanagers.monitoring.coreos.com
-podmonitors.monitoring.coreos.com
-probes.monitoring.coreos.com
-prometheusagents.monitoring.coreos.com
-prometheuses.monitoring.coreos.com
-prometheusrules.monitoring.coreos.com
-scrapeconfigs.monitoring.coreos.com
-servicemonitors.monitoring.coreos.com
-thanosrulers.monitoring.coreos.com
-```
 
 #### VictoriaMetrics (VM K8s Stack)
 
