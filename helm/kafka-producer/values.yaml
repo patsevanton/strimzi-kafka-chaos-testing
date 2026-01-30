@@ -48,34 +48,34 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-# Kafka configuration
+# Конфигурация Kafka
 kafka:
-  # Strimzi bootstrap service (works cross-namespace via DNS)
+  # Сервис Strimzi bootstrap (работает между namespace через DNS)
   brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster:9092"
   topic: "test-topic"
   username: ""
   password: ""
 
-# Schema Registry configuration
+# Конфигурация Schema Registry
 schemaRegistry:
-  # Service is deployed into namespace "schema-registry" in this repo
+  # Сервис развёрнут в namespace "schema-registry" в этом репозитории
   url: "http://schema-registry.schema-registry:8081"
 
-# Secrets configuration
+# Конфигурация секретов
 secrets:
-  # If true, create a secret for Kafka credentials
+  # Если true, создать secret для учётных данных Kafka
   create: false
-  # Secret name (if not using the default)
-  # For Strimzi: use KafkaUser name (e.g., "myuser")
+  # Имя secret (если не используется по умолчанию)
+  # Для Strimzi: используйте имя KafkaUser (например, "myuser")
   name: ""
-  # If true, use Strimzi KafkaUser secret format (username = secret name, only password key exists)
+  # Если true, использовать формат secret от Strimzi KafkaUser (username = имя secret, только ключ password)
   strimzi: true
-  # Kafka username (will be stored in secret if secrets.create is true)
+  # Имя пользователя Kafka (будет сохранено в secret если secrets.create = true)
   username: ""
-  # Kafka password (will be stored in secret if secrets.create is true)
+  # Пароль Kafka (будет сохранён в secret если secrets.create = true)
   password: ""
 
-# Health check configuration
+# Конфигурация проверки здоровья
 health:
   port: 8080
   livenessProbe:

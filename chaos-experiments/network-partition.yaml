@@ -1,6 +1,6 @@
-# NetworkChaos: Network partition - isolate one broker
-# Tests: Kafka cluster behavior during network split-brain
-# Expected: Isolated broker loses leadership, cluster continues with 2 brokers
+# NetworkChaos: Сетевая изоляция - изолировать один брокер
+# Тестирует: Поведение кластера Kafka при сетевом split-brain
+# Ожидаемый результат: Изолированный брокер теряет лидерство, кластер продолжает работу с 2 брокерами
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -18,9 +18,9 @@ spec:
   direction: both
   duration: "2m"
 ---
-# NetworkChaos: Block traffic between brokers and producer
-# Tests: Producer behavior when cannot reach Kafka
-# Expected: Producer retries, messages buffered, eventual reconnection
+# NetworkChaos: Блокировка трафика между брокерами и producer
+# Тестирует: Поведение Producer когда не может достучаться до Kafka
+# Ожидаемый результат: Producer повторяет попытки, сообщения буферизуются, затем переподключение
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:

@@ -1,6 +1,6 @@
-# StressChaos: Memory stress on Kafka brokers
-# Tests: Kafka behavior under memory pressure
-# Expected: Possible OOM events, GC pauses, degraded performance
+# StressChaos: Нагрузка на память брокеров Kafka
+# Тестирует: Поведение Kafka под нагрузкой на память
+# Ожидаемый результат: Возможные OOM события, паузы GC, деградация производительности
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -20,7 +20,7 @@ spec:
       size: "256MB"
   duration: "2m"
 ---
-# StressChaos: Combined CPU and Memory stress
+# StressChaos: Комбинированная нагрузка на CPU и память
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:

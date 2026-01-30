@@ -1,6 +1,6 @@
-# PodDisruptionBudget for Kafka brokers
-# Ensures at least 2 brokers are always available during voluntary disruptions
-# (e.g., node drain, cluster upgrade, rolling updates)
+# PodDisruptionBudget для брокеров Kafka
+# Гарантирует, что минимум 2 брокера всегда доступны во время плановых прерываний
+# (например, drain ноды, обновление кластера, rolling updates)
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -9,7 +9,7 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  # minAvailable: 2 ensures quorum is maintained for min.insync.replicas: 2
+  # minAvailable: 2 гарантирует поддержание кворума для min.insync.replicas: 2
   minAvailable: 2
   selector:
     matchLabels:

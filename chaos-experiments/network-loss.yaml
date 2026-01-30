@@ -1,6 +1,6 @@
-# NetworkChaos: Packet loss on Kafka brokers
-# Tests: Kafka resilience to unreliable network
-# Expected: Increased retries, potential message redelivery
+# NetworkChaos: Потеря пакетов на брокерах Kafka
+# Тестирует: Устойчивость Kafka к ненадёжной сети
+# Ожидаемый результат: Увеличенное количество повторных попыток, возможная повторная доставка сообщений
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -20,7 +20,7 @@ spec:
     correlation: "50"
   duration: "2m"
 ---
-# NetworkChaos: Heavy packet loss (degraded network)
+# NetworkChaos: Сильная потеря пакетов (деградированная сеть)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:

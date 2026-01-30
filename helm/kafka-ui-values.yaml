@@ -1,18 +1,18 @@
-# Helm values for kafbat-ui/kafka-ui chart
+# Helm values для чарта kafbat-ui/kafka-ui
 # helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 # helm install kafbat-ui kafbat-ui/kafka-ui -f kafka-ui-values.yaml
 
 image:
   tag: v1.4.2
 
-# Kafka clusters configuration
+# Конфигурация кластеров Kafka
 yamlApplicationConfig:
   kafka:
     clusters:
       - name: kafka-cluster
         bootstrapServers: kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092
         schemaRegistry: http://schema-registry.schema-registry.svc.cluster.local:8081
-        # Use Schema Registry for Avro deserialization
+        # Использовать Schema Registry для десериализации Avro
         defaultKeySerde: String
         defaultValueSerde: SchemaRegistry
         properties:
@@ -26,7 +26,7 @@ yamlApplicationConfig:
       ldap:
         enabled: false
 
-# Environment variables for credentials
+# Переменные окружения для учётных данных
 env:
   - name: KAFKA_USERNAME
     valueFrom:
@@ -41,7 +41,7 @@ env:
   - name: DYNAMIC_CONFIG_ENABLED
     value: "true"
 
-# Resource limits
+# Лимиты ресурсов
 resources:
   requests:
     memory: "256Mi"
@@ -50,7 +50,7 @@ resources:
     memory: "512Mi"
     cpu: "500m"
 
-# Probes configuration
+# Конфигурация проб
 livenessProbe:
   httpGet:
     path: /actuator/health
@@ -65,7 +65,7 @@ readinessProbe:
   initialDelaySeconds: 30
   periodSeconds: 10
 
-# Ingress configuration
+# Конфигурация Ingress
 ingress:
   enabled: true
   ingressClassName: nginx

@@ -38,14 +38,14 @@ spec:
         - name: schema-registry
           image: ghcr.io/aiven-open/karapace:5.0.3
           imagePullPolicy: IfNotPresent
-          # NOTE: ghcr.io/aiven-open/karapace:latest currently ships a broken console-script entrypoint.
-          # Run the module directly instead.
+          # ПРИМЕЧАНИЕ: ghcr.io/aiven-open/karapace:latest сейчас поставляется со сломанной точкой входа console-script.
+          # Вместо этого запускаем модуль напрямую.
           command: ["python3", "-m", "karapace.__main__"]
           ports:
             - containerPort: 8081
               name: http
           env:
-            # Karapace is a Confluent Schema Registry API compatible implementation.
+            # Karapace - это реализация, совместимая с Confluent Schema Registry API.
             - name: KARAPACE_KARAPACE_REGISTRY
               value: "true"
             - name: KARAPACE_KARAPACE_REST
@@ -64,13 +64,13 @@ spec:
               value: "SASL_PLAINTEXT"
             - name: KARAPACE_SASL_MECHANISM
               value: "SCRAM-SHA-512"
-            # Strimzi KafkaUser: username = KafkaUser name, password from secret
+            # Strimzi KafkaUser: имя пользователя = имя KafkaUser, пароль из secret
             - name: KARAPACE_SASL_PLAIN_USERNAME
               value: "schema-registry"
             - name: KARAPACE_SASL_PLAIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  # Strimzi creates secret with same name as KafkaUser
+                  # Strimzi создаёт secret с тем же именем, что и KafkaUser
                   name: schema-registry
                   key: password
             - name: KARAPACE_CLIENT_ID

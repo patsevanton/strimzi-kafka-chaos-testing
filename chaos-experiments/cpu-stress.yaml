@@ -1,6 +1,6 @@
-# StressChaos: CPU stress on Kafka brokers
-# Tests: Kafka performance under CPU pressure
-# Expected: Increased latency, possible timeouts, but cluster should remain stable
+# StressChaos: Нагрузка на CPU брокеров Kafka
+# Тестирует: Производительность Kafka под нагрузкой на CPU
+# Ожидаемый результат: Увеличенная задержка, возможные таймауты, но кластер должен оставаться стабильным
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -17,10 +17,10 @@ spec:
   stressors:
     cpu:
       workers: 2
-      load: 80  # 80% CPU load
+      load: 80  # 80% нагрузка на CPU
   duration: "2m"
 ---
-# StressChaos: High CPU stress (simulate overload)
+# StressChaos: Высокая нагрузка на CPU (симуляция перегрузки)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -37,5 +37,5 @@ spec:
   stressors:
     cpu:
       workers: 4
-      load: 95  # 95% CPU load
+      load: 95  # 95% нагрузка на CPU
   duration: "1m"

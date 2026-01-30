@@ -46,7 +46,7 @@ spec:
               value: {{ .Values.schemaRegistry.url | quote }}
             {{- if .Values.secrets.name }}
             {{- if .Values.secrets.strimzi }}
-            # Strimzi KafkaUser secret: username = secret name, password from secret
+            # Strimzi KafkaUser secret: имя пользователя = имя secret, пароль из secret
             - name: KAFKA_USERNAME
               value: {{ .Values.secrets.name | quote }}
             - name: KAFKA_PASSWORD
@@ -55,7 +55,7 @@ spec:
                   name: {{ .Values.secrets.name }}
                   key: password
             {{- else }}
-            # Custom secret with username and password keys
+            # Пользовательский secret с ключами username и password
             - name: KAFKA_USERNAME
               valueFrom:
                 secretKeyRef:

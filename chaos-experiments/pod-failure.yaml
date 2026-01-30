@@ -1,6 +1,6 @@
-# PodChaos: Simulate pod failure (container crash)
-# Tests: Kafka broker crash and recovery
-# Expected: StatefulSet should restart the pod, cluster recovers
+# PodChaos: Симуляция сбоя пода (падение контейнера)
+# Тестирует: Падение и восстановление брокера Kafka
+# Ожидаемый результат: StatefulSet должен перезапустить под, кластер восстанавливается
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -17,19 +17,19 @@ spec:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
 ---
-# PodChaos: Simulate multiple broker failures (dangerous - may break quorum)
-# Use with caution: killing 2 of 3 brokers will break min.insync.replicas=2
+# PodChaos: Симуляция множественных сбоев брокеров (опасно - может сломать кворум)
+# Использовать с осторожностью: убийство 2 из 3 брокеров нарушит min.insync.replicas=2
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
   name: kafka-multi-pod-failure
   namespace: kafka-cluster
   annotations:
-    description: "WARNING: This may break cluster quorum"
+    description: "ВНИМАНИЕ: Это может нарушить кворум кластера"
 spec:
   action: pod-failure
   mode: fixed-percent
-  value: "60"  # ~60% of pods (2 of 3)
+  value: "60"  # ~60% подов (2 из 3)
   duration: "30s"
   selector:
     namespaces:

@@ -1,6 +1,6 @@
-# VMServiceScrape for Strimzi Kafka metrics (VictoriaMetrics Operator)
-# NOTE: Use this file with VictoriaMetrics Operator.
-# If using Prometheus Operator, use kafka-servicemonitor-prometheus.yaml instead.
+# VMServiceScrape для метрик Strimzi Kafka (VictoriaMetrics Operator)
+# ПРИМЕЧАНИЕ: Используйте этот файл с VictoriaMetrics Operator.
+# Если используете Prometheus Operator, используйте kafka-servicemonitor-prometheus.yaml.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
@@ -23,7 +23,7 @@ spec:
       interval: 30s
       scrapeTimeout: 10s
 ---
-# VMServiceScrape for Strimzi Entity Operator (Topic and User Operators)
+# VMServiceScrape для Strimzi Entity Operator (операторы топиков и пользователей)
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:

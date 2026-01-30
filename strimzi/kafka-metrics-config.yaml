@@ -1,4 +1,4 @@
-# Kafka JMX Exporter configuration for Prometheus metrics
+# Конфигурация Kafka JMX Exporter для метрик Prometheus
 kind: ConfigMap
 apiVersion: v1
 metadata:
@@ -8,11 +8,11 @@ metadata:
     app: strimzi
 data:
   kafka-metrics-config.yml: |
-    # Kafka broker metrics
+    # Метрики брокера Kafka
     lowercaseOutputName: true
     lowercaseOutputLabelNames: true
     rules:
-    # Special cases and custom attribute names
+    # Особые случаи и пользовательские имена атрибутов
     - pattern: kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.*)><>Value
       name: kafka_server_$1_$2
       type: GAUGE
@@ -54,19 +54,19 @@ data:
       labels:
        listener: "$2"
        networkProcessor: "$3"
-    # ReplicaManager metrics - LeaderCount, PartitionCount, etc.
+    # Метрики ReplicaManager - LeaderCount, PartitionCount и др.
     - pattern: kafka.server<type=ReplicaManager, name=(.+)><>(Value|Count)
       name: kafka_server_replicamanager_$1
       type: GAUGE
-    # KafkaRequestHandlerPool metrics
+    # Метрики KafkaRequestHandlerPool
     - pattern: kafka.server<type=KafkaRequestHandlerPool, name=(.+)><>(.+)
       name: kafka_server_kafkarequesthandlerpool_$1_$2
       type: GAUGE
-    # Controller metrics
+    # Метрики контроллера
     - pattern: kafka.controller<type=(.+), name=(.+)><>(Count|Value)
       name: kafka_controller_$1_$2
       type: GAUGE
-    # Kafka network request metrics
+    # Метрики сетевых запросов Kafka
     - pattern: kafka.network<type=(.+), name=(.+), request=(.+), error=(.+)><>Count
       name: kafka_network_$1_$2_errors_total
       type: COUNTER
@@ -98,7 +98,7 @@ data:
     - pattern: kafka.network<type=(.+), name=(.+)><>(.+)
       name: kafka_network_$1_$2_$3
       type: GAUGE
-    # Log metrics
+    # Метрики логов
     - pattern: kafka.log<type=Log, name=(.+), topic=(.+), partition=(.+)><>Value
       name: kafka_log_$1
       type: GAUGE
@@ -108,21 +108,21 @@ data:
     - pattern: kafka.log<type=LogManager, name=(.+)><>(.+)
       name: kafka_log_logmanager_$1_$2
       type: GAUGE
-    # Cluster metrics
+    # Метрики кластера
     - pattern: kafka.cluster<type=(.+), name=(.+), topic=(.+), partition=(.+)><>Value
       name: kafka_cluster_$1_$2
       type: GAUGE
       labels:
         topic: "$3"
         partition: "$4"
-    # Coordinator metrics
+    # Метрики координатора
     - pattern: kafka.coordinator.group<type=(.+), name=(.+)><>(Count|Value)
       name: kafka_coordinator_group_$1_$2
       type: GAUGE
     - pattern: kafka.coordinator.transaction<type=(.+), name=(.+)><>(Count|Value)
       name: kafka_coordinator_transaction_$1_$2
       type: GAUGE
-    # Generic per-second counters for remaining metrics
+    # Общие счётчики в секунду для остальных метрик
     - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
       name: kafka_$1_$2_$3_total
       type: COUNTER
@@ -137,7 +137,7 @@ data:
     - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*><>Count
       name: kafka_$1_$2_$3_total
       type: COUNTER
-    # Generic gauges
+    # Общие gauges
     - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+), (.+)=(.+)><>Value
       name: kafka_$1_$2_$3
       type: GAUGE
@@ -152,7 +152,7 @@ data:
     - pattern: kafka.(\w+)<type=(.+), name=(.+)><>Value
       name: kafka_$1_$2_$3
       type: GAUGE
-    # Additional catch-all rules
+    # Дополнительные универсальные правила
     - pattern: kafka.(\w+)<type=(.+), name=(.+), (.+)=(.+)><>Count
       name: kafka_$1_$2_$3_count
       type: COUNTER
