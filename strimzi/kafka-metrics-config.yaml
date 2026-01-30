@@ -122,6 +122,18 @@ data:
     - pattern: kafka.coordinator.transaction<type=(.+), name=(.+)><>(Count|Value)
       name: kafka_coordinator_transaction_$1_$2
       type: GAUGE
+    # Метрики KRaft (Raft Channel)
+    - pattern: kafka.server<type=raft-channel-metrics><>(.+)
+      name: kafka_server_raftchannelmetrics_$1
+      type: GAUGE
+    # Метрики KRaft (Raft Metrics)
+    - pattern: kafka.server<type=raft-metrics><>(.+)
+      name: kafka_server_raftmetrics_$1
+      type: GAUGE
+    # Метрики KRaft Controller
+    - pattern: kafka.controller<type=KafkaController, name=(.+)><>(Count|Value)
+      name: kafka_controller_kafkacontroller_$1
+      type: GAUGE
     # Общие счётчики в секунду для остальных метрик
     - pattern: kafka.(\w+)<type=(.+), name=(.+)PerSec\w*, (.+)=(.+), (.+)=(.+)><>Count
       name: kafka_$1_$2_$3_total
