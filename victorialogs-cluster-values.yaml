@@ -7,8 +7,6 @@ vlselect:
           - /
         port: http
     ingressClassName: nginx
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
 vlstorage:
   retentionPeriod: 1d
   persistentVolume:
