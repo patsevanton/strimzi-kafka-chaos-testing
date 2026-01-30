@@ -475,20 +475,20 @@ Observability stack помогает отслеживать состояние �
 
 ##### Установка: Cluster
 
-Для установки используйте `victorialogs-cluster-values.yaml` из репозитория.
+Для установки используйте `victoria-logs-cluster-values.yaml` из репозитория.
 
 ```bash
 # Добавить Helm репозиторий VictoriaMetrics
 helm repo add vm https://victoriametrics.github.io/helm-charts/
 helm repo update
 
-helm upgrade --install victorialogs-cluster vm/victoria-logs-cluster \
-  --namespace victorialogs-cluster \
+helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
+  --namespace victoria-logs-cluster \
   --create-namespace \
   --wait \
   --version 0.0.26 \
   --timeout 15m \
-  -f victorialogs-cluster-values.yaml \
+  -f victoria-logs-cluster-values.yaml \
   --set vlselect.vmServiceScrape.enabled=true \
   --set vlinsert.vmServiceScrape.enabled=true \
   --set vlstorage.vmServiceScrape.enabled=true
