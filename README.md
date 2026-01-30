@@ -358,6 +358,7 @@ helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
 
 # Развернуть Kafka UI через Helm
+## todo добавь версию kafka-ui при helm установке
 helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
   --namespace kafka-ui \
   -f helm/kafka-ui-values.yaml \
@@ -542,13 +543,18 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 
 | Файл | Тип | Описание |
 |------|-----|----------|
-| `pod-kill.yaml` | PodChaos | Убийство брокера Kafka |
+| `pod-kill.yaml` | PodChaos + Schedule | Убийство брокера Kafka (одноразовое + каждые 5 мин) |
 | `pod-failure.yaml` | PodChaos | Симуляция падения пода |
 | `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
 | `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
 | `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
 | `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
 | `memory-stress.yaml` | StressChaos | Нагрузка на память |
+| `io-chaos.yaml` | IOChaos | Задержки и ошибки дисковых операций |
+| `time-chaos.yaml` | TimeChaos | Смещение системного времени |
+| `dns-chaos.yaml` | DNSChaos | Ошибки DNS резолвинга |
+| `jvm-chaos.yaml` | JVMChaos | GC, memory/CPU stress в JVM |
+| `http-chaos.yaml` | HTTPChaos | Ошибки HTTP для Schema Registry |
 
 #### Запуск всех экспериментов
 
@@ -561,6 +567,11 @@ kubectl apply -f chaos-experiments/network-partition.yaml
 kubectl apply -f chaos-experiments/network-loss.yaml
 kubectl apply -f chaos-experiments/cpu-stress.yaml
 kubectl apply -f chaos-experiments/memory-stress.yaml
+kubectl apply -f chaos-experiments/io-chaos.yaml
+kubectl apply -f chaos-experiments/time-chaos.yaml
+kubectl apply -f chaos-experiments/dns-chaos.yaml
+kubectl apply -f chaos-experiments/jvm-chaos.yaml
+kubectl apply -f chaos-experiments/http-chaos.yaml
 ```
 
 #### Проверка статуса экспериментов
@@ -575,8 +586,28 @@ kubectl get networkchaos -n kafka-cluster
 # Проверить StressChaos эксперименты
 kubectl get stresschaos -n kafka-cluster
 
+# Проверить IOChaos эксперименты
+kubectl get iochaos -n kafka-cluster
+
+# Проверить TimeChaos эксперименты
+kubectl get timechaos -n kafka-cluster
+
+# Проверить DNSChaos эксперименты
+kubectl get dnschaos -n kafka-cluster
+kubectl get dnschaos -n kafka-producer
+
+# Проверить JVMChaos эксперименты
+kubectl get jvmchaos -n kafka-cluster
+
+# Проверить HTTPChaos эксперименты
+kubectl get httpchaos -n schema-registry
+kubectl get httpchaos -n kafka-ui
+
+# Проверить Schedule (периодические эксперименты)
+kubectl get schedule -n kafka-cluster
+
 # Проверить все эксперименты
-kubectl get podchaos,networkchaos,stresschaos -n kafka-cluster
+kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,dnschaos,jvmchaos,schedule -n kafka-cluster
 ```
 
 #### Остановка всех экспериментов
@@ -590,6 +621,11 @@ kubectl delete -f chaos-experiments/network-partition.yaml
 kubectl delete -f chaos-experiments/network-loss.yaml
 kubectl delete -f chaos-experiments/cpu-stress.yaml
 kubectl delete -f chaos-experiments/memory-stress.yaml
+kubectl delete -f chaos-experiments/io-chaos.yaml
+kubectl delete -f chaos-experiments/time-chaos.yaml
+kubectl delete -f chaos-experiments/dns-chaos.yaml
+kubectl delete -f chaos-experiments/jvm-chaos.yaml
+kubectl delete -f chaos-experiments/http-chaos.yaml
 ```
 
 Подробная документация в файле `chaos-experiments/README.md`.

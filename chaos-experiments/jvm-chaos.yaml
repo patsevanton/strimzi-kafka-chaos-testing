@@ -1,0 +1,106 @@
+# JVMChaos: Trigger GC on Kafka brokers
+# Tests: Kafka behavior during garbage collection
+# Expected: Increased latency, possible timeouts during GC
+# Note: Requires Chaos Mesh JVM agent injection
+apiVersion: chaos-mesh.org/v1alpha1
+kind: JVMChaos
+metadata:
+  name: kafka-jvm-gc
+  namespace: kafka-cluster
+spec:
+  action: gc
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  duration: "30s"
+---
+# JVMChaos: CPU stress within JVM
+# Tests: Kafka JVM performance under CPU pressure
+# Expected: Increased latency, slower processing
+apiVersion: chaos-mesh.org/v1alpha1
+kind: JVMChaos
+metadata:
+  name: kafka-jvm-cpu-stress
+  namespace: kafka-cluster
+spec:
+  action: stress
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  cpuCount: 2
+  duration: "1m"
+---
+# JVMChaos: Memory stress within JVM (simulate memory pressure)
+# Tests: Kafka behavior under JVM memory pressure
+# Expected: More frequent GC, possible OOM
+apiVersion: chaos-mesh.org/v1alpha1
+kind: JVMChaos
+metadata:
+  name: kafka-jvm-memory-stress
+  namespace: kafka-cluster
+spec:
+  action: stress
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  memType: heap
+  duration: "1m"
+---
+# JVMChaos: Method latency injection
+# Tests: Kafka behavior when specific methods are slow
+# Expected: Increased request latency
+# Note: Injects latency into kafka.log.UnifiedLog.append method
+apiVersion: chaos-mesh.org/v1alpha1
+kind: JVMChaos
+metadata:
+  name: kafka-jvm-method-latency
+  namespace: kafka-cluster
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  class: kafka.log.UnifiedLog
+  method: append
+  latency: 500
+  duration: "1m"
+---
+# JVMChaos: Exception injection
+# Tests: Kafka behavior when methods throw exceptions
+# Expected: Error handling and recovery
+apiVersion: chaos-mesh.org/v1alpha1
+kind: JVMChaos
+metadata:
+  name: kafka-jvm-exception
+  namespace: kafka-cluster
+spec:
+  action: exception
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  class: kafka.server.KafkaApis
+  method: handleProduceRequest
+  exception: "java.io.IOException(\"Chaos test exception\")"
+  duration: "30s"
+
+# todo сделай описание экспериментов на русском языке

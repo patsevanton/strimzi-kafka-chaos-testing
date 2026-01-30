@@ -19,20 +19,24 @@ spec:
   # Duration is not applicable for pod-kill (instant action)
   # Pod will be killed once and recreated by StatefulSet
 ---
-# PodChaos: Kill random Kafka broker every 5 minutes (continuous chaos)
+# Schedule: Kill random Kafka broker every 5 minutes (continuous chaos)
+# Uses Schedule CRD for Chaos Mesh 2.x
 apiVersion: chaos-mesh.org/v1alpha1
-kind: PodChaos
+kind: Schedule
 metadata:
   name: kafka-pod-kill-scheduled
   namespace: kafka-cluster
 spec:
-  action: pod-kill
-  mode: one
-  selector:
-    namespaces:
-      - kafka-cluster
-    labelSelectors:
-      strimzi.io/cluster: kafka-cluster
-      strimzi.io/kind: Kafka
-  scheduler:
-    cron: "*/5 * * * *"
+  schedule: "*/5 * * * *"
+  type: PodChaos
+  podChaos:
+    action: pod-kill
+    mode: one
+    selector:
+      namespaces:
+        - kafka-cluster
+      labelSelectors:
+        strimzi.io/cluster: kafka-cluster
+        strimzi.io/kind: Kafka
+
+# todo сделай описание экспериментов на русском языке

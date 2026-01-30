@@ -1,0 +1,65 @@
+# DNSChaos: DNS errors for Kafka brokers
+# Tests: Kafka behavior when DNS resolution fails
+# Expected: Connection failures, broker discovery issues
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: kafka-dns-error
+  namespace: kafka-cluster
+spec:
+  action: error
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  patterns:
+    - "kafka-cluster-kafka-bootstrap*"
+    - "*.kafka-cluster.svc.cluster.local"
+  duration: "1m"
+---
+# DNSChaos: DNS random responses (simulate DNS poisoning)
+# Tests: Kafka behavior with incorrect DNS responses
+# Expected: Connection to wrong endpoints, failures
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: kafka-dns-random
+  namespace: kafka-cluster
+spec:
+  action: random
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  patterns:
+    - "kafka-cluster-kafka-*"
+  duration: "1m"
+---
+# DNSChaos: DNS errors for producer/consumer apps
+# Tests: Application behavior when cannot resolve Kafka bootstrap
+# Expected: Producer/Consumer connection failures, retries
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: kafka-app-dns-error
+  namespace: kafka-producer
+spec:
+  action: error
+  mode: all
+  selector:
+    namespaces:
+      - kafka-producer
+    labelSelectors:
+      app.kubernetes.io/name: kafka-producer
+  patterns:
+    - "kafka-cluster-kafka-bootstrap.kafka-cluster*"
+    - "schema-registry.schema-registry*"
+  duration: "1m"
+
+# todo сделай описание экспериментов на русском языке

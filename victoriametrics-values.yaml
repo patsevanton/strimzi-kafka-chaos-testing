@@ -88,3 +88,10 @@ vmcluster:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
       hosts:
         - vmselect.apatsev.org.ru
+
+# todo убрать default values из файла, которые приходят из helm charts
+# todo нужно совместить grafana dashboard providers с grafana dashboards, то есть чтобы были dashboard по умолчанию и новые dashboards, которые будут добавляться в grafana dashboard
+# todo исправить дашборд для victoria-logs-cluster. текст ошибки ниже:
+```
+error: cannot parse query [stream: kubernetes.pod.name="chaos-daemon" | chaos-mesh AND ("=" OR [!=]) | stats count() | missing : in front of "="; apps/v1/deployments.apps.name:"victoria-logs" AND ("=" OR [!=]) | apps.kuberentes.io/name:"chaos-1"] 
+```

@@ -1,0 +1,88 @@
+# HTTPChaos: Schema Registry response delay
+# Tests: Producer/Consumer behavior when Schema Registry is slow
+# Expected: Schema fetch timeouts, increased latency
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: schema-registry-delay
+  namespace: schema-registry
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - schema-registry
+    labelSelectors:
+      app: schema-registry
+  target: Response
+  port: 8081
+  path: "*"
+  delay: "2s"
+  duration: "2m"
+---
+# HTTPChaos: Schema Registry 500 errors
+# Tests: Producer/Consumer behavior when Schema Registry returns errors
+# Expected: Schema fetch failures, producer may fail to send
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: schema-registry-error
+  namespace: schema-registry
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - schema-registry
+    labelSelectors:
+      app: schema-registry
+  target: Response
+  port: 8081
+  path: "/subjects/*"
+  method: GET
+  replace:
+    code: 500
+    body: "eyJlcnJvcl9jb2RlIjo1MDAwMSwibWVzc2FnZSI6IkludGVybmFsIFNlcnZlciBFcnJvciAoY2hhb3MpIn0="
+  duration: "1m"
+---
+# HTTPChaos: Schema Registry connection abort
+# Tests: Producer/Consumer behavior when Schema Registry connection drops
+# Expected: Connection errors, retries
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: schema-registry-abort
+  namespace: schema-registry
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - schema-registry
+    labelSelectors:
+      app: schema-registry
+  target: Response
+  port: 8081
+  path: "*"
+  abort: true
+  duration: "1m"
+---
+# HTTPChaos: Kafka UI slow responses (for UI resilience testing)
+# Tests: Kafka UI behavior when backend is slow
+# Expected: UI timeouts, degraded experience
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: kafka-ui-delay
+  namespace: kafka-ui
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - kafka-ui
+    labelSelectors:
+      app.kubernetes.io/name: kafka-ui
+  target: Response
+  port: 8080
+  path: "/api/*"
+  delay: "5s"
+  duration: "2m"
+
+# todo сделай описание экспериментов на русском языке

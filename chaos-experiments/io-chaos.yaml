@@ -1,0 +1,76 @@
+# IOChaos: Disk I/O latency on Kafka brokers
+# Tests: Kafka performance under slow disk operations
+# Expected: Increased produce/fetch latency, possible timeouts
+# Safe: Does NOT corrupt data, only adds delays
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: kafka-io-latency
+  namespace: kafka-cluster
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  volumePath: /var/lib/kafka/data/kafka-log0
+  path: "*"
+  delay: "100ms"
+  percent: 50
+  duration: "2m"
+---
+# IOChaos: Disk I/O errors (EIO - Input/output error)
+# Tests: Kafka behavior when disk returns I/O errors
+# Expected: Broker may fail, leader election, partition reassignment
+# Safe: Does NOT corrupt data, returns error code to application
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: kafka-io-fault
+  namespace: kafka-cluster
+spec:
+  action: fault
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  volumePath: /var/lib/kafka/data/kafka-log0
+  path: "*.log"
+  errno: 5  # EIO - Input/output error
+  percent: 10
+  duration: "1m"
+---
+# IOChaos: Disk full simulation (ENOSPC - No space left on device)
+# Tests: Kafka behavior when disk is full
+# Expected: Write failures, producer errors, broker may become unhealthy
+# Safe: Does NOT corrupt data, returns error code to application
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: kafka-io-disk-full
+  namespace: kafka-cluster
+spec:
+  action: fault
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/kind: Kafka
+  volumePath: /var/lib/kafka/data/kafka-log0
+  path: "*"
+  errno: 28  # ENOSPC - No space left on device
+  percent: 100
+  methods:
+    - write
+    - pwrite
+  duration: "1m"
+
+# todo сделай описание экспериментов на русском языке
