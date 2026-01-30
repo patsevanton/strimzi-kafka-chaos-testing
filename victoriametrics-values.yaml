@@ -52,7 +52,7 @@ grafana:
         datasource: VictoriaMetrics
     chaos-mesh:
       chaos-mesh-overview:
-        gnetId: 15706
+        gnetId: 15918 # 15706
         revision: 1
         datasource: VictoriaMetrics
     victorialogs:
