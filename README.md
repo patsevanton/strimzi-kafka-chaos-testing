@@ -358,10 +358,10 @@ helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
 
 # Развернуть Kafka UI через Helm
-## todo добавь версию kafka-ui при helm установке
 helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
   --namespace kafka-ui \
   -f helm/kafka-ui-values.yaml \
+  --version 1.4.2 \
   --wait
 ```
 

@@ -1,6 +1,6 @@
-# HTTPChaos: Schema Registry response delay
-# Tests: Producer/Consumer behavior when Schema Registry is slow
-# Expected: Schema fetch timeouts, increased latency
+# HTTPChaos: Задержка ответов Schema Registry
+# Тестирует: Поведение Producer/Consumer когда Schema Registry работает медленно
+# Ожидаемый результат: Таймауты получения схем, увеличенная задержка
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -19,9 +19,9 @@ spec:
   delay: "2s"
   duration: "2m"
 ---
-# HTTPChaos: Schema Registry 500 errors
-# Tests: Producer/Consumer behavior when Schema Registry returns errors
-# Expected: Schema fetch failures, producer may fail to send
+# HTTPChaos: Ошибки 500 от Schema Registry
+# Тестирует: Поведение Producer/Consumer когда Schema Registry возвращает ошибки
+# Ожидаемый результат: Ошибки получения схем, producer может не отправить сообщение
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -43,9 +43,9 @@ spec:
     body: "eyJlcnJvcl9jb2RlIjo1MDAwMSwibWVzc2FnZSI6IkludGVybmFsIFNlcnZlciBFcnJvciAoY2hhb3MpIn0="
   duration: "1m"
 ---
-# HTTPChaos: Schema Registry connection abort
-# Tests: Producer/Consumer behavior when Schema Registry connection drops
-# Expected: Connection errors, retries
+# HTTPChaos: Обрыв соединения Schema Registry
+# Тестирует: Поведение Producer/Consumer когда соединение с Schema Registry обрывается
+# Ожидаемый результат: Ошибки соединения, повторные попытки
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -64,9 +64,9 @@ spec:
   abort: true
   duration: "1m"
 ---
-# HTTPChaos: Kafka UI slow responses (for UI resilience testing)
-# Tests: Kafka UI behavior when backend is slow
-# Expected: UI timeouts, degraded experience
+# HTTPChaos: Медленные ответы Kafka UI (для тестирования устойчивости UI)
+# Тестирует: Поведение Kafka UI когда backend работает медленно
+# Ожидаемый результат: Таймауты UI, ухудшение пользовательского опыта
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -84,5 +84,3 @@ spec:
   path: "/api/*"
   delay: "5s"
   duration: "2m"
-
-# todo сделай описание экспериментов на русском языке

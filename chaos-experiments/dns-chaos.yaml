@@ -1,6 +1,6 @@
-# DNSChaos: DNS errors for Kafka brokers
-# Tests: Kafka behavior when DNS resolution fails
-# Expected: Connection failures, broker discovery issues
+# DNSChaos: Ошибки DNS для брокеров Kafka
+# Тестирует: Поведение Kafka когда DNS резолвинг завершается ошибкой
+# Ожидаемый результат: Ошибки соединения, проблемы с обнаружением брокеров
 apiVersion: chaos-mesh.org/v1alpha1
 kind: DNSChaos
 metadata:
@@ -20,9 +20,9 @@ spec:
     - "*.kafka-cluster.svc.cluster.local"
   duration: "1m"
 ---
-# DNSChaos: DNS random responses (simulate DNS poisoning)
-# Tests: Kafka behavior with incorrect DNS responses
-# Expected: Connection to wrong endpoints, failures
+# DNSChaos: Случайные DNS ответы (симуляция DNS poisoning)
+# Тестирует: Поведение Kafka при некорректных DNS ответах
+# Ожидаемый результат: Подключение к неправильным эндпоинтам, ошибки
 apiVersion: chaos-mesh.org/v1alpha1
 kind: DNSChaos
 metadata:
@@ -41,9 +41,9 @@ spec:
     - "kafka-cluster-kafka-*"
   duration: "1m"
 ---
-# DNSChaos: DNS errors for producer/consumer apps
-# Tests: Application behavior when cannot resolve Kafka bootstrap
-# Expected: Producer/Consumer connection failures, retries
+# DNSChaos: Ошибки DNS для приложений producer/consumer
+# Тестирует: Поведение приложений когда не могут разрезолвить Kafka bootstrap
+# Ожидаемый результат: Ошибки подключения Producer/Consumer, повторные попытки
 apiVersion: chaos-mesh.org/v1alpha1
 kind: DNSChaos
 metadata:
@@ -61,5 +61,3 @@ spec:
     - "kafka-cluster-kafka-bootstrap.kafka-cluster*"
     - "schema-registry.schema-registry*"
   duration: "1m"
-
-# todo сделай описание экспериментов на русском языке

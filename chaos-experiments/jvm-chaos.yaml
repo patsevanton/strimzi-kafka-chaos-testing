@@ -1,7 +1,7 @@
-# JVMChaos: Trigger GC on Kafka brokers
-# Tests: Kafka behavior during garbage collection
-# Expected: Increased latency, possible timeouts during GC
-# Note: Requires Chaos Mesh JVM agent injection
+# JVMChaos: Принудительный запуск GC на брокерах Kafka
+# Тестирует: Поведение Kafka во время сборки мусора
+# Ожидаемый результат: Увеличенная задержка, возможные таймауты во время GC
+# Примечание: Требуется внедрение JVM агента Chaos Mesh
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -18,9 +18,9 @@ spec:
       strimzi.io/kind: Kafka
   duration: "30s"
 ---
-# JVMChaos: CPU stress within JVM
-# Tests: Kafka JVM performance under CPU pressure
-# Expected: Increased latency, slower processing
+# JVMChaos: Нагрузка на CPU в JVM
+# Тестирует: Производительность Kafka JVM под нагрузкой на CPU
+# Ожидаемый результат: Увеличенная задержка, замедленная обработка
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -38,9 +38,9 @@ spec:
   cpuCount: 2
   duration: "1m"
 ---
-# JVMChaos: Memory stress within JVM (simulate memory pressure)
-# Tests: Kafka behavior under JVM memory pressure
-# Expected: More frequent GC, possible OOM
+# JVMChaos: Нагрузка на память в JVM (симуляция давления на память)
+# Тестирует: Поведение Kafka под нагрузкой на JVM память
+# Ожидаемый результат: Более частый GC, возможен OOM
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -58,10 +58,10 @@ spec:
   memType: heap
   duration: "1m"
 ---
-# JVMChaos: Method latency injection
-# Tests: Kafka behavior when specific methods are slow
-# Expected: Increased request latency
-# Note: Injects latency into kafka.log.UnifiedLog.append method
+# JVMChaos: Внедрение задержки в метод
+# Тестирует: Поведение Kafka когда определённые методы работают медленно
+# Ожидаемый результат: Увеличенная задержка запросов
+# Примечание: Внедряет задержку в метод kafka.log.UnifiedLog.append
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -81,9 +81,9 @@ spec:
   latency: 500
   duration: "1m"
 ---
-# JVMChaos: Exception injection
-# Tests: Kafka behavior when methods throw exceptions
-# Expected: Error handling and recovery
+# JVMChaos: Внедрение исключений
+# Тестирует: Поведение Kafka когда методы выбрасывают исключения
+# Ожидаемый результат: Обработка ошибок и восстановление
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -102,5 +102,3 @@ spec:
   method: handleProduceRequest
   exception: "java.io.IOException(\"Chaos test exception\")"
   duration: "30s"
-
-# todo сделай описание экспериментов на русском языке

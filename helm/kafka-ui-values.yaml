@@ -69,5 +69,3 @@ ingress:
   host: kafka-ui.apatsev.org.ru
   path: /
   pathType: Prefix
-
-# todo убрать default values из файла, которые приходят из helm charts

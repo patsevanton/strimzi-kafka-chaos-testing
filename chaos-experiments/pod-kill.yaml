@@ -1,7 +1,7 @@
-# PodChaos: Kill one Kafka broker pod
-# Tests: Kafka cluster resilience to broker failure
-# Expected: Cluster should remain operational with 2/3 brokers
-# Producer/Consumer should reconnect automatically
+# PodChaos: Убийство одного пода брокера Kafka
+# Тестирует: Отказоустойчивость кластера Kafka при падении брокера
+# Ожидаемый результат: Кластер должен продолжать работу с 2/3 брокерами
+# Producer/Consumer должны автоматически переподключиться
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -16,11 +16,11 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  # Duration is not applicable for pod-kill (instant action)
-  # Pod will be killed once and recreated by StatefulSet
+  # Duration не применим для pod-kill (мгновенное действие)
+  # Под будет убит однократно и пересоздан StatefulSet
 ---
-# Schedule: Kill random Kafka broker every 5 minutes (continuous chaos)
-# Uses Schedule CRD for Chaos Mesh 2.x
+# Schedule: Убийство случайного брокера Kafka каждые 5 минут (непрерывный хаос)
+# Использует Schedule CRD для Chaos Mesh 2.x
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
 metadata:
@@ -38,5 +38,3 @@ spec:
       labelSelectors:
         strimzi.io/cluster: kafka-cluster
         strimzi.io/kind: Kafka
-
-# todo сделай описание экспериментов на русском языке

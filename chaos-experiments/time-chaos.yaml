@@ -1,7 +1,7 @@
-# TimeChaos: Clock skew on Kafka brokers
-# Tests: Kafka behavior when system time is shifted
-# Expected: Possible issues with log segments, retention, timestamps
-# Note: Kafka uses timestamps for log retention and message ordering
+# TimeChaos: Смещение времени на брокерах Kafka
+# Тестирует: Поведение Kafka при смещении системного времени
+# Ожидаемый результат: Возможные проблемы с сегментами логов, retention, временными метками
+# Примечание: Kafka использует временные метки для retention логов и упорядочивания сообщений
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -15,12 +15,12 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  timeOffset: "5m"  # Shift time forward by 5 minutes
+  timeOffset: "5m"  # Сдвиг времени вперёд на 5 минут
   duration: "2m"
 ---
-# TimeChaos: Large clock skew (simulate NTP failure)
-# Tests: Kafka behavior with significant time drift
-# Expected: May trigger log segment rotation, retention issues
+# TimeChaos: Большое смещение времени (симуляция сбоя NTP)
+# Тестирует: Поведение Kafka при значительном рассинхроне времени
+# Ожидаемый результат: Может вызвать ротацию сегментов логов, проблемы с retention
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -34,12 +34,12 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  timeOffset: "-1h"  # Shift time backward by 1 hour
+  timeOffset: "-1h"  # Сдвиг времени назад на 1 час
   duration: "1m"
 ---
-# TimeChaos: Clock skew between brokers (split-brain time)
-# Tests: Cluster behavior when brokers have different times
-# Expected: Possible leader election issues, message ordering problems
+# TimeChaos: Рассинхрон времени между брокерами (split-brain по времени)
+# Тестирует: Поведение кластера когда брокеры имеют разное время
+# Ожидаемый результат: Возможные проблемы с выбором лидера, нарушение порядка сообщений
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -52,7 +52,5 @@ spec:
       - kafka-cluster
     fieldSelectors:
       metadata.name: kafka-cluster-mixed-0
-  timeOffset: "10m"  # Only one broker has time shifted
+  timeOffset: "10m"  # Только у одного брокера смещено время
   duration: "2m"
-
-# todo сделай описание экспериментов на русском языке
