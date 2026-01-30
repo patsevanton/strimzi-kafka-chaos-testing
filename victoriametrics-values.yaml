@@ -50,9 +50,39 @@ grafana:
       strimzi-kafka-exporter:
         url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
         datasource: VictoriaMetrics
+      strimzi-kraft:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kraft.json
+        datasource: VictoriaMetrics
+      strimzi-cruise-control:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-cruise-control.json
+        datasource: VictoriaMetrics
+      strimzi-kafka-connect:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-connect.json
+        datasource: VictoriaMetrics
+      strimzi-kafka-bridge:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-bridge.json
+        datasource: VictoriaMetrics
+      strimzi-kafka-mirror-maker-2:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-mirror-maker-2.json
+        datasource: VictoriaMetrics
+      strimzi-kafka-oauth:
+        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-oauth.json
+        datasource: VictoriaMetrics
     chaos-mesh:
       chaos-mesh-overview:
-        gnetId: 15918 # 15706
+        gnetId: 15918
+        revision: 1
+        datasource:
+          - name: DS_PROMETHEUS
+            value: VictoriaMetrics
+      chaos-daemon:
+        gnetId: 15919
+        revision: 1
+        datasource:
+          - name: DS_PROMETHEUS
+            value: VictoriaMetrics
+      chaos-mesh-stresschaos:
+        gnetId: 21102
         revision: 1
         datasource:
           - name: DS_PROMETHEUS
@@ -75,9 +105,9 @@ defaultRules:
   groups:
     etcd:
       create: false
-kube-state-metrics:
-  metricLabelsAllowlist:
-    - pods=[*]
+# kube-state-metrics:
+#   metricLabelsAllowlist:
+#     - pods=[*]
 vmsingle:
   enabled: false
 vmcluster:
@@ -90,6 +120,3 @@ vmcluster:
         nginx.ingress.kubernetes.io/ssl-redirect: "false"
       hosts:
         - vmselect.apatsev.org.ru
-
-
-# todo добавить полезные дашборды https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples/metrics/grafana-dashboards
