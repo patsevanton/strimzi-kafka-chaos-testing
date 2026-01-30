@@ -225,10 +225,10 @@ Go-код в `main.go` можно изменять под свои нужды. �
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.3.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.4.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.3.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.4.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -238,7 +238,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="3.3.0"
+  --set image.tag="3.4.0"
 ```
 
 ### Переменные окружения

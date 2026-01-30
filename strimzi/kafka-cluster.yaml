@@ -30,6 +30,31 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
+    # JSON logging format for Kafka brokers
+    logging:
+      type: inline
+      loggers:
+        kafka.root.logger.level: INFO
+        log4j.appender.CONSOLE: org.apache.log4j.ConsoleAppender
+        log4j.appender.CONSOLE.layout: net.logstash.log4j.JSONEventLayoutV1
   entityOperator:
-    topicOperator: {}
-    userOperator: {}
+    topicOperator:
+      logging:
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+          rootLogger.appenderRef.console.ref: STDOUT
+          appender.console.type: Console
+          appender.console.name: STDOUT
+          appender.console.layout.type: JsonTemplateLayout
+          appender.console.layout.eventTemplateUri: classpath:EcsLayout.json
+    userOperator:
+      logging:
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+          rootLogger.appenderRef.console.ref: STDOUT
+          appender.console.type: Console
+          appender.console.name: STDOUT
+          appender.console.layout.type: JsonTemplateLayout
+          appender.console.layout.eventTemplateUri: classpath:EcsLayout.json

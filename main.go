@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,6 +27,7 @@ const (
 var (
 	isReady   atomic.Bool
 	isHealthy atomic.Bool
+	logger    *slog.Logger
 )
 
 type Config struct {
@@ -45,6 +46,14 @@ type Message struct {
 	Data      string    `json:"data"`
 }
 
+func init() {
+	// Initialize JSON logger
+	logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+}
+
 func main() {
 	config := loadConfig()
 
@@ -60,7 +69,7 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Println("Shutting down...")
+		logger.Info("Shutting down...")
 		isHealthy.Store(false)
 		isReady.Store(false)
 		cancel()
@@ -72,7 +81,8 @@ func main() {
 	case ModeConsumer:
 		runConsumer(ctx, config)
 	default:
-		log.Fatalf("Invalid mode: %s. Use 'producer' or 'consumer'", config.Mode)
+		logger.Error("Invalid mode", "mode", config.Mode, "valid_modes", []string{ModeProducer, ModeConsumer})
+		os.Exit(1)
 	}
 }
 
@@ -109,9 +119,9 @@ func startHealthServer() {
 		w.Write([]byte("ok"))
 	})
 
-	log.Printf("Starting health server on port %s", healthPort)
+	logger.Info("Starting health server", "port", healthPort)
 	if err := http.ListenAndServe(":"+healthPort, nil); err != nil {
-		log.Printf("Health server error: %v", err)
+		logger.Error("Health server error", "error", err)
 	}
 }
 
@@ -175,7 +185,7 @@ func parseBrokers(brokers string) []string {
 }
 
 func runProducer(ctx context.Context, config *Config) {
-	log.Printf("Starting producer. Brokers: %v, Topic: %s", config.Brokers, config.Topic)
+	logger.Info("Starting producer", "brokers", config.Brokers, "topic", config.Topic)
 
 	// Mark as healthy (process is running)
 	isHealthy.Store(true)
@@ -193,7 +203,8 @@ func runProducer(ctx context.Context, config *Config) {
 	if config.Username != "" && config.Password != "" {
 		mechanism, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
 		if err != nil {
-			log.Fatalf("Failed to create SCRAM mechanism: %v", err)
+			logger.Error("Failed to create SCRAM mechanism", "error", err)
+			os.Exit(1)
 		}
 		writer.Transport = &kafka.Transport{
 			SASL: mechanism,
@@ -210,21 +221,23 @@ func runProducer(ctx context.Context, config *Config) {
 	// Get or create Avro schema
 	schema, err := getOrCreateSchema(schemaRegistryClient, config.Topic)
 	if err != nil {
-		log.Fatalf("Failed to get/create schema: %v", err)
+		logger.Error("Failed to get/create schema", "error", err)
+		os.Exit(1)
 	}
 
 	codec, err := goavro.NewCodec(schema.Schema())
 	if err != nil {
-		log.Fatalf("Failed to create Avro codec: %v", err)
+		logger.Error("Failed to create Avro codec", "error", err)
+		os.Exit(1)
 	}
 
 	// Wait for metadata to be fetched
-	log.Println("Waiting for Kafka metadata...")
+	logger.Info("Waiting for Kafka metadata...")
 	time.Sleep(5 * time.Second)
 
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
-	log.Println("Producer is ready")
+	logger.Info("Producer is ready")
 
 	messageID := int64(0)
 	ticker := time.NewTicker(1 * time.Second)
@@ -233,7 +246,7 @@ func runProducer(ctx context.Context, config *Config) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Producer stopped")
+			logger.Info("Producer stopped")
 			return
 		case <-ticker.C:
 			messageID++
@@ -246,7 +259,7 @@ func runProducer(ctx context.Context, config *Config) {
 			// Convert message to Avro with Confluent wire format
 			avroData, err := encodeAvroMessage(codec, schema.ID(), msg)
 			if err != nil {
-				log.Printf("Failed to encode message: %v", err)
+				logger.Error("Failed to encode message", "error", err, "message_id", messageID)
 				continue
 			}
 
@@ -258,17 +271,17 @@ func runProducer(ctx context.Context, config *Config) {
 
 			err = writer.WriteMessages(ctx, kafkaMsg)
 			if err != nil {
-				log.Printf("Failed to write message: %v", err)
+				logger.Error("Failed to write message", "error", err, "message_id", messageID)
 				continue
 			}
 
-			log.Printf("Sent message #%d", messageID)
+			logger.Info("Sent message", "message_id", messageID)
 		}
 	}
 }
 
 func runConsumer(ctx context.Context, config *Config) {
-	log.Printf("Starting consumer. Brokers: %v, Topic: %s, GroupID: %s", config.Brokers, config.Topic, config.GroupID)
+	logger.Info("Starting consumer", "brokers", config.Brokers, "topic", config.Topic, "group_id", config.GroupID)
 
 	// Mark as healthy (process is running)
 	isHealthy.Store(true)
@@ -283,7 +296,8 @@ func runConsumer(ctx context.Context, config *Config) {
 	if config.Username != "" && config.Password != "" {
 		mechanism, err := scram.Mechanism(scram.SHA512, config.Username, config.Password)
 		if err != nil {
-			log.Fatalf("Failed to create SCRAM mechanism: %v", err)
+			logger.Error("Failed to create SCRAM mechanism", "error", err)
+			os.Exit(1)
 		}
 		dialer.SASLMechanism = mechanism
 	}
@@ -306,12 +320,12 @@ func runConsumer(ctx context.Context, config *Config) {
 
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
-	log.Println("Consumer is ready")
+	logger.Info("Consumer is ready")
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Consumer stopped")
+			logger.Info("Consumer stopped")
 			return
 		default:
 			msg, err := reader.ReadMessage(ctx)
@@ -319,7 +333,7 @@ func runConsumer(ctx context.Context, config *Config) {
 				if err == context.Canceled {
 					return
 				}
-				log.Printf("Error reading message: %v", err)
+				logger.Error("Error reading message", "error", err)
 				time.Sleep(1 * time.Second)
 				continue
 			}
@@ -327,11 +341,11 @@ func runConsumer(ctx context.Context, config *Config) {
 			// Decode message using Confluent wire format
 			decoded, err := decodeAvroMessage(schemaRegistryClient, msg.Value)
 			if err != nil {
-				log.Printf("Failed to decode message: %v", err)
+				logger.Error("Failed to decode message", "error", err)
 				continue
 			}
 
-			log.Printf("Received message - Key: %s, Value: %+v", string(msg.Key), decoded)
+			logger.Info("Received message", "key", string(msg.Key), "value", decoded, "partition", msg.Partition, "offset", msg.Offset)
 		}
 	}
 }

@@ -1,6 +1,10 @@
 grafana:
   plugins:
     - victoriametrics-logs-datasource
+  # JSON logging format
+  env:
+    GF_LOG_MODE: console
+    GF_LOG_CONSOLE_FORMAT: json
   sidecar:
     dashboards:
       enabled: false

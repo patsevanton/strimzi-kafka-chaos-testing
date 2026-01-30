@@ -40,6 +40,9 @@ env:
         key: password
   - name: DYNAMIC_CONFIG_ENABLED
     value: "true"
+  # JSON logging format (Spring Boot / Logback)
+  - name: LOGGING_PATTERN_CONSOLE
+    value: '{"time":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%p","logger":"%c","thread":"%t","msg":"%m"}%n'
 
 # Лимиты ресурсов
 resources:
