@@ -54,6 +54,12 @@ done
 kubectl delete -f chaos-mesh-servicemonitor.yaml --ignore-not-found 2>/dev/null || true
 helm uninstall chaos-mesh -n chaos-mesh --wait --timeout=2m 2>/dev/null || true
 kubectl delete -f chaos-mesh-rbac.yaml --ignore-not-found 2>/dev/null || true
+
+# Очистка финализаторов для Chaos Mesh ресурсов (контроллер уже удалён)
+for r in iochaos timechaos dnschaos networkchaos podchaos stresschaos httpchaos jvmchaos; do
+    kubectl get "$r" -n kafka-cluster -o name 2>/dev/null | \
+        xargs -I {} kubectl patch {} -n kafka-cluster -p '{"metadata":{"finalizers":null}}' --type=merge 2>/dev/null || true
+done
 log_info "Chaos Mesh удалён."
 
 # 2. Observability и приложения (параллельно)
