@@ -1,9 +1,9 @@
-# PodMonitor для метрик Strimzi Kafka (Prometheus Operator CRDs)
-# ПРИМЕЧАНИЕ: Используем PodMonitor вместо ServiceMonitor, потому что
+# VMPodScrape для метрик Strimzi Kafka (VictoriaMetrics Operator)
+# ПРИМЕЧАНИЕ: Используем VMPodScrape вместо VMServiceScrape, потому что
 # Strimzi Kafka 4.x не экспонирует порт tcp-prometheus (9404) в сервисе.
 # Метрики доступны только напрямую с подов.
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
 metadata:
   name: kafka-cluster
   namespace: kafka-cluster
@@ -25,9 +25,9 @@ spec:
       interval: 30s
       scrapeTimeout: 10s
 ---
-# ServiceMonitor для Strimzi Entity Operator (операторы топиков и пользователей)
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+# VMServiceScrape для Strimzi Entity Operator (операторы топиков и пользователей)
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
 metadata:
   name: kafka-entity-operator
   namespace: kafka-cluster

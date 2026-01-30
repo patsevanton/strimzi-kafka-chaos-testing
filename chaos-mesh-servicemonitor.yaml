@@ -1,0 +1,46 @@
+---
+# ServiceMonitor для Chaos Mesh Controller Manager (Prometheus Operator CRDs)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chaos-mesh-controller-manager
+  namespace: chaos-mesh
+  labels:
+    app.kubernetes.io/component: controller-manager
+    app.kubernetes.io/name: chaos-mesh
+spec:
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - chaos-mesh
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller-manager
+      app.kubernetes.io/name: chaos-mesh
+---
+# ServiceMonitor для Chaos Daemon (Prometheus Operator CRDs)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: chaos-daemon
+  namespace: chaos-mesh
+  labels:
+    app.kubernetes.io/component: chaos-daemon
+    app.kubernetes.io/name: chaos-mesh
+spec:
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+      - chaos-mesh
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: chaos-daemon
+      app.kubernetes.io/name: chaos-mesh

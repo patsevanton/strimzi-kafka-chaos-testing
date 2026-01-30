@@ -118,18 +118,19 @@ kubectl get pdb -n kafka-cluster
 
 ### ServiceMonitor для Kafka метрик
 
-Для сбора метрик Kafka в VictoriaMetrics примените VMServiceScrape:
+Для сбора метрик Kafka используются стандартные Prometheus CRDs (PodMonitor и ServiceMonitor):
 
 ```bash
 kubectl apply -f kafka-servicemonitor.yaml
 ```
 
-**Примечание**: Требуется установленный VictoriaMetrics Operator (устанавливается в составе victoriametrics в разделе Observability). Если VictoriaMetrics Operator ещё не установлен, этот шаг можно выполнить позже.
+**Примечание**: Требуются установленные Prometheus CRDs (устанавливаются через Helm chart `prometheus-operator-crds` в разделе Observability). Если CRDs ещё не установлены, этот шаг можно выполнить позже.
 
 Проверка сбора метрик:
 
 ```bash
-kubectl get vmservicescrape -n kafka-cluster
+kubectl get podmonitor -n kafka-cluster
+kubectl get servicemonitor -n kafka-cluster
 ```
 
 ### Создание Kafka топиков
@@ -444,8 +445,17 @@ helm upgrade --install victoria-logs-collector \
 
 Перед установкой VictoriaMetrics K8s Stack необходимо установить Prometheus CRDs (Custom Resource Definitions). Эти CRDs используются для определения ресурсов мониторинга, таких как ServiceMonitor, PodMonitor, PrometheusRule и др.
 
+**Важно**: Устанавливайте Prometheus CRDs через Helm **в самом начале**, до установки любых компонентов мониторинга.
+
 ```bash
-kubectl apply --server-side -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.82.2/stripped-down-crds.yaml
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-operator-crds \
+  --namespace prometheus-crds \
+  --create-namespace \
+  --wait \
+  --version 19.1.0
 ```
 
 Проверка установки CRDs:
@@ -546,6 +556,12 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
 
 ```bash
 kubectl get pods -n chaos-mesh
+```
+
+Для сбора метрик Chaos Mesh примените ServiceMonitor:
+
+```bash
+kubectl apply -f chaos-mesh-servicemonitor.yaml
 ```
 
 ### Настройка аутентификации Dashboard
