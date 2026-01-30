@@ -20,23 +20,23 @@ helm uninstall kafka-consumer -n kafka-consumer
 # Удаление Schema Registry
 kubectl delete -f schema-registry.yaml
 kubectl delete secret schema-registry -n schema-registry
-kubectl delete -f kafka-user-schema-registry.yaml
-kubectl delete -f kafka-topic-schemas.yaml
+kubectl delete -f strimzi/kafka-user-schema-registry.yaml
+kubectl delete -f strimzi/kafka-topic-schemas.yaml
 
 # Удаление Kafka UI
 helm uninstall kafka-ui -n kafka-ui
 kubectl delete secret kafka-ui-user -n kafka-ui
-kubectl delete -f kafka-user-ui.yaml
+kubectl delete -f strimzi/kafka-user-ui.yaml
 
 # Удаление ServiceMonitor и PDB
 kubectl delete -f kafka-servicemonitor.yaml --ignore-not-found
-kubectl delete -f kafka-pdb.yaml --ignore-not-found
+kubectl delete -f strimzi/kafka-pdb.yaml --ignore-not-found
 
 # Удаление Kafka ресурсов
-kubectl delete -f kafka-topic.yaml
-kubectl delete -f kafka-user.yaml
-kubectl delete -f kafka-cluster.yaml
-kubectl delete -f kafka-nodepool.yaml
+kubectl delete -f strimzi/kafka-topic.yaml
+kubectl delete -f strimzi/kafka-user.yaml
+kubectl delete -f strimzi/kafka-cluster.yaml
+kubectl delete -f strimzi/kafka-nodepool.yaml
 
 # Удаление Strimzi оператора
 helm uninstall strimzi-cluster-operator -n strimzi

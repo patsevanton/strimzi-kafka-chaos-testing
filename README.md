@@ -63,8 +63,8 @@ kubectl get pods -n strimzi
 
 В этом репозитории уже есть готовые манифесты:
 
-- `kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
-- `kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
+- `strimzi/kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
+- `strimzi/kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
 
 Примечание: версия Strimzi из Helm-чарта в примере (`0.50.0`) поддерживает Kafka версии `4.x` (например `4.1.1`).
 
@@ -72,8 +72,8 @@ kubectl get pods -n strimzi
 Иначе оператор Strimzi может логировать ошибку вида `KafkaNodePools are enabled, but no KafkaNodePools found...` до момента создания node pool.
 
 ```bash
-kubectl apply -f kafka-nodepool.yaml
-kubectl apply -f kafka-cluster.yaml
+kubectl apply -f strimzi/kafka-nodepool.yaml
+kubectl apply -f strimzi/kafka-cluster.yaml
 ```
 
 Проверка статуса кластера:
@@ -105,7 +105,7 @@ kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.me
 PodDisruptionBudget (PDB) защищает кластер Kafka от чрезмерных нарушений во время плановых операций (rolling update, node drain и т.д.). Гарантирует, что как минимум 2 брокера всегда доступны.
 
 ```bash
-kubectl apply -f kafka-pdb.yaml
+kubectl apply -f strimzi/kafka-pdb.yaml
 ```
 
 Проверка:
@@ -135,7 +135,7 @@ kubectl get vmservicescrape -n kafka-cluster
 Создайте Kafka топик через Strimzi KafkaTopic ресурс:
 
 ```bash
-kubectl apply -f kafka-topic.yaml
+kubectl apply -f strimzi/kafka-topic.yaml
 ```
 
 Проверка создания топика:
@@ -155,7 +155,7 @@ kubectl describe kafkatopic test-topic -n kafka-cluster
 #### Создание пользователя для приложения
 
 ```bash
-kubectl apply -f kafka-user.yaml
+kubectl apply -f strimzi/kafka-user.yaml
 kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
 ```
 
@@ -181,19 +181,19 @@ Go-приложение из этого репозитория использу�
 
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
-- `kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
-- `kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
+- `strimzi/kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
+- `strimzi/kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
 - `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
 
 # Создать топик для схем
-kubectl apply -f kafka-topic-schemas.yaml
+kubectl apply -f strimzi/kafka-topic-schemas.yaml
 kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Создать пользователя для Schema Registry (обязательно для SASL аутентификации)
-kubectl apply -f kafka-user-schema-registry.yaml
+kubectl apply -f strimzi/kafka-user-schema-registry.yaml
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Скопировать секрет в namespace schema-registry (Strimzi создаёт секрет в kafka-cluster)
@@ -224,10 +224,10 @@ Go-код в `main.go` можно изменять под свои нужды. �
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.1.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.2.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.1.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.2.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -237,7 +237,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="3.1.0"
+  --set image.tag="3.2.0"
 ```
 
 ### Переменные окружения
@@ -341,7 +341,7 @@ kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 
 ```bash
 # Создать пользователя для Kafka UI
-kubectl apply -f kafka-user-ui.yaml
+kubectl apply -f strimzi/kafka-user-ui.yaml
 kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Скопировать секрет в namespace kafka-ui
