@@ -8,7 +8,10 @@ grafana:
     GF_LOG_CONSOLE_FORMAT: json
   sidecar:
     dashboards:
-      enabled: false
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
   ingress:
     ingressClassName: nginx
     enabled: true
@@ -16,72 +19,6 @@ grafana:
       - grafana.apatsev.org.ru
     annotations:
       nginx.ingress.kubernetes.io/ssl-redirect: "false"
-  dashboardProviders:
-    dashboardproviders.yaml:
-      apiVersion: 1
-      providers:
-        - name: 'strimzi'
-          orgId: 1
-          folder: 'Strimzi Kafka'
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/strimzi
-        - name: 'chaos-mesh'
-          orgId: 1
-          folder: 'Chaos Mesh'
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/chaos-mesh
-        - name: 'victorialogs'
-          orgId: 1
-          folder: 'VictoriaLogs'
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/victorialogs
-  dashboards:
-    strimzi:
-      strimzi-kafka:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka.json
-        datasource: VictoriaMetrics
-      strimzi-operators:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-operators.json
-        datasource: VictoriaMetrics
-      strimzi-kafka-exporter:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
-        datasource: VictoriaMetrics
-      strimzi-kraft:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kraft.json
-        datasource: VictoriaMetrics
-      strimzi-cruise-control:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-cruise-control.json
-        datasource: VictoriaMetrics
-      strimzi-kafka-bridge:
-        url: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/examples/metrics/grafana-dashboards/strimzi-kafka-bridge.json
-        datasource: VictoriaMetrics
-    chaos-mesh:
-      chaos-mesh-overview:
-        gnetId: 15918
-        revision: 1
-        datasource:
-          - name: DS_PROMETHEUS
-            value: VictoriaMetrics
-      chaos-daemon:
-        gnetId: 15919
-        revision: 1
-        datasource:
-          - name: DS_PROMETHEUS
-            value: VictoriaMetrics
-    victorialogs:
-      victorialogs:
-        gnetId: 24585
-        revision: 1
-        datasource: victoriametrics-logs
 defaultDatasources:
   extra:
     - name: victoriametrics-logs

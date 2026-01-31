@@ -78,7 +78,7 @@ helm upgrade --install vmks \
 - Автоматически конвертирует Prometheus ServiceMonitor/PodMonitor в VMServiceScrape/VMPodScrape
 - Включает scrape конфигурации для kubelet, kube-proxy и других компонентов кластера
 
-**Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` установлено `grafana.sidecar.dashboards.enabled: false`, потому что Helm-чарт не позволяет использовать одновременно sidecar и секцию `grafana.dashboards`. При использовании `grafana.dashboards` для загрузки дашбордов напрямую (по URL или gnetId) необходимо отключить sidecar.
+**Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` включен `grafana.sidecar.dashboards.enabled: true` с `searchNamespace: ALL`. Дашборды Strimzi загружаются автоматически, если Strimzi Operator установлен с `--set dashboards.enabled=true`. Для дополнительных дашбордов создайте ConfigMap с лейблом `grafana_dashboard: "1"` в любом namespace.
 
 Пароль `admin` для Grafana:
 
