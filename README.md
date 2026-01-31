@@ -568,6 +568,8 @@ kubectl get pods -n chaos-mesh
 kubectl apply -f chaos-mesh-servicemonitor.yaml
 ```
 
+**Примечание о дашборде StressChaos**: Grafana дашборд [Chaos Mesh / StressChaos (ID: 21102)](https://grafana.com/grafana/dashboards/21102-chaos-mesh-stresschaos) требует нереализованную функцию Chaos Mesh из [RFC #47](https://github.com/chaos-mesh/rfcs/pull/47). Метрика `chaos_controller_manager_chaos_experiments_container_relation`, используемая в дашборде, ещё не добавлена в Chaos Mesh.
+
 ### Настройка аутентификации Dashboard
 
 Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh-rbac.yaml`:

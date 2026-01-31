@@ -76,12 +76,6 @@ grafana:
         datasource:
           - name: DS_PROMETHEUS
             value: VictoriaMetrics
-      chaos-mesh-stresschaos:
-        gnetId: 21102
-        revision: 1
-        datasource:
-          - name: DS_PROMETHEUS
-            value: VictoriaMetrics
     victorialogs:
       victorialogs:
         gnetId: 24585
