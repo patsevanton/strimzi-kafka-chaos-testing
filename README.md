@@ -536,7 +536,7 @@ Producer отправляет сообщения каждую секунду с 
 
 ### Установка Chaos Mesh
 
-Для доступа к Dashboard через `ingress-nginx` используйте файл `chaos-mesh-values.yaml` из репозитория.
+Для доступа к Dashboard через `ingress-nginx` используйте файл `chaos-mesh/chaos-mesh-values.yaml` из репозитория.
 
 ```bash
 helm repo add chaos-mesh https://charts.chaos-mesh.org
@@ -545,7 +545,7 @@ helm repo update
 helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --namespace chaos-mesh \
   --create-namespace \
-  -f chaos-mesh-values.yaml \
+  -f chaos-mesh/chaos-mesh-values.yaml \
   --version 2.8.1 \
   --wait
 ```
@@ -565,7 +565,7 @@ kubectl get pods -n chaos-mesh
 Для сбора метрик Chaos Mesh через VictoriaMetrics/Prometheus Operator примените ServiceMonitor:
 
 ```bash
-kubectl apply -f chaos-mesh-servicemonitor.yaml
+kubectl apply -f chaos-mesh/chaos-mesh-servicemonitor.yaml
 ```
 
 **Примечание о дашборде Chaos Mesh Overview**: Grafana дашборд [Chaos Mesh Overview (ID: 15918)](https://grafana.com/grafana/dashboards/15918-chaos-mesh-overview) содержит баг в Variables — запрос `label_values(chaos_mesh_templates, namespace)` использует несуществующий лейбл. Метрика `chaos_mesh_templates` определена как Gauge без лейблов во всех версиях Chaos Mesh. Для исправления замените запрос на `label_values(chaos_controller_manager_chaos_experiments, namespace)`. См. [Discussion #4824](https://github.com/chaos-mesh/chaos-mesh/discussions/4824).
@@ -574,11 +574,11 @@ kubectl apply -f chaos-mesh-servicemonitor.yaml
 
 ### Настройка аутентификации Dashboard
 
-Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh-rbac.yaml`:
+Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh/chaos-mesh-rbac.yaml`:
 
 ```bash
 # Создать ServiceAccount, ClusterRole, ClusterRoleBinding и Secret с токеном
-kubectl apply -f chaos-mesh-rbac.yaml
+kubectl apply -f chaos-mesh/chaos-mesh-rbac.yaml
 
 # Дождаться создания токена (несколько секунд)
 sleep 3
