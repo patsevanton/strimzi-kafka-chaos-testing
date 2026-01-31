@@ -19,6 +19,10 @@ spec:
   namespaceSelector:
     matchNames:
       - kafka-cluster
+  podTargetLabels:
+    - strimzi.io/cluster
+    - strimzi.io/kind
+    - strimzi.io/name
   podMetricsEndpoints:
     - port: tcp-prometheus
       path: /metrics
