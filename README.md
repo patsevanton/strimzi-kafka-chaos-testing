@@ -52,7 +52,7 @@ helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-
 
 **[victoria-metrics-k8s-stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack)** — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
 
-**Важно**: VictoriaMetrics устанавливается вначале, так как он предоставляет CRDs (VMServiceScrape, VMPodScrape и др.), которые используются другими компонентами (VictoriaLogs, collector и др.).
+**Важно**: VictoriaMetrics устанавливается вначале, так как он предоставляет CRDs (VMServiceScrape, VMPodScrape и др.), которые используются другими компонентами (VictoriaLogs, Victoria-logs-collector и др.).
 
 ### Установка
 
@@ -491,11 +491,10 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
 - `vlselect.vmServiceScrape.enabled: false` — VMServiceScrape для vlselect компонента
 - `vlinsert.vmServiceScrape.enabled: false` — VMServiceScrape для vlinsert компонента
 - `vlstorage.vmServiceScrape.enabled: false` — VMServiceScrape для vlstorage компонента
-- `*.vmServiceScrape.useServiceMonitor: false` — использовать ServiceMonitor вместо VMServiceScrape
 
-#### victoria-logs-collector
+#### Victoria-logs-collector
 
-**[victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
+**[Victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
 
 ##### Установка
 
@@ -532,6 +531,18 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   ]
 }
 ```
+
+#### Почему Avro?
+
+Avro выбран для сериализации сообщений по следующим причинам:
+
+| Преимущество | Описание |
+|--------------|----------|
+| **Компактный бинарный формат** | В отличие от JSON, Avro не дублирует имена полей в каждом сообщении — схема хранится отдельно в Schema Registry, что значительно уменьшает размер сообщений |
+| **Эволюция схем** | Schema Registry обеспечивает версионирование и проверку совместимости схем, позволяя добавлять/изменять поля без поломки существующих consumer'ов |
+| **Строгая типизация** | Avro-схема гарантирует типы данных на этапе сериализации/десериализации, предотвращая ошибки в runtime |
+| **Индустриальный стандарт** | Avro — стандарт де-факто для enterprise Kafka систем, поддерживается Kafka UI, Karapace и экосистемой Confluent |
+| **Confluent Wire Format** | Использование стандартного формата (magic byte + schema ID + данные) обеспечивает совместимость с широким спектром инструментов |
 
 Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
 
