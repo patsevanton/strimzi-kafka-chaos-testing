@@ -6,6 +6,7 @@
 
 - [Prometheus CRDs](#prometheus-crds)
 - [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
+  - [Установка дополнительных дашбордов в Grafana](#установка-дополнительных-дашбордов-в-grafana)
 - [Strimzi](#strimzi)
   - [Установка Strimzi](#установка-strimzi)
   - [Развертывание Kafka кластера](#развертывание-kafka-кластера)
@@ -85,6 +86,34 @@ helm upgrade --install vmks \
 ```bash
 kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
 ```
+
+### Установка дополнительных дашбордов в Grafana
+
+Для установки дополнительных дашбордов (Strimzi, Chaos Mesh, VictoriaLogs) через Grafana API используйте скрипт `install-grafana-dashboards.sh`, так как в конфиге нужно указывать весь JSON. Issue по этому поводу https://github.com/VictoriaMetrics/helm-charts/issues/2683
+
+Скрипт устанавливает следующие дашборды:
+
+| Папка | Дашборд | Источник |
+|-------|---------|----------|
+| Strimzi Kafka | strimzi-kafka, strimzi-operators, strimzi-kafka-exporter, strimzi-kraft, strimzi-cruise-control, strimzi-kafka-bridge | GitHub (URL) |
+| Chaos Mesh | chaos-mesh-overview (15918), chaos-daemon (15919) | Grafana.net |
+| VictoriaLogs | victorialogs (24585) | Grafana.net |
+
+```bash
+# Через port-forward
+kubectl port-forward svc/vmks-grafana 3000:80 -n vmks &
+
+# Запуск скрипта (по умолчанию localhost:3000, admin/admin)
+./install-grafana-dashboards.sh
+
+# Или с кастомными параметрами
+GRAFANA_URL="http://grafana.example.com" \
+GRAFANA_USER="admin" \
+GRAFANA_PASSWORD="$(kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 -d)" \
+./install-grafana-dashboards.sh
+```
+
+**Требования:** `curl` и `jq` должны быть установлены.
 
 ## Strimzi
 
