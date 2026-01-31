@@ -14,6 +14,19 @@ spec:
       targetPort: 8081
 
 ---
+# PodDisruptionBudget для обеспечения доступности при обновлениях и сбоях
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: schema-registry-pdb
+  namespace: schema-registry
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: schema-registry
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,9 +35,12 @@ metadata:
   labels:
     app: schema-registry
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: schema-registry
@@ -34,6 +50,16 @@ spec:
         app: schema-registry
     spec:
       enableServiceLinks: false
+      # Распределение подов по разным нодам для отказоустойчивости
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: schema-registry
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: schema-registry
           image: ghcr.io/aiven-open/karapace:5.0.3
@@ -44,6 +70,13 @@ spec:
           ports:
             - containerPort: 8081
               name: http
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           env:
             # Karapace - это реализация, совместимая с Confluent Schema Registry API.
             - name: KARAPACE_KARAPACE_REGISTRY
@@ -73,8 +106,13 @@ spec:
                   # Strimzi создаёт secret с тем же именем, что и KafkaUser
                   name: schema-registry
                   key: password
+            # Уникальный client_id для каждого пода (на основе имени пода)
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: KARAPACE_CLIENT_ID
-              value: "schema-registry-0"
+              value: "$(POD_NAME)"
             - name: KARAPACE_GROUP_ID
               value: "schema-registry"
             - name: KARAPACE_TOPIC_NAME
