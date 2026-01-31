@@ -33,7 +33,7 @@
 
 ## Prometheus CRDs
 
-Перед установкой любых компонентов мониторинга (VictoriaMetrics, ServiceMonitor, PodMonitor и др.) необходимо установить Prometheus CRDs (Custom Resource Definitions). Эти CRDs используются для определения ресурсов мониторинга.
+Перед установкой любых компонентов мониторинга (ServiceMonitor, PodMonitor и др.) необходимо установить Prometheus CRDs.
 
 **Важно**: Устанавливайте Prometheus CRDs **в самом начале**, до установки Strimzi, Kafka и других компонентов.
 
@@ -78,11 +78,6 @@ helm upgrade --install vmks \
 - Включает scrape конфигурации для kubelet, kube-proxy и других компонентов кластера
 
 **Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` установлено `grafana.sidecar.dashboards.enabled: false`, потому что Helm-чарт не позволяет использовать одновременно sidecar и секцию `grafana.dashboards`. При использовании `grafana.dashboards` для загрузки дашбордов напрямую (по URL или gnetId) необходимо отключить sidecar.
-
-**Примечание о Node Exporter**: `prometheus-node-exporter` разворачивается как DaemonSet и должен запускаться на каждой ноде. Если поды остаются в статусе `Pending`, проверьте:
-- Наличие taints на нодах (node exporter по умолчанию имеет tolerations для master/control-plane)
-- Достаточность ресурсов на нодах
-- nodeSelector в values файле
 
 Пароль `admin` для Grafana:
 
@@ -193,6 +188,7 @@ kubectl apply -f kafka-servicemonitor.yaml
 ```bash
 kubectl get podmonitor -n kafka-cluster
 kubectl get servicemonitor -n kafka-cluster
+kubectl get podmonitor -n strimzi
 ```
 
 ### Создание Kafka топиков
@@ -411,14 +407,14 @@ kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 #### Установка Kafka UI
 
 ```bash
-# Создать пользователя для Kafka UI
+# Создать Kafka пользователя для Kafka UI
 kubectl apply -f strimzi/kafka-user-ui.yaml
 kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=120s
 
 # Скопировать секрет в namespace kafka-ui
 kubectl create namespace kafka-ui --dry-run=client -o yaml | kubectl apply -f -
 
-# Создать секрет с credentials для Kafka UI
+# Копируем секрет kafka-ui-user из ns kafka-cluster в ns kafka-ui # TODO корректна ли фраза.
 kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
   jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
   jq '.data.username = ("kafka-ui-user" | @base64)' | \
@@ -461,16 +457,6 @@ kubectl get svc -n kafka-ui
 
 Ingress уже настроен в `helm/kafka-ui-values.yaml`. По умолчанию используется хост `kafka-ui.apatsev.org.ru` с nginx ingress class.
 
-Для изменения хоста отредактируйте секцию `ingress` в values файле или передайте через `--set`:
-
-```bash
-helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
-  --namespace kafka-ui \
-  -f helm/kafka-ui-values.yaml \
-  --set ingress.host=your-host.example.com
-```
-
-#### Диагностика проблем Kafka UI
 
 ### Observability Stack
 
