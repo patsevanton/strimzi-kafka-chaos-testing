@@ -568,6 +568,8 @@ kubectl get pods -n chaos-mesh
 kubectl apply -f chaos-mesh-servicemonitor.yaml
 ```
 
+**Примечание о дашборде Chaos Mesh Overview**: Grafana дашборд [Chaos Mesh Overview (ID: 15918)](https://grafana.com/grafana/dashboards/15918-chaos-mesh-overview) содержит баг в Variables — запрос `label_values(chaos_mesh_templates, namespace)` использует несуществующий лейбл. Метрика `chaos_mesh_templates` определена как Gauge без лейблов во всех версиях Chaos Mesh. Для исправления замените запрос на `label_values(chaos_controller_manager_chaos_experiments, namespace)`. См. [Discussion #4824](https://github.com/chaos-mesh/chaos-mesh/discussions/4824).
+
 **Примечание о дашборде StressChaos**: Grafana дашборд [Chaos Mesh / StressChaos (ID: 21102)](https://grafana.com/grafana/dashboards/21102-chaos-mesh-stresschaos) требует нереализованную функцию Chaos Mesh из [RFC #47](https://github.com/chaos-mesh/rfcs/pull/47). Метрика `chaos_controller_manager_chaos_experiments_container_relation`, используемая в дашборде, ещё не добавлена в Chaos Mesh.
 
 ### Настройка аутентификации Dashboard
