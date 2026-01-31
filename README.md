@@ -180,7 +180,7 @@ kubectl get pdb -n kafka-cluster
 Для сбора метрик Kafka используются стандартные Prometheus CRDs (PodMonitor и ServiceMonitor):
 
 ```bash
-kubectl apply -f kafka-servicemonitor.yaml
+kubectl apply -f strimzi/kafka-servicemonitor.yaml
 ```
 
 Проверка сбора метрик:
