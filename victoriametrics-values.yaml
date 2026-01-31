@@ -1,6 +1,7 @@
 grafana:
   plugins:
-    - victoriametrics-logs-datasource
+    - victoriametrics-logs-datasource 0.24.0
+    - chaosmeshorg-datasource 3.0.0
   # JSON logging format
   env:
     GF_LOG_MODE: console
@@ -89,6 +90,11 @@ defaultDatasources:
       url: http://victoria-logs-cluster-vlselect.victoria-logs-cluster.svc.cluster.local:9471
       jsonData:
         maxLines: 1000
+      version: 1
+    - name: Chaos Mesh
+      access: proxy
+      type: chaosmeshorg-datasource
+      url: http://chaos-dashboard.chaos-mesh.svc.cluster.local:2333
       version: 1
 defaultRules:
   groups:

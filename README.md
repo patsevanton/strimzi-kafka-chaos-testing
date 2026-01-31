@@ -29,6 +29,7 @@
   - [Установка Chaos Mesh](#установка-chaos-mesh)
   - [Настройка аутентификации Dashboard](#настройка-аутентификации-dashboard)
   - [Запуск всех Chaos-экспериментов](#запуск-всех-chaos-экспериментов)
+  - [TODO: Дашборд с аннотациями Chaos Mesh](#todo-дашборд-с-аннотациями-chaos-mesh)
 - [Удаление (Helm / приложения / Strimzi / Kafka)](#удаление-helm--приложения--strimzi--kafka)
 
 ## Prometheus CRDs
@@ -687,6 +688,20 @@ kubectl delete -f chaos-experiments/http-chaos.yaml
 ```
 
 Подробная документация в файле `chaos-experiments/README.md`.
+
+### TODO: Дашборд с аннотациями Chaos Mesh
+
+Создать Grafana дашборд, отображающий метрики Kafka с наложением событий Chaos Mesh как аннотаций.
+
+**Задачи:**
+
+- [ ] Создать JSON файл дашборда с базовыми панелями Kafka метрик (throughput, latency, consumer lag)
+- [ ] Добавить аннотации Chaos Mesh через `chaosmeshorg-datasource` для отображения событий экспериментов
+- [ ] Настроить фильтры аннотаций по namespace (`kafka-cluster`) и kind (`PodChaos`, `NetworkChaos`, `StressChaos` и др.)
+- [ ] Добавить дашборд в `victoriametrics-values.yaml` (секция `grafana.dashboards`)
+- [ ] Применить изменения через `helm upgrade`
+
+**Цель:** Визуализировать корреляцию между хаос-экспериментами и изменениями в метриках Kafka для анализа отказоустойчивости.
 
 ## Удаление (Helm / приложения / Strimzi / Kafka)
 
