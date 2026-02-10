@@ -352,6 +352,19 @@ func runConsumer(ctx context.Context, config *Config) {
 	}
 	schemaRegistryConnectionStatus.Set(1)
 
+	// Setup Admin client for lag metrics
+	transport := &kafka.Transport{
+		SASL: dialer.SASLMechanism,
+	}
+	adminClient := &kafka.Client{
+		Addr:      kafka.TCP(config.Brokers...),
+		Timeout:   10 * time.Second,
+		Transport: transport,
+	}
+
+	// Start lag metrics updater in background
+	go updateConsumerLag(ctx, adminClient, dialer, config)
+
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
 	logger.Info("Consumer is ready")
@@ -397,8 +410,24 @@ func runConsumer(ctx context.Context, config *Config) {
 
 			// Calculate end-to-end latency if message has timestamp
 			if decodedMap, ok := decoded.(map[string]interface{}); ok {
-				if timestamp, ok := decodedMap["timestamp"].(int64); ok {
-					msgTimestamp := time.UnixMilli(timestamp)
+				if timestampVal, ok := decodedMap["timestamp"]; ok {
+					var timestampMillis int64
+					switch v := timestampVal.(type) {
+					case int64:
+						timestampMillis = v
+					case int32:
+						timestampMillis = int64(v)
+					case int:
+						timestampMillis = int64(v)
+					case float64:
+						timestampMillis = int64(v)
+					case float32:
+						timestampMillis = int64(v)
+					default:
+						logger.Debug("Timestamp has unsupported type", "type", fmt.Sprintf("%T", v))
+						continue
+					}
+					msgTimestamp := time.UnixMilli(timestampMillis)
 					endToEndLatency := time.Since(msgTimestamp).Seconds()
 					consumerEndToEndLatency.WithLabelValues(config.Topic, partitionStr).Observe(endToEndLatency)
 				}
@@ -409,6 +438,110 @@ func runConsumer(ctx context.Context, config *Config) {
 			consumerMessagesReceivedBytes.WithLabelValues(config.Topic, partitionStr).Add(float64(len(msg.Value)))
 
 			logger.Info("Received message", "key", string(msg.Key), "value", decoded, "partition", msg.Partition, "offset", msg.Offset)
+		}
+	}
+}
+
+// updateConsumerLag periodically updates consumer lag metrics
+func updateConsumerLag(ctx context.Context, adminClient *kafka.Client, dialer *kafka.Dialer, config *Config) {
+	ticker := time.NewTicker(30 * time.Second) // Update every 30 seconds
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Connect to first broker to get partition info
+			conn, err := dialer.DialContext(ctx, "tcp", config.Brokers[0])
+			if err != nil {
+				logger.Debug("Failed to dial broker for lag metrics", "error", err)
+				continue
+			}
+
+			// Get all partitions for the topic
+			partitions, err := conn.ReadPartitions(config.Topic)
+			if err != nil {
+				logger.Debug("Failed to read partitions", "error", err)
+				conn.Close()
+				continue
+			}
+
+			// Build map of partitions for Admin API
+			partitionIDs := make([]int, 0, len(partitions))
+			for _, p := range partitions {
+				partitionIDs = append(partitionIDs, p.ID)
+			}
+
+			// Get consumer group committed offsets using OffsetFetch API
+			offsetFetchResp, err := adminClient.OffsetFetch(ctx, &kafka.OffsetFetchRequest{
+				GroupID: config.GroupID,
+				Topics: map[string][]int{
+					config.Topic: partitionIDs,
+				},
+			})
+			if err != nil {
+				logger.Debug("Failed to get consumer group offsets", "error", err)
+				conn.Close()
+				continue
+			}
+
+			// Build OffsetRequests for high watermark (LastOffset per partition)
+			offsetReqs := make([]kafka.OffsetRequest, len(partitionIDs))
+			for i, id := range partitionIDs {
+				offsetReqs[i] = kafka.LastOffsetOf(id)
+			}
+			listOffsetsResp, err := adminClient.ListOffsets(ctx, &kafka.ListOffsetsRequest{
+				Topics: map[string][]kafka.OffsetRequest{
+					config.Topic: offsetReqs,
+				},
+			})
+			if err != nil {
+				logger.Debug("Failed to get partition offsets", "error", err)
+				conn.Close()
+				continue
+			}
+
+			// For each partition, calculate lag
+			for _, partition := range partitions {
+				// Get high watermark from ListOffsets response
+				highWatermark := int64(-1)
+				if topicOffsets, ok := listOffsetsResp.Topics[config.Topic]; ok {
+					for _, po := range topicOffsets {
+						if po.Partition == partition.ID {
+							highWatermark = po.LastOffset
+							break
+						}
+					}
+				}
+				if highWatermark < 0 {
+					logger.Debug("Failed to get high watermark", "partition", partition.ID)
+					continue
+				}
+
+				// Get consumer group committed offset from OffsetFetch response
+				consumerOffset := int64(-1)
+				if topicParts, ok := offsetFetchResp.Topics[config.Topic]; ok {
+					for _, p := range topicParts {
+						if p.Partition == partition.ID {
+							consumerOffset = p.CommittedOffset
+							break
+						}
+					}
+				}
+
+				// Calculate lag: highWatermark - consumerOffset
+				if consumerOffset >= 0 {
+					lag := highWatermark - consumerOffset
+					if lag < 0 {
+						lag = 0
+					}
+					partitionStr := fmt.Sprintf("%d", partition.ID)
+					consumerLag.WithLabelValues(config.Topic, partitionStr, config.GroupID).Set(float64(lag))
+				}
+			}
+
+			conn.Close()
 		}
 	}
 }
