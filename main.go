@@ -411,25 +411,29 @@ func runConsumer(ctx context.Context, config *Config) {
 			// Calculate end-to-end latency if message has timestamp
 			if decodedMap, ok := decoded.(map[string]interface{}); ok {
 				if timestampVal, ok := decodedMap["timestamp"]; ok {
-					var timestampMillis int64
+					var msgTimestamp time.Time
 					switch v := timestampVal.(type) {
+					case time.Time:
+						// goavro may decode timestamp-millis logicalType as time.Time
+						msgTimestamp = v
 					case int64:
-						timestampMillis = v
+						msgTimestamp = time.UnixMilli(v)
 					case int32:
-						timestampMillis = int64(v)
+						msgTimestamp = time.UnixMilli(int64(v))
 					case int:
-						timestampMillis = int64(v)
+						msgTimestamp = time.UnixMilli(int64(v))
 					case float64:
-						timestampMillis = int64(v)
+						msgTimestamp = time.UnixMilli(int64(v))
 					case float32:
-						timestampMillis = int64(v)
+						msgTimestamp = time.UnixMilli(int64(v))
 					default:
-						logger.Debug("Timestamp has unsupported type", "type", fmt.Sprintf("%T", v))
-						continue
+						logger.Debug("Timestamp has unsupported type", "type", fmt.Sprintf("%T", v), "value", v)
+						// Try to continue without end-to-end latency metric
 					}
-					msgTimestamp := time.UnixMilli(timestampMillis)
-					endToEndLatency := time.Since(msgTimestamp).Seconds()
-					consumerEndToEndLatency.WithLabelValues(config.Topic, partitionStr).Observe(endToEndLatency)
+					if !msgTimestamp.IsZero() {
+						endToEndLatency := time.Since(msgTimestamp).Seconds()
+						consumerEndToEndLatency.WithLabelValues(config.Topic, partitionStr).Observe(endToEndLatency)
+					}
 				}
 			}
 

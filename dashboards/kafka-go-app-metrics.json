@@ -395,7 +395,7 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kafka_producer_errors_total[5m]))",
+          "expr": "sum(rate(kafka_producer_errors_total[5m])) or vector(0)",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"
@@ -1033,7 +1033,7 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(kafka_consumer_errors_total[5m]))",
+          "expr": "sum(rate(kafka_consumer_errors_total[5m])) or vector(0)",
           "legendFormat": "Error Rate",
           "range": true,
           "refId": "A"

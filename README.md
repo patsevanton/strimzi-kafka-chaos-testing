@@ -201,10 +201,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.2 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.2
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -214,7 +214,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.0"
+  --set image.tag="0.2.2"
 ```
 
 ### Переменные окружения
