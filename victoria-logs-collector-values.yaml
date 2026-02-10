@@ -3,15 +3,13 @@ remoteWrite:
   - url: http://victoria-logs-cluster-vlinsert.victoria-logs-cluster:9481
     headers:
       # Поля, которые будут проигнорированы и не сохранены в VictoriaLogs
-      # Полезно для уменьшения объёма данных и шума
       VL-Ignore-Fields:
-        - kubernetes.container_id # уникальный ID контейнера, часто меняется и не несет ценной информации
-        - kubernetes.pod_ip # IP адрес пода, динамический и редко полезный для анализа логов
-        - kubernetes.pod_labels.pod-template-hash # хэш шаблона Deployment ReplicaSet, используется для идентификации реплик, но избыточен
+        - kubernetes.container_id
+        - kubernetes.pod_ip
+        - kubernetes.pod_labels.pod-template-hash
 
-# Настройки collector: определяют, как извлекать сообщение лога из входных данных.
+# Настройки collector: из каких полей извлекать основное сообщение лога (_msg в VictoriaLogs)
 collector:
-  # msgField: список полей, из которых извлекается основное сообщение лога (_msg в VictoriaLogs)
   msgField:
     - message
     - msg

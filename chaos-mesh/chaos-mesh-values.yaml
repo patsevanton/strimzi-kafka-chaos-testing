@@ -1,15 +1,17 @@
+# Chaos Mesh Helm values (Ingress для Dashboard)
+# Источник: https://github.com/patsevanton/strimzi-kafka-chaos-testing
+
 chaosDaemon:
   runtime: containerd
   socketPath: /run/containerd/containerd.sock
-  # JSON logging format
   env:
     LOG_FORMAT: json
+
 controllerManager:
-  # JSON logging format
   env:
     LOG_FORMAT: json
+
 dashboard:
-  # JSON logging format
   env:
     LOG_FORMAT: json
   ingress:

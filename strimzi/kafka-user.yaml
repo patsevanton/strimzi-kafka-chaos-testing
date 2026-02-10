@@ -2,7 +2,6 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaUser
 metadata:
   name: myuser
-  namespace: kafka-cluster
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
@@ -11,44 +10,29 @@ spec:
   authorization:
     type: simple
     acls:
-      # Разрешаем доступ ко всем топикам, чтобы приложения могли писать/читать
-      # даже если клиент/брокер используют topicId (в логах Kafka это иногда выглядит как пустое имя).
-      - resource:
-          type: topic
-          name: "*"
-          patternType: literal
-        operations:
-          - Read
-          - Write
-          - Create
-          - Describe
-          - DescribeConfigs
-          - AlterConfigs
+      # Example consumer Acls for topic test-topic using consumer group test-group
       - resource:
           type: topic
           name: test-topic
           patternType: literal
         operations:
+          - Describe
           - Read
-          - Write
-          - Create
-          - Describe
-          - DescribeConfigs
-          - AlterConfigs
-      - resource:
-          type: cluster
-        operations:
-          - Describe
-          - IdempotentWrite
+        host: "*"
       - resource:
           type: group
           name: test-group
           patternType: literal
         operations:
           - Read
+        host: "*"
+      # Example Producer Acls for topic test-topic
       - resource:
-          type: group
-          name: "*"
+          type: topic
+          name: test-topic
           patternType: literal
         operations:
-          - Read
+          - Create
+          - Describe
+          - Write
+        host: "*"

@@ -1,7 +1,4 @@
-# IOChaos: Задержка дисковых I/O операций на брокерах Kafka
-# Тестирует: Производительность Kafka при медленных дисковых операциях
-# Ожидаемый результат: Увеличенная задержка produce/fetch, возможные таймауты
-# Безопасно: НЕ повреждает данные, только добавляет задержки
+# IOChaos: Задержка дисковых I/O на брокерах Kafka
 apiVersion: chaos-mesh.org/v1alpha1
 kind: IOChaos
 metadata:
@@ -22,10 +19,7 @@ spec:
   percent: 50
   duration: "2m"
 ---
-# IOChaos: Ошибки дискового I/O (EIO - Input/output error)
-# Тестирует: Поведение Kafka когда диск возвращает I/O ошибки
-# Ожидаемый результат: Брокер может упасть, перевыборы лидера, переназначение партиций
-# Безопасно: НЕ повреждает данные, возвращает код ошибки приложению
+# IOChaos: Ошибки дискового I/O (EIO)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: IOChaos
 metadata:
@@ -42,14 +36,11 @@ spec:
       strimzi.io/kind: Kafka
   volumePath: /var/lib/kafka/data/kafka-log0
   path: "*.log"
-  errno: 5  # EIO - Ошибка ввода/вывода
+  errno: 5
   percent: 10
   duration: "1m"
 ---
-# IOChaos: Симуляция заполненного диска (ENOSPC - No space left on device)
-# Тестирует: Поведение Kafka когда диск переполнен
-# Ожидаемый результат: Ошибки записи, ошибки producer, брокер может стать unhealthy
-# Безопасно: НЕ повреждает данные, возвращает код ошибки приложению
+# IOChaos: Симуляция заполненного диска (ENOSPC)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: IOChaos
 metadata:
@@ -66,7 +57,7 @@ spec:
       strimzi.io/kind: Kafka
   volumePath: /var/lib/kafka/data/kafka-log0
   path: "*"
-  errno: 28  # ENOSPC - Нет места на устройстве
+  errno: 28
   percent: 100
   methods:
     - write

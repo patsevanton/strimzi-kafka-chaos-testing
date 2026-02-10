@@ -42,50 +42,17 @@ spec:
               value: {{ .Values.kafka.topic | quote }}
             - name: KAFKA_GROUP_ID
               value: {{ .Values.kafka.groupId | quote }}
-            - name: SCHEMA_REGISTRY_URL
-              value: {{ .Values.schemaRegistry.url | quote }}
-            {{- if .Values.secrets.name }}
-            {{- if .Values.secrets.strimzi }}
-            # Strimzi KafkaUser secret: имя пользователя = имя secret, пароль из secret
-            - name: KAFKA_USERNAME
-              value: {{ .Values.secrets.name | quote }}
-            - name: KAFKA_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.secrets.name }}
-                  key: password
-            {{- else }}
-            # Пользовательский secret с ключами username и password
-            - name: KAFKA_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "kafka-consumer.secretName" . }}
-                  key: username
-            - name: KAFKA_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "kafka-consumer.secretName" . }}
-                  key: password
-            {{- end }}
-            {{- else if .Values.secrets.create }}
-            - name: KAFKA_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "kafka-consumer.secretName" . }}
-                  key: username
-            - name: KAFKA_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "kafka-consumer.secretName" . }}
-                  key: password
-            {{- else if .Values.kafka.username }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
-            {{- if .Values.kafka.password }}
+            {{- if .Values.kafka.existingSecret }}
             - name: KAFKA_PASSWORD
-              value: {{ .Values.kafka.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.kafka.existingSecret }}
+                  key: {{ .Values.kafka.existingSecretPasswordKey | default "password" }}
             {{- end }}
-            {{- end }}
+            - name: SCHEMA_REGISTRY_URL
+              value: {{ .Values.schemaRegistry.url | quote }}
             - name: HEALTH_PORT
               value: {{ .Values.health.port | quote }}
           ports:

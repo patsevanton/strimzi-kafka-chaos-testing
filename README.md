@@ -1,66 +1,17 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования отказоустойчивости и производительности высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Включает инструменты для хаос-тестирования через Chaos Mesh, мониторинг через VictoriaMetrics, Schema Registry для управления схемами данных, Kafka UI — веб-интерфейc для просмотра топиков, сообщений, consumer groups, брокеров, а также примеры producer и consumer приложений на Go.
+Проект для тестирования **отказоустойчивости**, **производительности**, **хаос-тестов**, **мониторинга**, **Schema Registry**, **Kafka UI** и **golang app** (producer/consumer) высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
 
-## Содержание
+## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
-- [Prometheus CRDs](#prometheus-crds)
-- [VictoriaMetrics (VM K8s Stack)](#victoriametrics-vm-k8s-stack)
-  - [Установка дополнительных дашбордов в Grafana](#установка-дополнительных-дашбордов-в-grafana)
-- [Strimzi](#strimzi)
-  - [Установка Strimzi](#установка-strimzi)
-  - [Развертывание Kafka кластера](#развертывание-kafka-кластера)
-  - [PodDisruptionBudget для Kafka](#poddisruptionbudget-для-kafka)
-  - [ServiceMonitor для Kafka метрик](#servicemonitor-для-kafka-метрик)
-  - [Создание Kafka топиков](#создание-kafka-топиков)
-  - [Создание Kafka пользователей и секретов](#создание-kafka-пользователей-и-секретов)
-  - [Schema Registry (Karapace) для Avro](#schema-registry-karapace-для-avro)
-- [Producer App и Consumer App](#producer-app-и-consumer-app)
-  - [Используемые библиотеки](#используемые-библиотеки)
-  - [Сборка и публикация Docker образа](#сборка-и-публикация-docker-образа)
-  - [Переменные окружения](#переменные-окружения)
-  - [Запуск Producer/Consumer в кластере используя Helm](#запуск-producerconsumer-в-кластере-используя-helm)
-- [Kafka UI и Observability](#kafka-ui-и-observability)
-  - [Kafka UI (Kafbat UI)](#kafka-ui-kafbat-ui)
-  - [Observability Stack](#observability-stack)
-    - [VictoriaLogs](#victorialogs)
-    - [victoria-logs-collector](#victoria-logs-collector)
-  - [Формат сообщений](#формат-сообщений)
-- [Chaos Mesh](#chaos-mesh)
-  - [Установка Chaos Mesh](#установка-chaos-mesh)
-  - [Настройка аутентификации Dashboard](#настройка-аутентификации-dashboard)
-  - [Запуск всех Chaos-экспериментов](#запуск-всех-chaos-экспериментов)
-  - [TODO: Дашборд с аннотациями Chaos Mesh](#todo-дашборд-с-аннотациями-chaos-mesh)
-- [Удаление (Helm / приложения / Strimzi / Kafka)](#удаление-helm--приложения--strimzi--kafka)
-
-## Prometheus CRDs
-
-Перед установкой любых компонентов мониторинга (ServiceMonitor, PodMonitor и др.) необходимо установить Prometheus CRDs.
-
-**Важно**: Устанавливайте Prometheus CRDs **в самом начале**, до установки Strimzi, Kafka и других компонентов.
+1. Репозиторий Helm для VictoriaMetrics (нужен для VictoriaLogs и других чартов ниже; сам VictoriaMetrics K8s Stack ставится из OCI):
 
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add vm https://victoriametrics.github.io/helm-charts/
 helm repo update
-
-helm upgrade --install prometheus-operator-crds prometheus-community/prometheus-operator-crds \
-  --namespace prometheus-crds \
-  --create-namespace \
-  --wait \
-  --version 19.1.0
 ```
 
-## VictoriaMetrics (VM K8s Stack)
-
-**[victoria-metrics-k8s-stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack)** — Helm-чарт для установки стека метрик VictoriaMetrics в Kubernetes (включая Grafana).
-
-**Важно**: VictoriaMetrics устанавливается вначале, так как он предоставляет CRDs (VMServiceScrape, VMPodScrape и др.), которые используются другими компонентами (VictoriaLogs, Victoria-logs-collector и др.).
-
-### Установка
-
-Для установки используйте `victoriametrics-values.yaml` из репозитория.
-
-**Важно**: Имя релиза и namespace `vmks` выбраны намеренно короткими, чтобы избежать ошибки `must be no more than 63 characters` для имён Kubernetes ресурсов (Service, ConfigMap и др.), которые формируются как `{release}-{chart}-{component}`.
+2. Установить VictoriaMetrics K8s Stack с values из `victoriametrics-values.yaml` (Ingress для Grafana на `grafana.apatsev.org.ru`). Имя релиза и namespace `vmks` выбраны короткими, чтобы не упираться в лимит 63 символа для имён ресурсов Kubernetes. При ошибке загрузки чарта (например, EOF) повторите команду:
 
 ```bash
 helm upgrade --install vmks \
@@ -73,198 +24,113 @@ helm upgrade --install vmks \
   -f victoriametrics-values.yaml
 ```
 
-**Параметры мониторинга** (default values):
-- `victoria-metrics-operator.enabled: true` — включает оператор VictoriaMetrics
-- `victoria-metrics-operator.serviceMonitor.enabled: true` — ServiceMonitor для оператора
-- Автоматически конвертирует Prometheus ServiceMonitor/PodMonitor в VMServiceScrape/VMPodScrape
-- Включает scrape конфигурации для kubelet, kube-proxy и других компонентов кластера
-
-**Примечание о конфигурации Grafana dashboards**: В `victoriametrics-values.yaml` включен `grafana.sidecar.dashboards.enabled: true` с `searchNamespace: ALL`. Дашборды Strimzi загружаются автоматически, если Strimzi Operator установлен с `--set dashboards.enabled=true`. Для дополнительных дашбордов создайте ConfigMap с лейблом `grafana_dashboard: "1"` в любом namespace.
-
-Пароль `admin` для Grafana:
+3. Получить пароль администратора Grafana:
 
 ```bash
 kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
 ```
 
-### Установка дополнительных дашбордов в Grafana
+4. Открыть Grafana: http://grafana.apatsev.org.ru (логин по умолчанию: `admin`). Datasource VictoriaMetrics добавляется автоматически.
 
-Для установки дополнительных дашбордов (Strimzi, Chaos Mesh, VictoriaLogs) через Grafana API используйте скрипт `install-grafana-dashboards.sh`, так как в конфиге нужно указывать весь JSON. Issue по этому поводу https://github.com/VictoriaMetrics/helm-charts/issues/2683
+### Strimzi
 
-Скрипт устанавливает следующие дашборды:
-
-| Папка | Дашборд | Источник |
-|-------|---------|----------|
-| Strimzi Kafka | strimzi-kafka, strimzi-operators, strimzi-kafka-exporter, strimzi-kraft, strimzi-cruise-control, strimzi-kafka-bridge | GitHub (URL) |
-| Chaos Mesh | chaos-mesh-overview (15918), chaos-daemon (15919) | Grafana.net |
-| VictoriaLogs | victorialogs (24585) | Grafana.net |
-
-```bash
-# Через port-forward
-kubectl port-forward svc/vmks-grafana 3000:80 -n vmks &
-
-# Запуск скрипта (по умолчанию localhost:3000, admin/admin)
-./install-grafana-dashboards.sh
-
-# Или с кастомными параметрами
-GRAFANA_URL="http://grafana.example.com" \
-GRAFANA_USER="admin" \
-GRAFANA_PASSWORD="$(kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 -d)" \
-./install-grafana-dashboards.sh
-```
-
-**Требования:** `curl` и `jq` должны быть установлены.
-
-## Strimzi
-
-**[Strimzi](https://github.com/strimzi/strimzi-kafka-operator)** — оператор Kubernetes для развертывания и управления Apache Kafka в Kubernetes. Предоставляет Custom Resource Definitions (CRDs) для управления Kafka-кластерами, топиками, пользователями и подключениями.
-
-В Данном тестировании Kafka использует **KRaft (Kafka Raft)** — новый механизм управления метаданными в Apache Kafka, который заменяет зависимость от ZooKeeper. KRaft упрощает архитектуру кластера, улучшает производительность и масштабируемость, а также снижает задержки при управлении метаданными.
+Strimzi — оператор для управления Kafka в Kubernetes; мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
 
 ### Установка Strimzi
 
-Namespace должен существовать заранее, если вы добавляете его в watchNamespaces
-```bash
-kubectl create namespace kafka-cluster --dry-run=client -o yaml | kubectl apply -f -
+Namespace `kafka-cluster` должен существовать заранее (как в оригинале strimzi-kafka-chaos-testing):
 
+```bash
+# Идемпотентно: создаёт namespace только если его ещё нет
+kubectl get ns kafka-cluster 2>/dev/null || kubectl create namespace kafka-cluster
+```
+
+```bash
 helm upgrade --install strimzi-cluster-operator \
   oci://quay.io/strimzi-helm/strimzi-kafka-operator \
   --namespace strimzi \
   --create-namespace \
   --set 'watchNamespaces={kafka-cluster}' \
-  --set dashboards.enabled=true \
   --wait \
   --version 0.50.0
 ```
 
-**Параметры мониторинга** (default values):
-- `dashboards.enabled: false` — создание ConfigMap с Grafana dashboards для Strimzi (требует Grafana sidecar)
+> **Чем отличаются манифесты от upstream Strimzi:** все VMPodScrape и VMServiceScrape заранее помечены `release: vmks` (VictoriaMetrics K8s Stack 0.70+ не устанавливает Prometheus Operator CRD PodMonitor/ServiceMonitor, используются CRD VictoriaMetrics Operator). Манифест `cluster-operator-metrics` сразу смотрит в namespace `strimzi`, а Service для `strimzi-kube-state-metrics` уже содержит необходимые `app.kubernetes.io/*` метки. Если использовать оригинальные yaml из [официального репозитория Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples/metrics), добавьте эти label вручную (`release: vmks` на VMPodScrape/VMServiceScrape и `app.kubernetes.io/*` на Service) и поправьте `namespaceSelector.matchNames` для `cluster-operator-metrics` на `strimzi`.
 
-Проверка установки:
+Манифесты из [examples](https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples) Strimzi сохранены локально в директории **strimzi/** (kafka-metrics, kafka-topic, kafka-user, VMPodScrape/VMServiceScrape, kube-state-metrics). Вы можете использовать оригинальные манифесты + добавление label или можете использовать манифесты из текущего репозитория.
+
+### Установка Kafka из examples
+
+Kafka разворачивается с **внутренним listener на порту 9092 с аутентификацией SASL SCRAM-SHA-512** и **авторизацией simple** (для ACL в KafkaUser). Клиенты (Producer, Consumer, Schema Registry) подключаются с учётными данными KafkaUser. В **kafka-metrics.yaml** уже заданы `authorization.type: simple`; без этого KafkaUser с ACL не перейдёт в Ready и Secret `myuser` не будет создан.
 
 ```bash
-kubectl get pods -n strimzi
+# Kafka-кластер (KRaft, persistent, listener sasl:9092 с SCRAM-SHA-512, JMX и Kafka Exporter)
+kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
+
+# Топик
+kubectl apply -n kafka-cluster -f strimzi/kafka-topic.yaml
+
+# Пользователь Kafka (SCRAM-SHA-512; оператор создаёт Secret myuser с паролем)
+kubectl apply -n kafka-cluster -f strimzi/kafka-user.yaml
 ```
 
-### Развертывание Kafka кластера
-
-После установки оператора Strimzi можно развернуть Kafka кластер в режиме KRaft.
-
-В этом репозитории уже есть готовые манифесты:
-
-- `strimzi/kafka-metrics-config.yaml` — ConfigMap с конфигурацией JMX Exporter для метрик Prometheus
-- `strimzi/kafka-cluster.yaml` — CR `Kafka` (с включёнными node pools через аннотацию `strimzi.io/node-pools: enabled` и KRaft через `strimzi.io/kraft: enabled`. **Включена SASL/SCRAM-SHA-512 аутентификация и ACL авторизация.**)
-- `strimzi/kafka-nodepool.yaml` — CR `KafkaNodePool` (реплики/роли/хранилище)
-
-Примечание: версия Strimzi из Helm-чарта в примере (`0.50.0`) поддерживает Kafka версии `4.x` (например `4.1.1`).
-
-Важно: при включённых node pools (`strimzi.io/node-pools: enabled`) лучше сначала создать `KafkaNodePool`, а затем `Kafka`.
-Иначе оператор Strimzi может логировать ошибку вида `KafkaNodePools are enabled, but no KafkaNodePools found...` до момента создания node pool.
-
 ```bash
-kubectl apply -f strimzi/kafka-metrics-config.yaml
-kubectl apply -f strimzi/kafka-nodepool.yaml
-kubectl apply -f strimzi/kafka-cluster.yaml
-```
-
-Проверка статуса кластера:
-
-```bash
-# Проверка статуса Kafka кластера
-kubectl get kafka -n kafka-cluster
-
-# Проверка подов Kafka брокеров
-kubectl get pods -n kafka-cluster -l strimzi.io/cluster=kafka-cluster
-
-# Ожидание готовности кластера (статус Ready)
-kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeout=300s
-```
-
-После развертывания Kafka кластера адреса брокеров будут доступны через сервис:
-
-- **Bootstrap сервер**: `kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092`
-
-Для использования из других namespace:
-
-Получить адрес bootstrap сервера
-```bash
-kubectl get svc -n kafka-cluster kafka-cluster-kafka-bootstrap -o jsonpath='{.metadata.name}.{.metadata.namespace}.svc.cluster.local:{.spec.ports[?(@.name=="tcp-clients")].port}'; echo
+# Дождаться готовности Kafka (при первом развёртывании может занять 10–15 минут)
+kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeout=900s
 ```
 
 ### PodDisruptionBudget для Kafka
 
-PodDisruptionBudget (PDB) защищает кластер Kafka от чрезмерных нарушений во время плановых операций (rolling update, node drain и т.д.). Гарантирует, что как минимум 2 брокера всегда доступны.
+PodDisruptionBudget гарантирует, что минимум 2 брокера всегда доступны во время плановых прерываний (drain ноды, rolling updates).
 
 ```bash
-kubectl apply -f strimzi/kafka-pdb.yaml
-```
-
-Проверка:
-
-```bash
+kubectl apply -n kafka-cluster -f strimzi/kafka-pdb.yaml
 kubectl get pdb -n kafka-cluster
 ```
 
-### ServiceMonitor для Kafka метрик
+### Metrics (examples/metrics)
 
-Для сбора метрик Kafka используются стандартные Prometheus CRDs (PodMonitor и ServiceMonitor):
-
-```bash
-kubectl apply -f strimzi/kafka-servicemonitor.yaml
-```
-
-Проверка сбора метрик:
+Кластер Kafka задаётся манифестом **kafka-metrics.yaml** (ресурс `Kafka` CR Strimzi) — JMX-метрики (`metricsConfig`) и Kafka Exporter уже включены в манифест. Остаётся применить VMPodScrape для сбора метрик в VMAgent.
 
 ```bash
-kubectl get podmonitor -n kafka-cluster
-kubectl get servicemonitor -n kafka-cluster
-kubectl get podmonitor -n strimzi
+# Сбор метрик Strimzi Cluster Operator (состояние оператора, реконсиляция)
+kubectl apply -n vmks -f strimzi/cluster-operator-metrics.yaml
+
+# Сбор метрик Entity Operator — Topic Operator и User Operator
+kubectl apply -n vmks -f strimzi/entity-operator-metrics.yaml
+
+# Сбор JMX-метрик с подов брокеров Kafka
+kubectl apply -n vmks -f strimzi/kafka-resources-metrics.yaml
 ```
 
-### Создание Kafka топиков
+**Kube-state-metrics для Strimzi CRD** — отдельный экземпляр [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) в режиме `--custom-resource-state-only`: он следит за **кастомными ресурсами Strimzi** (Kafka, KafkaTopic, KafkaUser, KafkaConnect, KafkaConnector и др.) и отдаёт их состояние в формате Prometheus (ready, replicas, topicId, kafka_version и т.д.). Это нужно для дашбордов и алертов по состоянию CR (например, «топик не Ready», «Kafka не на целевой версии»). Обычный kube-state-metrics из VictoriaMetrics K8s Stack таких метрик по Strimzi не даёт.
 
-Создайте Kafka топик через Strimzi KafkaTopic ресурс:
+- **Шаг 1 (ConfigMap):** описание, какие CRD и какие поля из них экспортировать как метрики (префиксы `strimzi_kafka_topic_*`, `strimzi_kafka_user_*`, `strimzi_kafka_*` и т.д.).
+- **Шаг 2 (Deployment + RBAC + VMServiceScrape):** сам под kube-state-metrics с этим конфигом, права на list/watch Strimzi CR в кластере и VMServiceScrape, чтобы VMAgent начал скрейпить метрики.
 
 ```bash
-kubectl apply -f strimzi/kafka-topic.yaml
+# 1. ConfigMap с конфигом метрик по CRD Strimzi
+kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-configmap.yaml
+
+# 2. Deployment, Service, RBAC и VMServiceScrape
+kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-ksm.yaml
 ```
 
-Проверка создания топика:
+## Kafka Exporter
+
+Kafka Exporter подключается к брокерам по Kafka API и отдаёт метрики в формате Prometheus.
+
+**kafka-metrics.yaml** уже включает блок **`spec.kafkaExporter`** в ресурсе `Kafka` (CR Strimzi). Этот блок включает Kafka Exporter: без него оператор не создаёт соответствующие ресурсы, а при его наличии — автоматически разворачивает Deployment, Pod и Service в namespace кластера.
+
+**VMServiceScrape для Strimzi Kafka Exporter:** Strimzi создаёт Service `kafka-cluster-kafka-exporter` в kafka-cluster. Создайте VMServiceScrape, чтобы VMAgent собирал метрики топиков и consumer groups:
 
 ```bash
-# Проверка топиков
-kubectl get kafkatopic -n kafka-cluster
-
-# Детальная информация о топике
-kubectl describe kafkatopic test-topic -n kafka-cluster
+kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
 ```
 
-### Создание Kafka пользователей и секретов
+При указании `kafkaExporter` в CR Strimzi Cluster Operator поднимает **отдельный Deployment** (например, `kafka-cluster-kafka-exporter`) — это не «просто параметр» в поде Kafka, а отдельное приложение, которым управляет оператор.
 
-Для работы с Kafka кластером с включённой SASL/SCRAM аутентификацией необходимо создать KafkaUser ресурсы. Strimzi автоматически генерирует секреты с credentials для каждого пользователя.
-
-#### Создание пользователя для приложения
-
-```bash
-kubectl apply -f strimzi/kafka-user.yaml
-kubectl wait kafkauser/myuser -n kafka-cluster --for=condition=Ready --timeout=120s
-```
-
-После создания пользователя Strimzi создаёт секрет с тем же именем (`myuser`), содержащий:
-- `password` — сгенерированный пароль для SCRAM аутентификации
-- `sasl.jaas.config` — полная JAAS конфигурация
-
-**Важно**: Имя пользователя (username) равно имени KafkaUser/секрета, т.е. `myuser`.
-
-Проверка секрета:
-
-```bash
-# Посмотреть пароль (только для отладки; не публикуйте этот вывод)
-kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d; echo
-
-# Посмотреть JAAS config (только для отладки; не публикуйте этот вывод)
-kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.sasl\.jaas\.config}' | base64 -d; echo
-```
+Kafka Exporter **встроен в Strimzi** как опциональный компонент: образ и конфигурация задаются оператором, он создаёт и обновляет Deployment/Service при изменении CR.
 
 ### Schema Registry (Karapace) для Avro
 
@@ -273,41 +139,53 @@ Go-приложение из этого репозитория использу�
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
 - `strimzi/kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
-- `strimzi/kafka-user-schema-registry.yaml` — KafkaUser для Schema Registry с ACL для топика `_schemas`
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). **Настроен на SASL/SCRAM-SHA-512 аутентификацию.**
+- `strimzi/kafka-user-schema-registry.yaml` — отдельный KafkaUser для Karapace с минимальными правами (топик `_schemas`, consumer groups)
+- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). Подключение к Kafka по **SASL SCRAM-SHA-512** (логин/пароль из KafkaUser `schema-registry`). Развёрнуто **2 реплики** для отказоустойчивости (PDB, rolling update без простоя). У всех реплик `KARAPACE_MASTER_ELIGIBILITY=true` (выбор master через Kafka consumer group).
+
+Файлы `strimzi/` в репозитории используют `namespace: kafka-cluster` и `strimzi.io/cluster: kafka-cluster`. В `schema-registry.yaml` задан `KARAPACE_BOOTSTRAP_URI`: `kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092`. Подставьте свой namespace/кластер, если иные.
+
+**Секрет для Schema Registry:** Karapace читает пароль из Secret `schema-registry` в namespace `schema-registry`. Strimzi создаёт этот Secret в `kafka-cluster` после применения `kafka-user-schema-registry.yaml`. Скопируйте Secret в namespace `schema-registry` перед развёртыванием Karapace:
 
 ```bash
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
 
-# Создать топик для схем
-kubectl apply -f strimzi/kafka-topic-schemas.yaml
-kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s
+# Создать KafkaUser для Schema Registry
+kubectl apply -n kafka-cluster -f strimzi/kafka-user-schema-registry.yaml
+kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=60s || true
+# Если таймаут: проверьте kubectl get kafkauser schema-registry -n kafka-cluster; при Ready продолжайте.
 
-# Создать пользователя для Schema Registry (обязательно для SASL аутентификации)
-kubectl apply -f strimzi/kafka-user-schema-registry.yaml
-kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=120s
-
-# Скопировать секрет в namespace schema-registry (Strimzi создаёт секрет в kafka-cluster)
+# Скопировать Secret schema-registry в namespace schema-registry.
+# Важно: убрать ownerReferences, иначе в новом namespace Secret будет невалидным (используйте jq).
 kubectl get secret schema-registry -n kafka-cluster -o json | \
-  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
-  kubectl apply -n schema-registry -f -
+  jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.ownerReferences) | .metadata.namespace = "schema-registry"' | \
+  kubectl apply -f -
+
+# Создать топик для схем
+kubectl apply -n kafka-cluster -f strimzi/kafka-topic-schemas.yaml
+kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s || true
+# Если таймаут: проверьте kubectl get kafkatopic schemas-topic -n kafka-cluster; при Ready продолжайте.
 
 # Развернуть Schema Registry
 kubectl apply -f schema-registry.yaml
-kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m
+kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m || true
+# При таймауте (загрузка образа, выбор master): проверьте kubectl get pods -n schema-registry; дождитесь Ready, затем sleep 120.
+sleep 120
 kubectl get svc -n schema-registry schema-registry
 ```
 
+**Ожидание:** `sleep 120` или дольше нужен после первого запуска Karapace, чтобы успел выбраться master; иначе приложение Producer при регистрации схем может получить ошибку 503. Команды `kubectl wait` для KafkaUser/KafkaTopic и `kubectl rollout status` в некоторых окружениях могут завершаться по таймауту при уже готовых ресурсах — тогда проверьте статус вручную и продолжайте.
+
+> **Важно: ACL для Karapace.** KafkaUser `schema-registry` содержит ACL для топика `_schemas`, consumer group `schema-registry` и групп с префиксом `karapace` (karapace-autogenerated-*). Без этих прав Schema Registry «зависнет» на `Replay progress: -1/N`.
+
 ## Producer App и Consumer App
 
-**Producer App и Consumer App** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Используется для генерации нагрузки на кластер Kafka во время тестирования.
+**Producer App и Consumer App** — Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Сообщения сериализуются в **Avro** с использованием **Schema Registry (Karapace)** — совместимого с Confluent API. Kafka использует **аутентификацию SASL SCRAM-SHA-512**; учётные данные передаются **только через Secret** (kind: Secret, например `myuser` от Strimzi). Перед запуском Producer/Consumer необходимо развернуть Schema Registry (см. раздел «Schema Registry (Karapace) для Avro») и передать `schemaRegistry.url` и учётные данные Kafka в Helm.
 
 ### Используемые библиотеки
 
 - **[segmentio/kafka-go](https://github.com/segmentio/kafka-go)** — клиент для работы с Kafka
 - **[riferrei/srclient](https://github.com/riferrei/srclient)** — клиент для Schema Registry API (совместим с Karapace)
 - **[linkedin/goavro](https://github.com/linkedin/goavro)** — работа с Avro схемами
-- **[xdg-go/scram](https://github.com/xdg-go/scram)** — SASL/SCRAM аутентификация (используется через kafka-go)
 
 ### Структура исходного кода
 
@@ -317,14 +195,14 @@ kubectl get svc -n schema-registry schema-registry
 
 ### Сборка и публикация Docker образа
 
-Go-код в `main.go` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
+Go-код в `[main.go](https://github.com/patsevanton/test-strimzi-kafka-operator-prometheus/blob/main/main.go)` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.4.0 .
+podman build -t docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus:0.1.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.4.0
+podman push docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus:0.1.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -333,8 +211,8 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:3.4.0
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
-  --set image.repository="antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="3.4.0"
+  --set image.repository="docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus" \
+  --set image.tag="0.1.0"
 ```
 
 ### Переменные окружения
@@ -343,157 +221,125 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 |------------|----------|----------------------|
 | `MODE` | Режим работы: `producer` или `consumer` | `producer` |
 | `KAFKA_BROKERS` | Список брокеров Kafka (через запятую) | `localhost:9092` |
-| `KAFKA_TOPIC` | Название топика | `test-topic` |
+| `KAFKA_TOPIC` | Название топика | `test-topic` (как в [Strimzi examples](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/topic/kafka-topic.yaml)) |
+| `KAFKA_USERNAME` | Имя пользователя Kafka (SASL SCRAM-SHA-512), обязательно | — |
+| `KAFKA_PASSWORD` | Пароль пользователя Kafka (из Secret `myuser` в Strimzi), обязательно | — |
 | `SCHEMA_REGISTRY_URL` | URL Schema Registry | `http://localhost:8081` |
-| `KAFKA_USERNAME` | Имя пользователя для SASL/SCRAM | - |
-| `KAFKA_PASSWORD` | Пароль для SASL/SCRAM | - |
-| `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` |
+| `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` (как в [Strimzi kafka-user](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/user/kafka-user.yaml)) |
 | `HEALTH_PORT` | Порт для health-проверок (liveness/readiness) | `8080` |
 
 ### Запуск Producer/Consumer в кластере используя Helm
 
-Для запуска приложений в кластере используйте Helm charts из директории `helm`.
+Для запуска приложений в кластере используйте Helm charts из директории `helm`. Kafka использует **SASL SCRAM-SHA-512**; учётные данные KafkaUser передаются **только через Secret** (kind: Secret) — указывается `kafka.existingSecret="myuser"` (Secret создаётся Strimzi при применении `kafka-user.yaml`). Имена приведены к [примерам Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples): `test-topic`, `test-group`, пользователь `myuser`.
 
-**Важно**: Перед запуском убедитесь, что KafkaUser `myuser` создан и готов (см. раздел "Создание Kafka пользователей").
-
-Также важно: **Strimzi создаёт secret `myuser` в namespace `kafka-cluster`**, а Kubernetes secrets **не доступны между namespace**.
-Если вы запускаете приложения в отдельных namespace, сначала скопируйте secret в каждый namespace приложения:
+**Секрет в namespace Producer/Consumer:** Учётные данные Kafka (Secret `myuser` от Strimzi) должны быть в namespace `kafka-producer` и `kafka-consumer`. Скопируйте Secret из `kafka-cluster` один раз после применения `kafka-user.yaml` и готовности Kafka:
 
 ```bash
-# Namespaces для приложений
+# 1. Убедиться, что Secret myuser есть в kafka-cluster (создаётся Strimzi User Operator после kafka-user.yaml)
+kubectl get secret myuser -n kafka-cluster
+
+# 2. Создать namespace для Producer и Consumer (если ещё нет)
 kubectl create namespace kafka-producer --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace kafka-consumer --dry-run=client -o yaml | kubectl apply -f -
 
-# Скопировать secret myuser из kafka-cluster → kafka-producer
-kubectl get secret myuser -n kafka-cluster -o json | \
-  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
-  kubectl apply -n kafka-producer -f -
+# 3. Скопировать Secret myuser с кредами в kafka-producer и kafka-consumer (через jq, без ownerReferences)
+kubectl get secret myuser -n kafka-cluster -o json | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.ownerReferences) | .metadata.namespace = "kafka-producer"' | kubectl apply -f -
+kubectl get secret myuser -n kafka-cluster -o json | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.ownerReferences) | .metadata.namespace = "kafka-consumer"' | kubectl apply -f -
 
-# Скопировать secret myuser из kafka-cluster → kafka-consumer
-kubectl get secret myuser -n kafka-cluster -o json | \
-  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
-  kubectl apply -n kafka-consumer -f -
+# 4. Проверить: Secret должен быть в обоих namespace
+# (при необходимости подождать 2–3 с и повторить)
+kubectl get secret myuser -n kafka-producer
+kubectl get secret myuser -n kafka-consumer
 ```
 
-#### 1) Установить Producer (с аутентификацией через Strimzi Secret)
+#### 1) Установить Producer
 ```bash
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
-  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
-  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
-  --set secrets.name="myuser"
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
+  --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
+  --set kafka.topic="test-topic" \
+  --set kafka.existingSecret="myuser"
 ```
 
-#### 2) Установить Consumer (с аутентификацией через Strimzi Secret)
+#### 2) Установить Consumer
 ```bash
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-consumer \
   --create-namespace \
-  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
-  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081" \
-  --set secrets.name="myuser"
+  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
+  --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
+  --set kafka.topic="test-topic" \
+  --set kafka.groupId="test-group" \
+  --set kafka.existingSecret="myuser"
 ```
 
-Helm charts автоматически берут `username` и `password` из указанного секрета (`myuser`), который был создан Strimzi при создании KafkaUser.
-
-#### Альтернатива: передать credentials напрямую (не рекомендуется для production)
+#### 3) Дождаться готовности подов Producer/Consumer
 ```bash
-# Получить пароль из секрета Strimzi
-KAFKA_PASSWORD=$(kubectl get secret myuser -n kafka-cluster -o jsonpath='{.data.password}' | base64 -d)
-
-helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-producer \
-  --create-namespace \
-  --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster:9092" \
-  --set kafka.username="myuser" \
-  --set kafka.password="$KAFKA_PASSWORD" \
-  --set schemaRegistry.url="http://schema-registry.schema-registry.svc:8081"
+kubectl rollout status deploy/kafka-producer -n kafka-producer --timeout=120s
+kubectl rollout status deploy/kafka-consumer -n kafka-consumer --timeout=120s
+# Либо следить за подами: kubectl get pods -n kafka-producer; kubectl get pods -n kafka-consumer -w
 ```
 
-#### 3) Проверка логов
+#### 4) Проверка подов и логов
 ```bash
-# Producer logs
+# Убедиться, что все поды в статусе Running
+kubectl get pods -n kafka-producer
+kubectl get pods -n kafka-consumer
+kubectl get pods -n schema-registry
+
+# Producer logs (проверка на ошибки)
 kubectl logs -n kafka-producer -l app.kubernetes.io/name=kafka-producer -f
 
-# Consumer logs
+# Consumer logs (проверка на ошибки)
 kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 ```
 
-## Kafka UI и Observability
+### Kafka UI
 
-### Kafka UI (Kafbat UI)
-
-**[Kafka UI](https://github.com/kafbat/kafka-ui)** — веб-интерфейс с открытым исходным кодом для управления и мониторинга Apache Kafka кластеров. Предоставляет удобный графический интерфейс для просмотра топиков, сообщений (JSON, Avro, Protobuf), мониторинга consumer groups, управления брокерами, интеграции с Schema Registry и поддержки RBAC-аутентификации.
-
-#### Установка Kafka UI
+Web-интерфейс для управления Kafka — просмотр топиков, consumer groups, сообщений. Используется чарт [kafbat-ui/kafka-ui](https://github.com/kafbat/helm-charts).
 
 ```bash
-# Создать Kafka пользователя для Kafka UI
-kubectl apply -f strimzi/kafka-user-ui.yaml
-kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=120s
-
-# Скопировать секрет в namespace kafka-ui
-kubectl create namespace kafka-ui --dry-run=client -o yaml | kubectl apply -f -
-
-# Копируем секрет kafka-ui-user из ns kafka-cluster в ns kafka-ui # TODO корректна ли фраза.
-kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
-  jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid,.metadata.creationTimestamp,.metadata.ownerReferences)' | \
-  jq '.data.username = ("kafka-ui-user" | @base64)' | \
-  kubectl apply -n kafka-ui -f -
-
-# Добавить репозиторий Helm
+# Добавить Helm-репозиторий
 helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
 
-# Получить default values из Helm chart (опционально, для ознакомления)
-helm show values kafbat-ui/kafka-ui --version 1.4.2
+# Kafka UI использует отдельный read-only пользователь kafka-ui-user
+kubectl apply -n kafka-cluster -f strimzi/kafka-user-kafka-ui.yaml
+kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=60s || true
+# При таймауте: kubectl get kafkauser kafka-ui-user -n kafka-cluster; при Ready продолжайте.
 
-# Развернуть Kafka UI через Helm
+kubectl create namespace kafka-ui --dry-run=client -o yaml | kubectl apply -f -
+kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
+  jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.ownerReferences) | .metadata.namespace = "kafka-ui"' | \
+  kubectl apply -f -
+
+# Установить Kafka UI
 helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
-  --namespace kafka-ui \
   -f helm/kafka-ui-values.yaml \
-  --version 1.4.2 \
-  --wait
+  --namespace kafka-ui \
+  --create-namespace
+
+# Дождаться готовности (при первом запуске Kafka UI может потребоваться 2–3 минуты)
+kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=300s
+# При таймауте: kubectl get pods -n kafka-ui; при Running/Ready продолжайте.
 ```
 
-**Параметры мониторинга** (default values):
-- Kafka UI не имеет встроенного ServiceMonitor в Helm chart
-- Метрики доступны через Spring Boot Actuator на `/actuator/prometheus` (требует настройки в `yamlApplicationConfig`)
-- Для сбора метрик создайте ServiceMonitor вручную
+Kafka UI будет доступен по адресу Ingress (в values: `kafka-ui.apatsev.org.ru`). Значения в `helm/kafka-ui-values.yaml` адаптированы под кластер `kafka-cluster` в namespace `kafka-cluster` и Schema Registry в `schema-registry`. Kafka UI подключается под пользователем **kafka-ui-user** с правами только на чтение (Describe, Read на topics и groups).
 
-#### Проверка установки
+## VictoriaLogs
 
-```bash
-# Проверить статус пода
-kubectl get pods -n kafka-ui
+**VictoriaLogs** — хранилище логов от VictoriaMetrics с поддержкой LogsQL в Grafana.
 
-# Проверить логи
-kubectl logs -n kafka-ui -l app.kubernetes.io/name=kafka-ui --tail=100
+**Важно:** VictoriaMetrics K8s Stack должен быть установлен первым (он предоставляет CRD VMServiceScrape и т.п., используемые чартом VictoriaLogs).
 
-# Получить сервис
-kubectl get svc -n kafka-ui
-```
+### Установка VictoriaLogs (cluster)
 
-#### Доступ к Kafka UI
-
-Ingress уже настроен в `helm/kafka-ui-values.yaml`. По умолчанию используется хост `kafka-ui.apatsev.org.ru` с nginx ingress class.
-
-
-### Observability Stack
-
-Observability stack помогает отслеживать состояние системы во время тестирования, собирая логи и метрики из компонентов кластера Kafka и приложений.
-
-#### VictoriaLogs
-
-**[VictoriaLogs](https://github.com/VictoriaMetrics/VictoriaMetrics/tree/master/docs/victorialogs)** — высокопроизводительное хранилище логов от команды VictoriaMetrics. Оптимизировано для больших объёмов логов, поддерживает эффективное хранение "wide events" (множество полей в записи), быстрые полнотекстовые поиски и масштабирование. LogsQL поддерживается в VictoriaLogs datasource для Grafana.
-
-##### Установка: Cluster
-
-Для установки используйте `victoria-logs-cluster-values.yaml` из репозитория.
+Используется файл `victoria-logs-cluster-values.yaml` из репозитория (Ingress для vlselect на `victorialogs.apatsev.org.ru`, retention 1d, PVC 20Gi).
 
 ```bash
-# Добавить Helm репозиторий VictoriaMetrics
+# Репозиторий vm уже добавлен при установке VictoriaMetrics K8s Stack; при необходимости:
 helm repo add vm https://victoriametrics.github.io/helm-charts/
 helm repo update
 
@@ -509,18 +355,17 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
   --set vlstorage.vmServiceScrape.enabled=true
 ```
 
-**Параметры мониторинга** (default values):
-- `vlselect.vmServiceScrape.enabled: false` — VMServiceScrape для vlselect компонента
-- `vlinsert.vmServiceScrape.enabled: false` — VMServiceScrape для vlinsert компонента
-- `vlstorage.vmServiceScrape.enabled: false` — VMServiceScrape для vlstorage компонента
+Чтобы VMAgent из VictoriaMetrics K8s Stack собирал метрики VictoriaLogs, на VMServiceScrape должен быть label, по которому стэк выбирает цели (например `release: vmks`). Если чарт по умолчанию задаёт другой `release`, добавьте в values или `--set` нужный label для vlselect/vlinsert/vlstorage VMServiceScrape.
 
-#### Victoria-logs-collector
+Проверка: `kubectl get pods -n victoria-logs-cluster`. Доступ к UI: по адресу Ingress из values (по умолчанию `victorialogs.apatsev.org.ru`).
 
-**[Victoria-logs-collector](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-logs-collector)** — Helm-чарт от VictoriaMetrics, разворачивающий агент сбора логов (`vlagent`) как DaemonSet в Kubernetes-кластере для автоматического сбора логов со всех контейнеров и их репликации в VictoriaLogs-хранилище.
+### Victoria-logs-collector (опционально)
 
-##### Установка
+**Victoria-logs-collector** — Helm-чарт VictoriaMetrics, разворачивающий агент сбора логов (vlagent) как DaemonSet. Собирает логи со всех контейнеров в кластере и отправляет их в VictoriaLogs (vlinsert).
 
-Для установки используйте `victoria-logs-collector-values.yaml` из репозитория.
+**Требование:** перед установкой должен быть развёрнут VictoriaLogs cluster (см. выше).
+
+Используется файл `victoria-logs-collector-values.yaml` из репозитория (адрес vlinsert, поля для игнорирования, поля сообщения лога).
 
 ```bash
 helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
@@ -530,43 +375,19 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   --version 0.2.8 \
   --timeout 15m \
   -f victoria-logs-collector-values.yaml \
-  --set podMonitor.enabled=true
+  --set podMonitor.enabled=true \
+  --set podMonitor.vm=true
 ```
 
-**Параметры мониторинга** (default values):
-- `podMonitor.enabled: false` — PodMonitor для сбора метрик collector
-- `podMonitor.vm: false` — использовать VMPodScrape вместо PodMonitor
+Параметр `podMonitor.vm=true` создаёт VMPodScrape для сбора метрик коллектора в VictoriaMetrics K8s Stack.
 
-### Формат сообщений
-
-Приложение использует Avro схему для сериализации сообщений:
-
-```json
-{
-  "type": "record",
-  "name": "Message",
-  "namespace": "com.example",
-  "fields": [
-    {"name": "id", "type": "long"},
-    {"name": "timestamp", "type": "long", "logicalType": "timestamp-millis"},
-    {"name": "data", "type": "string"}
-  ]
-}
-```
-
-#### Почему Avro?
-
-Avro выбран для сериализации как индустриальный стандарт для enterprise Kafka: компактный бинарный формат (схема хранится в Schema Registry, а не в каждом сообщении), поддержка эволюции схем с проверкой совместимости, строгая типизация и совместимость с Confluent Wire Format.
-
-Producer отправляет сообщения каждую секунду с автоматически увеличивающимся ID. Consumer читает сообщения из указанного топика и выводит их в лог.
+Проверка: `kubectl get pods -n victoria-logs-collector`.
 
 ## Chaos Mesh
 
-**[Chaos Mesh](https://github.com/chaos-mesh/chaos-mesh)** — платформа для chaos engineering в Kubernetes. Позволяет внедрять различные типы сбоев (network, pod, I/O, time и др.) для тестирования отказоустойчивости приложений.
+**Chaos Mesh** — платформа для chaos engineering в Kubernetes. Позволяет внедрять сбои (network, pod, I/O, time, DNS, JVM, HTTP) для тестирования отказоустойчивости Kafka и приложений. Манифесты взяты из [strimzi-kafka-chaos-testing](https://github.com/patsevanton/strimzi-kafka-chaos-testing) и адаптированы под namespace `kafka-cluster` и кластер `kafka-cluster`.
 
 ### Установка Chaos Mesh
-
-Для доступа к Dashboard через `ingress-nginx` используйте файл `chaos-mesh/chaos-mesh-values.yaml` из репозитория.
 
 ```bash
 helm repo add chaos-mesh https://charts.chaos-mesh.org
@@ -580,164 +401,73 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --wait
 ```
 
-**Параметры мониторинга** (default values):
-- `chaosDaemon.service.scrape.enabled: true` — annotations для Prometheus scraping (включено по умолчанию)
-- `prometheus.create: false` — встроенный Prometheus (не нужен при использовании VictoriaMetrics)
-- `controllerManager.env.METRICS_PORT: 10080` — порт метрик controller-manager
-- `dashboard.env.METRIC_PORT: 2334` — порт метрик dashboard
+Проверка: `kubectl get pods -n chaos-mesh`
 
-Проверка установки:
+Для сбора метрик Chaos Mesh через VictoriaMetrics K8s Stack примените VMServiceScrape (в кластере используются CRD VictoriaMetrics, не Prometheus ServiceMonitor):
 
 ```bash
-kubectl get pods -n chaos-mesh
+kubectl apply -f chaos-mesh/chaos-mesh-vmservicescrape.yaml
 ```
 
-Для сбора метрик Chaos Mesh через VictoriaMetrics/Prometheus Operator примените ServiceMonitor:
+### Доступ к Dashboard
+
+Dashboard использует RBAC-токен. Создайте ServiceAccount и токен:
 
 ```bash
-kubectl apply -f chaos-mesh/chaos-mesh-servicemonitor.yaml
-```
-
-**Примечание о дашборде Chaos Mesh Overview**: Grafana дашборд [Chaos Mesh Overview (ID: 15918)](https://grafana.com/grafana/dashboards/15918-chaos-mesh-overview) содержит баг в Variables — запрос `label_values(chaos_mesh_templates, namespace)` использует несуществующий лейбл. Метрика `chaos_mesh_templates` определена как Gauge без лейблов во всех версиях Chaos Mesh. Для исправления замените запрос на `label_values(chaos_controller_manager_chaos_experiments, namespace)`. См. [Discussion #4824](https://github.com/chaos-mesh/chaos-mesh/discussions/4824).
-
-**Примечание о дашборде StressChaos**: Grafana дашборд [Chaos Mesh / StressChaos (ID: 21102)](https://grafana.com/grafana/dashboards/21102-chaos-mesh-stresschaos) требует нереализованную функцию Chaos Mesh из [RFC #47](https://github.com/chaos-mesh/rfcs/pull/47). Метрика `chaos_controller_manager_chaos_experiments_container_relation`, используемая в дашборде, ещё не добавлена в Chaos Mesh.
-
-### Настройка аутентификации Dashboard
-
-Chaos Mesh Dashboard использует RBAC-токен для аутентификации. Для автоматического создания токена примените манифест `chaos-mesh/chaos-mesh-rbac.yaml`:
-
-```bash
-# Создать ServiceAccount, ClusterRole, ClusterRoleBinding и Secret с токеном
 kubectl apply -f chaos-mesh/chaos-mesh-rbac.yaml
-
-# Дождаться создания токена (несколько секунд)
 sleep 3
-```
-
-Получение токена для входа в Dashboard:
-
-```bash
-# Получить токен из Secret
 kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
 ```
 
-Скопируйте полученный токен и используйте его для входа в Chaos Mesh Dashboard.
+Скопируйте токен и войдите в Chaos Mesh Dashboard. В `chaos-mesh-values.yaml` задан Ingress-хост `chaos-dashboard.apatsev.org.ru` (при необходимости измените под свой домен).
 
-**Примечание**: Этот ServiceAccount имеет права администратора (Manager) на уровне всего кластера для управления всеми chaos-экспериментами.
+### Chaos-эксперименты
 
-### Запуск всех Chaos-экспериментов
+В директории **chaos-experiments/** лежат готовые эксперименты для Kafka, Schema Registry, Kafka UI и producer/consumer:
 
-В директории `chaos-experiments/` находятся готовые эксперименты для тестирования отказоустойчивости Kafka:
+| Файл | Описание |
+|------|----------|
+| `pod-kill.yaml` | Убийство брокера (одноразово + Schedule каждые 5 мин) |
+| `pod-failure.yaml` | Симуляция падения пода |
+| `network-delay.yaml`, `network-partition.yaml`, `network-loss.yaml` | Сетевые задержки, изоляция, потеря пакетов |
+| `cpu-stress.yaml`, `memory-stress.yaml` | Нагрузка на CPU и память |
+| `io-chaos.yaml` | Задержки и ошибки дискового I/O |
+| `time-chaos.yaml` | Смещение системного времени |
+| `dns-chaos.yaml` | Ошибки DNS для брокеров и producer |
+| `jvm-chaos.yaml` | GC, stress и исключения в JVM брокеров |
+| `http-chaos.yaml` | Задержки/ошибки Schema Registry и Kafka UI |
 
-| Файл | Тип | Описание |
-|------|-----|----------|
-| `pod-kill.yaml` | PodChaos + Schedule | Убийство брокера Kafka (одноразовое + каждые 5 мин) |
-| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
-| `network-delay.yaml` | NetworkChaos | Сетевые задержки 100-500ms |
-| `network-partition.yaml` | NetworkChaos | Изоляция брокера от сети |
-| `network-loss.yaml` | NetworkChaos | Потеря пакетов 10-30% |
-| `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
-| `memory-stress.yaml` | StressChaos | Нагрузка на память |
-| `io-chaos.yaml` | IOChaos | Задержки и ошибки дисковых операций |
-| `time-chaos.yaml` | TimeChaos | Смещение системного времени |
-| `dns-chaos.yaml` | DNSChaos | Ошибки DNS резолвинга |
-| `jvm-chaos.yaml` | JVMChaos | GC, memory/CPU stress в JVM |
-| `http-chaos.yaml` | HTTPChaos | Ошибки HTTP для Schema Registry |
-
-#### Запуск всех экспериментов
+Запуск одного эксперимента:
 
 ```bash
-# Применить все эксперименты
 kubectl apply -f chaos-experiments/pod-kill.yaml
-kubectl apply -f chaos-experiments/pod-failure.yaml
-kubectl apply -f chaos-experiments/network-delay.yaml
-kubectl apply -f chaos-experiments/network-partition.yaml
-kubectl apply -f chaos-experiments/network-loss.yaml
-kubectl apply -f chaos-experiments/cpu-stress.yaml
-kubectl apply -f chaos-experiments/memory-stress.yaml
-kubectl apply -f chaos-experiments/io-chaos.yaml
-kubectl apply -f chaos-experiments/time-chaos.yaml
-kubectl apply -f chaos-experiments/dns-chaos.yaml
-kubectl apply -f chaos-experiments/jvm-chaos.yaml
-kubectl apply -f chaos-experiments/http-chaos.yaml
 ```
 
-#### Проверка статуса экспериментов
+Проверка: `kubectl get podchaos,networkchaos,stresschaos,schedule -n kafka-cluster`
 
-```bash
-# Проверить PodChaos эксперименты
-kubectl get podchaos -n kafka-cluster
+Остановка: `kubectl delete -f chaos-experiments/pod-kill.yaml` или `kubectl delete -f chaos-experiments/`
 
-# Проверить NetworkChaos эксперименты
-kubectl get networkchaos -n kafka-cluster
+Подробное описание экспериментов, рисков и ожидаемого поведения — в **chaos-experiments/README.md**.
 
-# Проверить StressChaos эксперименты
-kubectl get stresschaos -n kafka-cluster
+## Импорт дашбордов Grafana
 
-# Проверить IOChaos эксперименты
-kubectl get iochaos -n kafka-cluster
+Импорт JSON дашбордов через UI Grafana:
 
-# Проверить TimeChaos эксперименты
-kubectl get timechaos -n kafka-cluster
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
 
-# Проверить DNSChaos эксперименты
-kubectl get dnschaos -n kafka-cluster
-kubectl get dnschaos -n kafka-producer
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json
 
-# Проверить JVMChaos эксперименты
-kubectl get jvmchaos -n kafka-cluster
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json
 
-# Проверить HTTPChaos эксперименты
-kubectl get httpchaos -n schema-registry
-kubectl get httpchaos -n kafka-ui
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
 
-# Проверить Schedule (периодические эксперименты)
-kubectl get schedule -n kafka-cluster
+## Удаление
 
-# Проверить все эксперименты
-kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,dnschaos,jvmchaos,schedule -n kafka-cluster
-```
+Инструкции по удалению всех компонентов (Chaos Mesh, VictoriaMetrics K8s Stack, Kafka, Strimzi, namespaces) вынесены в **uninstall.md**. Порядок удаления критичен из‑за finalizers у Strimzi CRD.
 
-#### Остановка всех экспериментов
-
-```bash
-# Остановить все эксперименты
-kubectl delete -f chaos-experiments/pod-kill.yaml
-kubectl delete -f chaos-experiments/pod-failure.yaml
-kubectl delete -f chaos-experiments/network-delay.yaml
-kubectl delete -f chaos-experiments/network-partition.yaml
-kubectl delete -f chaos-experiments/network-loss.yaml
-kubectl delete -f chaos-experiments/cpu-stress.yaml
-kubectl delete -f chaos-experiments/memory-stress.yaml
-kubectl delete -f chaos-experiments/io-chaos.yaml
-kubectl delete -f chaos-experiments/time-chaos.yaml
-kubectl delete -f chaos-experiments/dns-chaos.yaml
-kubectl delete -f chaos-experiments/jvm-chaos.yaml
-kubectl delete -f chaos-experiments/http-chaos.yaml
-```
-
-Подробная документация в файле `chaos-experiments/README.md`.
-
-### TODO: Дашборд с аннотациями Chaos Mesh
-
-Создать Grafana дашборд, отображающий метрики Kafka с наложением событий Chaos Mesh как аннотаций.
-
-**Задачи:**
-
-- [ ] Создать JSON файл дашборда с базовыми панелями Kafka метрик (throughput, latency, consumer lag)
-- [ ] Добавить аннотации Chaos Mesh через `chaosmeshorg-datasource` для отображения событий экспериментов
-- [ ] Настроить фильтры аннотаций по namespace (`kafka-cluster`) и kind (`PodChaos`, `NetworkChaos`, `StressChaos` и др.)
-- [ ] Добавить дашборд в `victoriametrics-values.yaml` (секция `grafana.dashboards`)
-- [ ] Применить изменения через `helm upgrade`
-
-**Цель:** Визуализировать корреляцию между хаос-экспериментами и изменениями в метриках Kafka для анализа отказоустойчивости.
-
-## Удаление (Helm / приложения / Strimzi / Kafka)
-
-Инструкции по удалению вынесены в отдельный файл: `uninstall.md`.
-
-Также доступен автоматизированный скрипт удаления:
+Автоматизированный скрипт:
 
 ```bash
 ./uninstall.sh
 ```
+

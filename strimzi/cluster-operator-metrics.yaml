@@ -1,0 +1,17 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cluster-operator-metrics
+  labels:
+    app: strimzi
+    release: vmks
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/kind: cluster-operator
+  namespaceSelector:
+    matchNames:
+      - strimzi
+  podMetricsEndpoints:
+    - path: /metrics
+      port: http

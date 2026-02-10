@@ -1,6 +1,5 @@
 # PodChaos: Симуляция сбоя пода (падение контейнера)
 # Тестирует: Падение и восстановление брокера Kafka
-# Ожидаемый результат: StatefulSet должен перезапустить под, кластер восстанавливается
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -17,8 +16,7 @@ spec:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
 ---
-# PodChaos: Симуляция множественных сбоев брокеров (опасно - может сломать кворум)
-# Использовать с осторожностью: убийство 2 из 3 брокеров нарушит min.insync.replicas=2
+# PodChaos: Симуляция множественных сбоев брокеров (осторожно: может нарушить кворум)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -29,7 +27,7 @@ metadata:
 spec:
   action: pod-failure
   mode: fixed-percent
-  value: "60"  # ~60% подов (2 из 3)
+  value: "60"
   duration: "30s"
   selector:
     namespaces:

@@ -16,11 +16,8 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  # Duration не применим для pod-kill (мгновенное действие)
-  # Под будет убит однократно и пересоздан StatefulSet
 ---
 # Schedule: Убийство случайного брокера Kafka каждые 5 минут (непрерывный хаос)
-# Использует Schedule CRD для Chaos Mesh 2.x
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
 metadata:

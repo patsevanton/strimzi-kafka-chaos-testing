@@ -1,7 +1,4 @@
 # TimeChaos: Смещение времени на брокерах Kafka
-# Тестирует: Поведение Kafka при смещении системного времени
-# Ожидаемый результат: Возможные проблемы с сегментами логов, retention, временными метками
-# Примечание: Kafka использует временные метки для retention логов и упорядочивания сообщений
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -15,12 +12,9 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  timeOffset: "5m"  # Сдвиг времени вперёд на 5 минут
+  timeOffset: "5m"
   duration: "2m"
 ---
-# TimeChaos: Большое смещение времени (симуляция сбоя NTP)
-# Тестирует: Поведение Kafka при значительном рассинхроне времени
-# Ожидаемый результат: Может вызвать ротацию сегментов логов, проблемы с retention
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -34,12 +28,10 @@ spec:
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
       strimzi.io/kind: Kafka
-  timeOffset: "-1h"  # Сдвиг времени назад на 1 час
+  timeOffset: "-1h"
   duration: "1m"
 ---
-# TimeChaos: Рассинхрон времени между брокерами (split-brain по времени)
-# Тестирует: Поведение кластера когда брокеры имеют разное время
-# Ожидаемый результат: Возможные проблемы с выбором лидера, нарушение порядка сообщений
+# TimeChaos: Смещение времени только на одном брокере
 apiVersion: chaos-mesh.org/v1alpha1
 kind: TimeChaos
 metadata:
@@ -51,6 +43,6 @@ spec:
     namespaces:
       - kafka-cluster
     fieldSelectors:
-      metadata.name: kafka-cluster-mixed-0
-  timeOffset: "10m"  # Только у одного брокера смещено время
+      metadata.name: kafka-cluster-kafka-0
+  timeOffset: "10m"
   duration: "2m"

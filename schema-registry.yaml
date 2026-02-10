@@ -14,7 +14,7 @@ spec:
       targetPort: 8081
 
 ---
-# PodDisruptionBudget для обеспечения доступности при обновлениях и сбоях
+# PodDisruptionBudget для отказоустойчивости: минимум 1 под при добровольных выбытиях
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -39,7 +39,7 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: 0
       maxSurge: 1
   selector:
     matchLabels:
@@ -50,7 +50,6 @@ spec:
         app: schema-registry
     spec:
       enableServiceLinks: false
-      # Распределение подов по разным нодам для отказоустойчивости
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -64,8 +63,6 @@ spec:
         - name: schema-registry
           image: ghcr.io/aiven-open/karapace:5.0.3
           imagePullPolicy: IfNotPresent
-          # ПРИМЕЧАНИЕ: ghcr.io/aiven-open/karapace:latest сейчас поставляется со сломанной точкой входа console-script.
-          # Вместо этого запускаем модуль напрямую.
           command: ["python3", "-m", "karapace.__main__"]
           ports:
             - containerPort: 8081
@@ -78,7 +75,6 @@ spec:
               memory: "512Mi"
               cpu: "500m"
           env:
-            # Karapace - это реализация, совместимая с Confluent Schema Registry API.
             - name: KARAPACE_KARAPACE_REGISTRY
               value: "true"
             - name: KARAPACE_KARAPACE_REST
@@ -92,21 +88,18 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: KARAPACE_BOOTSTRAP_URI
-              value: kafka-cluster-kafka-bootstrap.kafka-cluster:9092
+              value: kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092
             - name: KARAPACE_SECURITY_PROTOCOL
               value: "SASL_PLAINTEXT"
             - name: KARAPACE_SASL_MECHANISM
               value: "SCRAM-SHA-512"
-            # Strimzi KafkaUser: имя пользователя = имя KafkaUser, пароль из secret
             - name: KARAPACE_SASL_PLAIN_USERNAME
               value: "schema-registry"
             - name: KARAPACE_SASL_PLAIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  # Strimzi создаёт secret с тем же именем, что и KafkaUser
                   name: schema-registry
                   key: password
-            # Уникальный client_id для каждого пода (на основе имени пода)
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -117,6 +110,8 @@ spec:
               value: "schema-registry"
             - name: KARAPACE_TOPIC_NAME
               value: "_schemas"
+            - name: KARAPACE_MASTER_ELIGIBILITY
+              value: "true"
           readinessProbe:
             httpGet:
               path: /subjects

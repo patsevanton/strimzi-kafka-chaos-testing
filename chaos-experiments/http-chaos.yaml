@@ -1,6 +1,4 @@
 # HTTPChaos: Задержка ответов Schema Registry
-# Тестирует: Поведение Producer/Consumer когда Schema Registry работает медленно
-# Ожидаемый результат: Таймауты получения схем, увеличенная задержка
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -20,8 +18,6 @@ spec:
   duration: "2m"
 ---
 # HTTPChaos: Ошибки 500 от Schema Registry
-# Тестирует: Поведение Producer/Consumer когда Schema Registry возвращает ошибки
-# Ожидаемый результат: Ошибки получения схем, producer может не отправить сообщение
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -44,8 +40,6 @@ spec:
   duration: "1m"
 ---
 # HTTPChaos: Обрыв соединения Schema Registry
-# Тестирует: Поведение Producer/Consumer когда соединение с Schema Registry обрывается
-# Ожидаемый результат: Ошибки соединения, повторные попытки
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:
@@ -64,9 +58,7 @@ spec:
   abort: true
   duration: "1m"
 ---
-# HTTPChaos: Медленные ответы Kafka UI (для тестирования устойчивости UI)
-# Тестирует: Поведение Kafka UI когда backend работает медленно
-# Ожидаемый результат: Таймауты UI, ухудшение пользовательского опыта
+# HTTPChaos: Задержка ответов Kafka UI
 apiVersion: chaos-mesh.org/v1alpha1
 kind: HTTPChaos
 metadata:

@@ -61,14 +61,3 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
-
-{{/*
-Create the name of the secret to use
-*/}}
-{{- define "kafka-producer.secretName" -}}
-{{- if .Values.secrets.name }}
-{{- .Values.secrets.name }}
-{{- else }}
-{{- printf "%s-secret" (include "kafka-producer.fullname" .) }}
-{{- end }}
-{{- end }}

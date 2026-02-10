@@ -1,0 +1,39 @@
+# KafkaUser для Kafka UI — только права на чтение (Describe, Read)
+# Позволяет просматривать топики, consumer groups, сообщения без возможности записи
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaUser
+metadata:
+  name: kafka-ui-user
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      # Cluster-level: Describe — список брокеров, метаданные кластера
+      - resource:
+          type: cluster
+        operations:
+          - Describe
+        host: "*"
+      # Все топики: Describe (список, метаданные), Read (чтение сообщений)
+      # Literal "*" в Kafka матчит все топики
+      - resource:
+          type: topic
+          name: "*"
+          patternType: literal
+        operations:
+          - Describe
+          - Read
+        host: "*"
+      # Все consumer groups: Describe, Read — просмотр групп и оффсетов
+      - resource:
+          type: group
+          name: "*"
+          patternType: literal
+        operations:
+          - Describe
+          - Read
+        host: "*"

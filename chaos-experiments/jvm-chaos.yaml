@@ -1,7 +1,4 @@
-# JVMChaos: Принудительный запуск GC на брокерах Kafka
-# Тестирует: Поведение Kafka во время сборки мусора
-# Ожидаемый результат: Увеличенная задержка, возможные таймауты во время GC
-# Примечание: Требуется внедрение JVM агента Chaos Mesh
+# JVMChaos: Принудительный GC на брокерах Kafka
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -18,9 +15,7 @@ spec:
       strimzi.io/kind: Kafka
   duration: "30s"
 ---
-# JVMChaos: Нагрузка на CPU в JVM
-# Тестирует: Производительность Kafka JVM под нагрузкой на CPU
-# Ожидаемый результат: Увеличенная задержка, замедленная обработка
+# JVMChaos: CPU stress в JVM
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -38,9 +33,7 @@ spec:
   cpuCount: 2
   duration: "1m"
 ---
-# JVMChaos: Нагрузка на память в JVM (симуляция давления на память)
-# Тестирует: Поведение Kafka под нагрузкой на JVM память
-# Ожидаемый результат: Более частый GC, возможен OOM
+# JVMChaos: Memory stress в JVM
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -58,10 +51,7 @@ spec:
   memType: heap
   duration: "1m"
 ---
-# JVMChaos: Внедрение задержки в метод
-# Тестирует: Поведение Kafka когда определённые методы работают медленно
-# Ожидаемый результат: Увеличенная задержка запросов
-# Примечание: Внедряет задержку в метод kafka.log.UnifiedLog.append
+# JVMChaos: Задержка в методе append
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:
@@ -81,9 +71,7 @@ spec:
   latency: 500
   duration: "1m"
 ---
-# JVMChaos: Внедрение исключений
-# Тестирует: Поведение Kafka когда методы выбрасывают исключения
-# Ожидаемый результат: Обработка ошибок и восстановление
+# JVMChaos: Исключение в handleProduceRequest
 apiVersion: chaos-mesh.org/v1alpha1
 kind: JVMChaos
 metadata:

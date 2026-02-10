@@ -1,6 +1,4 @@
-# NetworkChaos: Добавление сетевой задержки для брокеров Kafka
-# Тестирует: Влияние сетевых задержек на производительность producer/consumer
-# Ожидаемый результат: Увеличенная задержка сообщений, возможные таймауты
+# NetworkChaos: Сетевые задержки для брокеров Kafka
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -21,7 +19,6 @@ spec:
     correlation: "50"
   duration: "2m"
 ---
-# NetworkChaos: Высокая задержка (симуляция кросс-региональной репликации)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:

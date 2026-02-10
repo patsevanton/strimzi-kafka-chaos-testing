@@ -7,6 +7,7 @@ vlselect:
           - /
         port: http
     ingressClassName: nginx
+
 vlstorage:
   retentionPeriod: 1d
   persistentVolume:

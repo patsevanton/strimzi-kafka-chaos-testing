@@ -11,11 +11,9 @@ kind: ClusterRole
 metadata:
   name: chaos-mesh-admin
 rules:
-  # Права для просмотра pods и namespaces
   - apiGroups: ['']
     resources: ['pods', 'namespaces']
     verbs: ['get', 'watch', 'list']
-  # Полные права для всех ресурсов Chaos Mesh
   - apiGroups: ['chaos-mesh.org']
     resources: ['*']
     verbs: ['get', 'list', 'watch', 'create', 'delete', 'patch', 'update']
@@ -34,7 +32,7 @@ roleRef:
   name: chaos-mesh-admin
   apiGroup: rbac.authorization.k8s.io
 ---
-# Secret для хранения токена ServiceAccount (требуется для Kubernetes 1.24+)
+# Secret для хранения токена ServiceAccount (Kubernetes 1.24+)
 apiVersion: v1
 kind: Secret
 metadata:

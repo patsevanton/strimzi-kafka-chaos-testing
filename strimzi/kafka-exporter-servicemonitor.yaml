@@ -1,0 +1,17 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kafka-exporter
+  namespace: vmks
+  labels:
+    release: vmks
+spec:
+  selector:
+    matchLabels:
+      strimzi.io/kind: KafkaExporter
+  namespaceSelector:
+    matchNames:
+      - kafka-cluster
+  endpoints:
+    - port: metrics
+      path: /metrics

@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: antonpatsev/strimzi-kafka-chaos-testing
+  repository: docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus
   pullPolicy: IfNotPresent
-  tag: "3.4.0"
+  tag: "0.1.0"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -48,32 +48,21 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
-# Конфигурация Kafka
+# Конфигурация Kafka (SASL SCRAM-SHA-512)
 kafka:
   # Сервис Strimzi bootstrap (работает между namespace через DNS)
-  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster:9092"
+  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092"
   topic: "test-topic"
-  username: ""
-  password: ""
+  # Учётные данные KafkaUser — только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
+  username: "myuser"
+  # Имя Secret в том же namespace, из которого берётся пароль (обязательно для SASL).
+  existingSecret: "myuser"
+  existingSecretPasswordKey: "password"
 
 # Конфигурация Schema Registry
 schemaRegistry:
   # Сервис развёрнут в namespace "schema-registry" в этом репозитории
   url: "http://schema-registry.schema-registry:8081"
-
-# Конфигурация секретов
-secrets:
-  # Если true, создать secret для учётных данных Kafka
-  create: false
-  # Имя secret (если не используется по умолчанию)
-  # Для Strimzi: используйте имя KafkaUser (например, "myuser")
-  name: ""
-  # Если true, использовать формат secret от Strimzi KafkaUser (username = имя secret, только ключ password)
-  strimzi: true
-  # Имя пользователя Kafka (будет сохранено в secret если secrets.create = true)
-  username: ""
-  # Пароль Kafka (будет сохранён в secret если secrets.create = true)
-  password: ""
 
 # Конфигурация проверки здоровья
 health:

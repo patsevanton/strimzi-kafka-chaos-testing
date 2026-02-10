@@ -19,29 +19,9 @@ helm install kafka-consumer ./helm/kafka-consumer \
 - `kafka.brokers` - список брокеров Kafka (через запятую)
 - `kafka.topic` - название топика
 - `kafka.groupId` - Consumer Group ID
-- `kafka.username` - имя пользователя для SASL/SCRAM (опционально)
-- `kafka.password` - пароль для SASL/SCRAM (опционально)
 
 ### Schema Registry
 - `schemaRegistry.url` - URL Schema Registry API (Karapace/Confluent-compatible)
-
-### Безопасность
-
-Для использования секретов вместо plain text паролей (рекомендуется):
-
-```yaml
-secrets:
-  create: true
-  username: "myuser"
-  password: "mypassword"
-```
-
-Также можно использовать **уже существующий** secret в namespace релиза:
-```bash
-helm upgrade --install kafka-consumer ./helm/kafka-consumer \
-  --namespace kafka-consumer \
-  --set secrets.name=kafka-app-credentials
-```
 
 ### Пример values.yaml для Strimzi
 
@@ -53,19 +33,12 @@ image:
   tag: "latest"
 
 kafka:
-  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster:9092"
+  brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092"
   topic: "test-topic"
-  groupId: "my-consumer-group"
-  username: "myuser"
-  password: "mypassword"
+  groupId: "test-group"
 
 schemaRegistry:
   url: "http://schema-registry.schema-registry:8081"
-
-secrets:
-  create: true
-  username: "myuser"
-  password: "mypassword"
 ```
 
 ## Обновление

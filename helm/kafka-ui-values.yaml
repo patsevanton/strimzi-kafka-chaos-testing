@@ -1,18 +1,17 @@
 # Helm values для чарта kafbat-ui/kafka-ui
 # helm repo add kafbat-ui https://kafbat.github.io/helm-charts
-# helm install kafbat-ui kafbat-ui/kafka-ui -f kafka-ui-values.yaml
+# helm install kafka-ui kafbat-ui/kafka-ui -f helm/kafka-ui-values.yaml -n kafka-ui --create-namespace
 
 image:
   tag: v1.4.2
 
-# Конфигурация кластеров Kafka
+# Конфигурация кластеров Kafka (адаптировано под kafka-cluster)
 yamlApplicationConfig:
   kafka:
     clusters:
       - name: kafka-cluster
         bootstrapServers: kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092
         schemaRegistry: http://schema-registry.schema-registry.svc.cluster.local:8081
-        # Использовать Schema Registry для десериализации Avro
         defaultKeySerde: String
         defaultValueSerde: SchemaRegistry
         properties:
@@ -26,13 +25,10 @@ yamlApplicationConfig:
       ldap:
         enabled: false
 
-# Переменные окружения для учётных данных
+# Переменные окружения для учётных данных (Secret kafka-ui-user создаётся Strimzi KafkaUser)
 env:
   - name: KAFKA_USERNAME
-    valueFrom:
-      secretKeyRef:
-        name: kafka-ui-user
-        key: username
+    value: "kafka-ui-user"
   - name: KAFKA_PASSWORD
     valueFrom:
       secretKeyRef:
@@ -40,11 +36,9 @@ env:
         key: password
   - name: DYNAMIC_CONFIG_ENABLED
     value: "true"
-  # JSON logging format (Spring Boot / Logback)
   - name: LOGGING_PATTERN_CONSOLE
     value: '{"time":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%p","logger":"%c","thread":"%t","msg":"%m"}%n'
 
-# Лимиты ресурсов
 resources:
   requests:
     memory: "256Mi"
@@ -53,7 +47,6 @@ resources:
     memory: "512Mi"
     cpu: "500m"
 
-# Конфигурация проб
 livenessProbe:
   httpGet:
     path: /actuator/health
@@ -68,12 +61,9 @@ readinessProbe:
   initialDelaySeconds: 30
   periodSeconds: 10
 
-# Конфигурация Ingress
 ingress:
   enabled: true
   ingressClassName: nginx
   host: kafka-ui.apatsev.org.ru
   path: /
   pathType: Prefix
-
-# todo сделай команду для получения default values из helm charts для kafka-ui
