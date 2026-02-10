@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus
+  repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
   tag: "0.1.0"
 

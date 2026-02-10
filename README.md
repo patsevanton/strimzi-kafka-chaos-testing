@@ -195,14 +195,14 @@ kubectl get svc -n schema-registry schema-registry
 
 ### Сборка и публикация Docker образа
 
-Go-код в `[main.go](https://github.com/patsevanton/test-strimzi-kafka-operator-prometheus/blob/main/main.go)` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
+Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/main.go)` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus:0.1.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.1.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus:0.1.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.1.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -211,7 +211,7 @@ podman push docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus:0.1.0
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
-  --set image.repository="docker.io/antonpatsev/test-strimzi-kafka-operator-prometheus" \
+  --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
   --set image.tag="0.1.0"
 ```
 
