@@ -1936,25 +1936,22 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 6,
         "x": 12,
         "y": 64
       },
       "id": 22,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "textMode": "auto"
+        "rowHeight": 0.9,
+        "showValues": false,
+        "mergeValues": false
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -1972,7 +1969,7 @@
       ],
       "description": "Статус подключения к брокерам Kafka. Показывает состояние соединения с каждым брокером (подключен/отключен).",
       "title": "Kafka Connection Status",
-      "type": "stat"
+      "type": "state-timeline"
     },
     {
       "datasource": {
@@ -2019,25 +2016,22 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 8,
         "w": 6,
         "x": 18,
         "y": 64
       },
       "id": 23,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": ""
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "textMode": "auto"
+        "rowHeight": 0.9,
+        "showValues": false,
+        "mergeValues": false
       },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -2055,7 +2049,7 @@
       ],
       "description": "Статус подключения к Schema Registry. Показывает состояние соединения с Schema Registry (подключен/отключен).",
       "title": "Schema Registry Connection Status",
-      "type": "stat"
+      "type": "state-timeline"
     },
     {
       "datasource": {
