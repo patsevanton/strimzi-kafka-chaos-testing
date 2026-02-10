@@ -15,6 +15,7 @@
       }
     ]
   },
+  "description": "Дашборд для мониторинга метрик Kafka Producer и Consumer приложений на Go. Включает метрики производительности, задержек, ошибок и статусов подключений к Kafka и Schema Registry.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -27,6 +28,7 @@
         "type": "prometheus",
         "uid": "${DS_VICTORIAMETRICS}"
       },
+      "description": "Скорость отправки сообщений продюсером в Kafka. Показывает количество сообщений, отправленных в секунду по каждому топику.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -119,6 +121,7 @@
         "type": "prometheus",
         "uid": "${DS_VICTORIAMETRICS}"
       },
+      "description": "Скорость отправки данных продюсером в Kafka в байтах в секунду. Показывает объем данных, отправленных по каждому топику.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -269,6 +272,7 @@
           "refId": "A"
         }
       ],
+      "description": "Общее количество сообщений, отправленных продюсером с момента запуска приложения.",
       "title": "Producer: Total Messages Sent",
       "type": "stat"
     },
@@ -335,6 +339,7 @@
           "refId": "A"
         }
       ],
+      "description": "Общий объем данных в байтах, отправленных продюсером с момента запуска приложения.",
       "title": "Producer: Total Bytes Sent",
       "type": "stat"
     },
@@ -401,6 +406,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость возникновения ошибок при отправке сообщений продюсером. Показывает количество ошибок в секунду.",
       "title": "Producer: Error Rate",
       "type": "stat"
     },
@@ -516,6 +522,7 @@
           "refId": "C"
         }
       ],
+      "description": "Задержка отправки сообщений продюсером. Показывает перцентили p50, p95 и p99 времени, затраченного на отправку сообщения в Kafka.",
       "title": "Producer: Message Send Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -631,6 +638,7 @@
           "refId": "C"
         }
       ],
+      "description": "Задержка кодирования сообщений продюсером. Показывает перцентили p50, p95 и p99 времени, затраченного на сериализацию сообщения перед отправкой.",
       "title": "Producer: Message Encode Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -723,6 +731,7 @@
           "refId": "A"
         }
       ],
+      "description": "Распределение ошибок продюсера по типам. Позволяет идентифицировать наиболее частые типы ошибок при отправке сообщений.",
       "title": "Producer: Errors by Type",
       "type": "timeseries"
     },
@@ -815,6 +824,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость получения сообщений консьюмером из Kafka. Показывает количество сообщений, полученных в секунду по каждому топику и партиции.",
       "title": "Consumer: Messages Received Rate",
       "type": "timeseries"
     },
@@ -907,6 +917,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость получения данных консьюмером из Kafka в байтах в секунду. Показывает объем данных, полученных по каждому топику и партиции.",
       "title": "Consumer: Bytes Received Rate",
       "type": "timeseries"
     },
@@ -973,6 +984,7 @@
           "refId": "A"
         }
       ],
+      "description": "Общее количество сообщений, полученных консьюмером с момента запуска приложения.",
       "title": "Consumer: Total Messages Received",
       "type": "stat"
     },
@@ -1039,6 +1051,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость возникновения ошибок при получении и обработке сообщений консьюмером. Показывает количество ошибок в секунду.",
       "title": "Consumer: Error Rate",
       "type": "stat"
     },
@@ -1154,6 +1167,7 @@
           "refId": "C"
         }
       ],
+      "description": "Задержка обработки сообщений консьюмером. Показывает перцентили p50, p95 и p99 времени, затраченного на обработку сообщения после получения из Kafka.",
       "title": "Consumer: Message Processing Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -1269,6 +1283,7 @@
           "refId": "C"
         }
       ],
+      "description": "Задержка декодирования сообщений консьюмером. Показывает перцентили p50, p95 и p99 времени, затраченного на десериализацию сообщения после получения.",
       "title": "Consumer: Message Decode Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -1384,6 +1399,7 @@
           "refId": "C"
         }
       ],
+      "description": "Сквозная задержка от момента отправки сообщения продюсером до момента его обработки консьюмером. Показывает перцентили p50, p95 и p99 полного времени прохождения сообщения через систему.",
       "title": "Consumer: End-to-End Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -1476,6 +1492,7 @@
           "refId": "A"
         }
       ],
+      "description": "Распределение ошибок консьюмера по типам. Позволяет идентифицировать наиболее частые типы ошибок при получении и обработке сообщений.",
       "title": "Consumer: Errors by Type",
       "type": "timeseries"
     },
@@ -1568,6 +1585,7 @@
           "refId": "A"
         }
       ],
+      "description": "Отставание консьюмера от продюсера. Показывает количество необработанных сообщений в партициях топиков для каждой группы консьюмеров.",
       "title": "Consumer: Lag",
       "type": "timeseries"
     },
@@ -1660,6 +1678,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость запросов к Schema Registry. Показывает количество запросов в секунду по каждому типу операции (получение схемы, регистрация схемы и т.д.).",
       "title": "Schema Registry: Request Rate",
       "type": "timeseries"
     },
@@ -1775,6 +1794,7 @@
           "refId": "C"
         }
       ],
+      "description": "Задержка обработки запросов к Schema Registry. Показывает перцентили p50, p95 и p99 времени ответа Schema Registry на различные операции.",
       "title": "Schema Registry: Request Latency (p50/p95/p99)",
       "type": "timeseries"
     },
@@ -1867,6 +1887,7 @@
           "refId": "A"
         }
       ],
+      "description": "Распределение ошибок Schema Registry по типам. Позволяет идентифицировать наиболее частые типы ошибок при работе со схемами.",
       "title": "Schema Registry: Errors by Type",
       "type": "timeseries"
     },
@@ -1949,6 +1970,7 @@
           "refId": "A"
         }
       ],
+      "description": "Статус подключения к брокерам Kafka. Показывает состояние соединения с каждым брокером (подключен/отключен).",
       "title": "Kafka Connection Status",
       "type": "stat"
     },
@@ -2031,6 +2053,7 @@
           "refId": "A"
         }
       ],
+      "description": "Статус подключения к Schema Registry. Показывает состояние соединения с Schema Registry (подключен/отключен).",
       "title": "Schema Registry Connection Status",
       "type": "stat"
     },
@@ -2123,6 +2146,7 @@
           "refId": "A"
         }
       ],
+      "description": "Скорость переподключений к брокерам Kafka. Высокое значение может указывать на проблемы с сетью или стабильностью брокеров.",
       "title": "Kafka Reconnections Rate",
       "type": "timeseries"
     }
@@ -2138,7 +2162,23 @@
     "schema-registry"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {},
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": "datasource",
+        "multi": false,
+        "name": "DS_VICTORIAMETRICS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -2149,15 +2189,5 @@
   "title": "Kafka Go App Metrics",
   "uid": "kafka-go-app-metrics",
   "version": 1,
-  "weekStart": "",
-  "__inputs": [
-    {
-      "name": "DS_VICTORIAMETRICS",
-      "label": "Prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ]
+  "weekStart": ""
 }
