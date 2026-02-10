@@ -42,7 +42,6 @@
 - **Request Rate** — скорость запросов к Schema Registry
 - **Request Latency** — задержка запросов (p50/p95/p99)
 - **Errors by Type** — ошибки по типам (timeout, not_found, invalid_schema, network)
-- **Cache Hit Rate** — процент попаданий в кэш схем
 
 #### Connection метрики
 

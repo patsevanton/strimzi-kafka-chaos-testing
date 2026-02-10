@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.2"
+  tag: "0.2.4"
 
 imagePullSecrets: []
 nameOverride: ""

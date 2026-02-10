@@ -559,11 +559,9 @@ func getOrCreateSchema(client *srclient.SchemaRegistryClient, subject string) (*
 	schemaRegistryRequestsTotal.WithLabelValues("get_latest_schema").Inc()
 
 	if err == nil {
-		schemaRegistryCacheHits.WithLabelValues(subject).Inc()
 		return schema, nil
 	}
 
-	schemaRegistryCacheMisses.WithLabelValues(subject).Inc()
 	schemaRegistryErrorsTotal.WithLabelValues("get_latest_schema", "not_found").Inc()
 
 	// If not found, create new schema

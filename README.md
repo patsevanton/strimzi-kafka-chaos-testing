@@ -201,10 +201,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.2 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.4 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.2
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.4
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -214,7 +214,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.2"
+  --set image.tag="0.2.4"
 ```
 
 ### Переменные окружения
@@ -332,8 +332,6 @@ kubectl apply -f strimzi/kafka-consumer-metrics.yaml
 - `schema_registry_requests_total{operation}` — количество запросов к Schema Registry (operation: get_schema, get_latest_schema, create_schema)
 - `schema_registry_request_duration_seconds{operation}` — длительность запросов к Schema Registry
 - `schema_registry_errors_total{operation,error_type}` — количество ошибок (error_type: timeout, not_found, invalid_schema, network)
-- `schema_registry_cache_hits_total{subject}` — количество попаданий в кэш схем
-- `schema_registry_cache_misses_total{subject}` — количество промахов кэша схем
 
 **Метрики подключения:**
 - `kafka_connection_status{broker}` — статус подключения к Kafka (1 = подключено, 0 = отключено)

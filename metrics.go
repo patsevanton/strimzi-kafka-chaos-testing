@@ -135,22 +135,6 @@ var (
 		[]string{"operation", "error_type"}, // error_type: timeout, not_found, invalid_schema, network
 	)
 
-	schemaRegistryCacheHits = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "schema_registry_cache_hits_total",
-			Help: "Total number of schema cache hits",
-		},
-		[]string{"subject"},
-	)
-
-	schemaRegistryCacheMisses = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "schema_registry_cache_misses_total",
-			Help: "Total number of schema cache misses",
-		},
-		[]string{"subject"},
-	)
-
 	// Connection metrics
 	kafkaConnectionStatus = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
