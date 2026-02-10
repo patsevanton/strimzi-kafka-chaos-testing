@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/linkedin/goavro/v2"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riferrei/srclient"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
@@ -118,6 +119,9 @@ func startHealthServer() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	// Prometheus metrics endpoint
+	http.Handle("/metrics", promhttp.Handler())
 
 	logger.Info("Starting health server", "port", healthPort)
 	if err := http.ListenAndServe(":"+healthPort, nil); err != nil {
@@ -235,6 +239,12 @@ func runProducer(ctx context.Context, config *Config) {
 	logger.Info("Waiting for Kafka metadata...")
 	time.Sleep(5 * time.Second)
 
+	// Mark connection as connected
+	for _, broker := range config.Brokers {
+		kafkaConnectionStatus.WithLabelValues(broker).Set(1)
+	}
+	schemaRegistryConnectionStatus.Set(1)
+
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
 	logger.Info("Producer is ready")
@@ -250,6 +260,7 @@ func runProducer(ctx context.Context, config *Config) {
 			return
 		case <-ticker.C:
 			messageID++
+			msgStartTime := time.Now()
 			msg := Message{
 				ID:        messageID,
 				Timestamp: time.Now(),
@@ -257,9 +268,14 @@ func runProducer(ctx context.Context, config *Config) {
 			}
 
 			// Convert message to Avro with Confluent wire format
+			encodeStart := time.Now()
 			avroData, err := encodeAvroMessage(codec, schema.ID(), msg)
+			encodeDuration := time.Since(encodeStart).Seconds()
+			producerMessageEncodeDuration.WithLabelValues(config.Topic).Observe(encodeDuration)
+
 			if err != nil {
 				logger.Error("Failed to encode message", "error", err, "message_id", messageID)
+				producerErrorsTotal.WithLabelValues(config.Topic, "encode").Inc()
 				continue
 			}
 
@@ -270,10 +286,22 @@ func runProducer(ctx context.Context, config *Config) {
 			}
 
 			err = writer.WriteMessages(ctx, kafkaMsg)
+			totalDuration := time.Since(msgStartTime).Seconds()
+
 			if err != nil {
 				logger.Error("Failed to write message", "error", err, "message_id", messageID)
+				producerErrorsTotal.WithLabelValues(config.Topic, "send").Inc()
+				// Mark connection as disconnected on error
+				for _, broker := range config.Brokers {
+					kafkaConnectionStatus.WithLabelValues(broker).Set(0)
+				}
 				continue
 			}
+
+			// Update metrics
+			producerMessagesSentTotal.WithLabelValues(config.Topic).Inc()
+			producerMessagesSentBytes.WithLabelValues(config.Topic).Add(float64(len(avroData)))
+			producerMessageSendDuration.WithLabelValues(config.Topic).Observe(totalDuration)
 
 			logger.Info("Sent message", "message_id", messageID)
 		}
@@ -318,6 +346,12 @@ func runConsumer(ctx context.Context, config *Config) {
 	// See producer: avoid flaky startup failures when SR is still warming up.
 	schemaRegistryClient.SetTimeout(2 * time.Minute)
 
+	// Mark connection as connected
+	for _, broker := range config.Brokers {
+		kafkaConnectionStatus.WithLabelValues(broker).Set(1)
+	}
+	schemaRegistryConnectionStatus.Set(1)
+
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
 	logger.Info("Consumer is ready")
@@ -328,22 +362,51 @@ func runConsumer(ctx context.Context, config *Config) {
 			logger.Info("Consumer stopped")
 			return
 		default:
+			readStart := time.Now()
 			msg, err := reader.ReadMessage(ctx)
 			if err != nil {
 				if err == context.Canceled {
 					return
 				}
 				logger.Error("Error reading message", "error", err)
+				consumerErrorsTotal.WithLabelValues(config.Topic, "read").Inc()
+				// Mark connection as disconnected on error
+				for _, broker := range config.Brokers {
+					kafkaConnectionStatus.WithLabelValues(broker).Set(0)
+				}
 				time.Sleep(1 * time.Second)
 				continue
 			}
 
+			partitionStr := fmt.Sprintf("%d", msg.Partition)
+
 			// Decode message using Confluent wire format
+			decodeStart := time.Now()
 			decoded, err := decodeAvroMessage(schemaRegistryClient, msg.Value)
+			decodeDuration := time.Since(decodeStart).Seconds()
+			consumerMessageDecodeDuration.WithLabelValues(config.Topic, partitionStr).Observe(decodeDuration)
+
 			if err != nil {
 				logger.Error("Failed to decode message", "error", err)
+				consumerErrorsTotal.WithLabelValues(config.Topic, "decode").Inc()
 				continue
 			}
+
+			processingDuration := time.Since(readStart).Seconds()
+			consumerMessageProcessingDuration.WithLabelValues(config.Topic, partitionStr).Observe(processingDuration)
+
+			// Calculate end-to-end latency if message has timestamp
+			if decodedMap, ok := decoded.(map[string]interface{}); ok {
+				if timestamp, ok := decodedMap["timestamp"].(int64); ok {
+					msgTimestamp := time.UnixMilli(timestamp)
+					endToEndLatency := time.Since(msgTimestamp).Seconds()
+					consumerEndToEndLatency.WithLabelValues(config.Topic, partitionStr).Observe(endToEndLatency)
+				}
+			}
+
+			// Update metrics
+			consumerMessagesReceivedTotal.WithLabelValues(config.Topic, partitionStr).Inc()
+			consumerMessagesReceivedBytes.WithLabelValues(config.Topic, partitionStr).Add(float64(len(msg.Value)))
 
 			logger.Info("Received message", "key", string(msg.Key), "value", decoded, "partition", msg.Partition, "offset", msg.Offset)
 		}
@@ -352,10 +415,19 @@ func runConsumer(ctx context.Context, config *Config) {
 
 func getOrCreateSchema(client *srclient.SchemaRegistryClient, subject string) (*srclient.Schema, error) {
 	// Try to get latest schema first
+	start := time.Now()
 	schema, err := client.GetLatestSchema(subject)
+	duration := time.Since(start).Seconds()
+	schemaRegistryRequestDuration.WithLabelValues("get_latest_schema").Observe(duration)
+	schemaRegistryRequestsTotal.WithLabelValues("get_latest_schema").Inc()
+
 	if err == nil {
+		schemaRegistryCacheHits.WithLabelValues(subject).Inc()
 		return schema, nil
 	}
+
+	schemaRegistryCacheMisses.WithLabelValues(subject).Inc()
+	schemaRegistryErrorsTotal.WithLabelValues("get_latest_schema", "not_found").Inc()
 
 	// If not found, create new schema
 	avroSchema := `{
@@ -369,8 +441,14 @@ func getOrCreateSchema(client *srclient.SchemaRegistryClient, subject string) (*
 		]
 	}`
 
+	start = time.Now()
 	schema, err = client.CreateSchema(subject, avroSchema, srclient.Avro)
+	duration = time.Since(start).Seconds()
+	schemaRegistryRequestDuration.WithLabelValues("create_schema").Observe(duration)
+	schemaRegistryRequestsTotal.WithLabelValues("create_schema").Inc()
+
 	if err != nil {
+		schemaRegistryErrorsTotal.WithLabelValues("create_schema", "invalid_schema").Inc()
 		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
@@ -391,8 +469,14 @@ func decodeAvroMessage(client *srclient.SchemaRegistryClient, data []byte) (inte
 	schemaID := int(data[1])<<24 | int(data[2])<<16 | int(data[3])<<8 | int(data[4])
 
 	// Get schema from Schema Registry
+	start := time.Now()
 	schema, err := client.GetSchema(schemaID)
+	duration := time.Since(start).Seconds()
+	schemaRegistryRequestDuration.WithLabelValues("get_schema").Observe(duration)
+	schemaRegistryRequestsTotal.WithLabelValues("get_schema").Inc()
+
 	if err != nil {
+		schemaRegistryErrorsTotal.WithLabelValues("get_schema", "not_found").Inc()
 		return nil, fmt.Errorf("failed to get schema %d: %w", schemaID, err)
 	}
 

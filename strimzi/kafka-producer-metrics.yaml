@@ -1,0 +1,19 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: kafka-producer-metrics
+  namespace: vmks
+  labels:
+    release: vmks
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka-producer
+  namespaceSelector:
+    matchNames:
+      - kafka-producer
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

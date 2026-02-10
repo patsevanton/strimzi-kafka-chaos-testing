@@ -7,8 +7,9 @@ COPY go.sum* ./
 RUN go mod download
 
 COPY main.go .
+COPY metrics.go .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kafka-app main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kafka-app .
 
 FROM alpine:3.23
 

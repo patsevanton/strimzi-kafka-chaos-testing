@@ -186,10 +186,12 @@ kubectl get svc -n schema-registry schema-registry
 - **[segmentio/kafka-go](https://github.com/segmentio/kafka-go)** — клиент для работы с Kafka
 - **[riferrei/srclient](https://github.com/riferrei/srclient)** — клиент для Schema Registry API (совместим с Karapace)
 - **[linkedin/goavro](https://github.com/linkedin/goavro)** — работа с Avro схемами
+- **[prometheus/client_golang](https://github.com/prometheus/client_golang)** — экспорт Prometheus-метрик
 
 ### Структура исходного кода
 
 - `main.go` — основной код Go-приложения (producer/consumer)
+- `metrics.go` — определение Prometheus-метрик
 - `go.mod`, `go.sum` — файлы зависимостей Go модуля
 - `Dockerfile` — многоэтапная сборка Docker образа
 
@@ -199,10 +201,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.1.0 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.0 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.1.0
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.0
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -212,7 +214,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.1.0"
+  --set image.tag="0.2.0"
 ```
 
 ### Переменные окружения
@@ -295,6 +297,65 @@ kubectl logs -n kafka-producer -l app.kubernetes.io/name=kafka-producer -f
 # Consumer logs (проверка на ошибки)
 kubectl logs -n kafka-consumer -l app.kubernetes.io/name=kafka-consumer -f
 ```
+
+#### 5) Настроить сбор метрик Prometheus
+
+Go-приложение экспортирует метрики Prometheus на endpoint `/metrics` (на том же порту, что и health checks). Для сбора метрик через VMAgent примените VMServiceScrape:
+
+```bash
+# Метрики Producer
+kubectl apply -f strimzi/kafka-producer-metrics.yaml
+
+# Метрики Consumer
+kubectl apply -f strimzi/kafka-consumer-metrics.yaml
+```
+
+**Доступные метрики:**
+
+**Producer метрики:**
+- `kafka_producer_messages_sent_total{topic}` — общее количество отправленных сообщений
+- `kafka_producer_messages_sent_bytes_total{topic}` — общий объём отправленных данных (байты)
+- `kafka_producer_message_send_duration_seconds{topic}` — время отправки сообщения (от создания до подтверждения Kafka)
+- `kafka_producer_message_encode_duration_seconds{topic}` — время кодирования сообщения в Avro
+- `kafka_producer_errors_total{topic,error_type}` — количество ошибок (error_type: encode, send, connection)
+
+**Consumer метрики:**
+- `kafka_consumer_messages_received_total{topic,partition}` — общее количество полученных сообщений
+- `kafka_consumer_messages_received_bytes_total{topic,partition}` — общий объём полученных данных (байты)
+- `kafka_consumer_message_processing_duration_seconds{topic,partition}` — время обработки сообщения (от получения до завершения)
+- `kafka_consumer_message_decode_duration_seconds{topic,partition}` — время декодирования сообщения из Avro
+- `kafka_consumer_end_to_end_latency_seconds{topic,partition}` — end-to-end задержка от создания сообщения (timestamp) до потребления
+- `kafka_consumer_errors_total{topic,error_type}` — количество ошибок (error_type: read, decode, connection)
+- `kafka_consumer_lag{topic,partition,group_id}` — отставание consumer (разница между последним offset и offset consumer)
+
+**Schema Registry метрики:**
+- `schema_registry_requests_total{operation}` — количество запросов к Schema Registry (operation: get_schema, get_latest_schema, create_schema)
+- `schema_registry_request_duration_seconds{operation}` — длительность запросов к Schema Registry
+- `schema_registry_errors_total{operation,error_type}` — количество ошибок (error_type: timeout, not_found, invalid_schema, network)
+- `schema_registry_cache_hits_total{subject}` — количество попаданий в кэш схем
+- `schema_registry_cache_misses_total{subject}` — количество промахов кэша схем
+
+**Метрики подключения:**
+- `kafka_connection_status{broker}` — статус подключения к Kafka (1 = подключено, 0 = отключено)
+- `kafka_reconnections_total{broker}` — количество переподключений к Kafka
+- `schema_registry_connection_status` — статус подключения к Schema Registry (1 = подключено, 0 = отключено)
+
+**Отличия от метрик Kafka:**
+
+Метрики Kafka (через JMX и Kafka Exporter) показывают состояние на стороне брокера:
+- Количество сообщений, полученных брокером
+- Latency обработки на брокере
+- Размер топиков, количество партиций
+- Lag consumer groups на уровне брокера
+
+Метрики Go-приложения дополняют их данными на уровне приложения:
+- **Application-level latency** — время от создания сообщения до отправки/получения (включая кодирование/декодирование)
+- **End-to-end latency** — полная задержка от создания до потребления (на основе timestamp в сообщении)
+- **Schema Registry метрики** — производительность работы со схемами, кэширование
+- **Ошибки приложения** — ошибки кодирования/декодирования, проблемы подключения на стороне клиента
+- **Размер сообщений** — объём данных, отправляемых/получаемых приложением
+
+Эти метрики помогают диагностировать проблемы производительности на стороне клиента, которые не видны в метриках брокера.
 
 ### Kafka UI
 
@@ -451,6 +512,8 @@ kubectl apply -f chaos-experiments/pod-kill.yaml
 
 ## Импорт дашбордов Grafana
 
+### Дашборды Strimzi Kafka
+
 Импорт JSON дашбордов через UI Grafana:
 
 https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
@@ -460,6 +523,23 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json
 
 https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
+
+### Дашборд Go-приложения (Producer/Consumer)
+
+Дашборд для мониторинга метрик Go-приложения находится в директории **dashboards/**:
+
+```bash
+# Импорт через UI Grafana: Dashboards → Import → загрузить файл
+dashboards/kafka-go-app-metrics.json
+```
+
+Дашборд включает панели для:
+- **Producer метрики**: скорость отправки сообщений, latency, ошибки
+- **Consumer метрики**: скорость получения сообщений, latency, lag, ошибки
+- **Schema Registry метрики**: запросы, latency, ошибки, кэш
+- **Connection метрики**: статус подключений, переподключения
+
+Подробное описание панелей и инструкции по импорту — в **dashboards/README.md**.
 
 ## Удаление
 
