@@ -347,7 +347,7 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
   --namespace victoria-logs-cluster \
   --create-namespace \
   --wait \
-  --version 0.0.26 \
+  --version 0.0.27 \
   --timeout 15m \
   -f victoria-logs-cluster-values.yaml \
   --set vlselect.vmServiceScrape.enabled=true \
