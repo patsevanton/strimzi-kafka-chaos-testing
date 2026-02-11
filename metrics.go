@@ -158,4 +158,27 @@ var (
 			Help: "Schema Registry connection status (1 = connected, 0 = disconnected)",
 		},
 	)
+
+	// Redis delivery verification and SLO
+	consumerRedisHashMismatchTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "kafka_consumer_redis_hash_mismatch_total",
+			Help: "Total number of messages where body hash did not match Redis stored hash",
+		},
+		[]string{"topic", "partition"},
+	)
+
+	redisPendingMessages = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "redis_pending_messages",
+			Help: "Number of message keys still in Redis (sent but not yet consumed)",
+		},
+	)
+
+	redisPendingOldMessages = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "redis_pending_old_messages",
+			Help: "Number of pending messages older than SLO threshold (delivery SLO breach)",
+		},
+	)
 )

@@ -201,10 +201,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.4 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.5 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.4
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.5
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -214,7 +214,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.4"
+  --set image.tag="0.2.5"
 ```
 
 ### Переменные окружения
@@ -229,6 +229,12 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 | `SCHEMA_REGISTRY_URL` | URL Schema Registry | `http://localhost:8081` |
 | `KAFKA_GROUP_ID` | Consumer Group ID (только для consumer) | `test-group` (как в [Strimzi kafka-user](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/user/kafka-user.yaml)) |
 | `HEALTH_PORT` | Порт для health-проверок (liveness/readiness) | `8080` |
+| `REDIS_ADDR` | Адрес Redis для верификации доставки (хеш тела сообщения) | `localhost:6379` |
+| `REDIS_PASSWORD` | Пароль Redis (если нужен) | — |
+| `REDIS_KEY_PREFIX` | Префикс ключей сообщений в Redis | `kafka-msg:` |
+| `REDIS_SLO_SECONDS` | Порог в секундах: сообщения в Redis старше этого считаются нарушением SLO | `60` |
+
+**Верификация доставки через Redis:** при указании `REDIS_ADDR` Producer после отправки в Kafka записывает в Redis ключ (как у сообщения) и значение = SHA256 тела + timestamp. Consumer при получении сверяет хеш тела с Redis, при совпадении удаляет ключ и увеличивает счётчик полученных. Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки. Критика подхода — в [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
 
 ### Запуск Producer/Consumer в кластере используя Helm
 
@@ -256,9 +262,12 @@ kubectl get secret myuser -n kafka-consumer
 
 #### 1) Установить Producer
 ```bash
+# Адрес Valkey (после terraform apply): VALKEY_ADDR=$(terraform output -raw valkey_address)
+# С Valkey: добавьте --set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
+  --set image.tag="0.2.5" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \
@@ -267,14 +276,31 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 
 #### 2) Установить Consumer
 ```bash
+# С Valkey: --set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-consumer \
   --create-namespace \
+  --set image.tag="0.2.5" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \
   --set kafka.groupId="test-group" \
   --set kafka.existingSecret="myuser"
+```
+
+**Valkey (Redis) для верификации доставки:** кластер задаётся в `valkey.tf` (Yandex Managed Redis). Настройте провайдер Yandex (`token` или `service_account_key_file`), выполните `terraform apply -auto-approve`, затем `export VALKEY_ADDR=$(terraform output -raw valkey_address)` и добавьте к командам Helm выше: `--set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"`. Либо укажите `redis.addr` и `redis.password` в `values.yaml` (уже заданы для текущего кластера). Для сбора метрик Redis (latency, нагрузка) в Grafana разверните redis-exporter и VMServiceScrape из `strimzi/redis-exporter.yaml` (создайте Secret с `REDIS_ADDR` и `REDIS_PASSWORD`), затем импортируйте дашборд `dashboards/redis-delivery-verification.json` (см. [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md)).
+
+Пример вывода Terraform:
+```bash
+$ terraform output external_valkey
+{
+  "host"     = "c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net"
+  "password" = "strimzi-valkey-test"
+  "port"     = 6379
+}
+
+$ terraform output -raw valkey_address
+c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379
 ```
 
 #### 3) Дождаться готовности подов Producer/Consumer
@@ -524,14 +550,12 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 
 ### Дашборд Go-приложения (Producer/Consumer)
 
-Дашборд для мониторинга метрик Go-приложения находится в директории **dashboards/**:
+Дашборды в **dashboards/**:
 
-```bash
-# Импорт через UI Grafana: Dashboards → Import → загрузить файл
-dashboards/kafka-go-app-metrics.json
-```
+- **kafka-go-app-metrics.json** — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
+- **redis-delivery-verification.json** — Redis (Yandex Valkey), SLO и верификация доставки ([docs/delivery-verification-critique.md](docs/delivery-verification-critique.md))
 
-Дашборд включает панели для:
+Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
 - **Consumer метрики**: скорость получения сообщений, latency, lag, ошибки
 - **Schema Registry метрики**: запросы, latency, ошибки, кэш

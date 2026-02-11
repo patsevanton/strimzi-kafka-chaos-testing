@@ -57,3 +57,25 @@
 ### Переменные
 
 - `DS_VICTORIAMETRICS` — datasource для метрик (автоматически определяется при импорте)
+
+---
+
+## Redis & Delivery Verification
+
+Дашборд для мониторинга Redis (Yandex Valkey) и верификации доставки по [docs/delivery-verification-critique.md](../docs/delivery-verification-critique.md).
+
+### Импорт
+
+1. Grafana → **Dashboards** → **Import** → загрузите `redis-delivery-verification.json`
+2. Выберите datasource **VictoriaMetrics** → **Import**
+
+### Что на дашборде
+
+- **Redis (Yandex Valkey):** connected clients, commands rate, memory, rejected connections, command latency (п.7, п.1 критикала).
+- **Delivery verification (SLO):** pending messages, pending old (нарушение SLO по задержке), received rate, hash mismatch (п.4).
+- **Pending vs Old:** рост pending без роста old — consumer отстаёт, но в рамках SLO.
+
+### Требования
+
+- Сбор метрик Redis: разверните redis-exporter и VMServiceScrape (см. `strimzi/redis-exporter.yaml`). Перед применением создайте Secret с адресом и паролем Valkey.
+- Метрики приложения (`redis_pending_messages`, `redis_pending_old_messages`, `kafka_consumer_redis_hash_mismatch_total` и т.д.) собираются существующими VMServiceScrape для producer/consumer.

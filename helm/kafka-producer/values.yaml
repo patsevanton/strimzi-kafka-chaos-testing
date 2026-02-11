@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.4"
+  tag: "0.2.5"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -63,6 +63,14 @@ kafka:
 schemaRegistry:
   # Сервис развёрнут в namespace "schema-registry" в этом репозитории
   url: "http://schema-registry.schema-registry:8081"
+
+# Опционально: Redis для верификации доставки (хеш тела сообщения)
+# Для Yandex Valkey (valkey.tf): terraform output valkey_address / terraform output external_valkey
+redis:
+  addr: "c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379"
+  password: "strimzi-valkey-test"
+  # keyPrefix: "kafka-msg:"
+  # sloSeconds: 60
 
 # Конфигурация проверки здоровья
 health:

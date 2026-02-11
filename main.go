@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"syscall"
@@ -14,6 +17,7 @@ import (
 
 	"github.com/linkedin/goavro/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"github.com/riferrei/srclient"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/scram"
@@ -39,6 +43,11 @@ type Config struct {
 	Username          string
 	Password          string
 	GroupID           string
+	// Redis: store hash of message value for delivery verification and SLO
+	RedisAddr       string
+	RedisPassword   string
+	RedisKeyPrefix  string
+	RedisSLOSeconds int // messages still in Redis older than this are counted as SLO breach
 }
 
 type Message struct {
@@ -158,6 +167,22 @@ func loadConfig() *Config {
 		groupID = "test-group"
 	}
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisKeyPrefix := os.Getenv("REDIS_KEY_PREFIX")
+	if redisKeyPrefix == "" {
+		redisKeyPrefix = "kafka-msg:"
+	}
+	redisSLOSeconds := 60
+	if s := os.Getenv("REDIS_SLO_SECONDS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			redisSLOSeconds = n
+		}
+	}
+
 	return &Config{
 		Mode:              mode,
 		Brokers:           parseBrokers(brokers),
@@ -166,6 +191,10 @@ func loadConfig() *Config {
 		Username:          username,
 		Password:          password,
 		GroupID:           groupID,
+		RedisAddr:         redisAddr,
+		RedisPassword:     redisPassword,
+		RedisKeyPrefix:    redisKeyPrefix,
+		RedisSLOSeconds:   redisSLOSeconds,
 	}
 }
 
@@ -186,6 +215,33 @@ func parseBrokers(brokers string) []string {
 		return []string{"localhost:9092"}
 	}
 	return result
+}
+
+// hashValue returns SHA256 hex of data (used to verify message integrity via Redis).
+func hashValue(data []byte) string {
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
+}
+
+const (
+	redisKeySentTotal    = "metrics:sent_total"
+	redisKeyReceivedTotal = "metrics:received_total"
+)
+
+func newRedisClient(cfg *Config) *redis.Client {
+	if cfg.RedisAddr == "" {
+		return nil
+	}
+	opts := &redis.Options{Addr: cfg.RedisAddr}
+	if cfg.RedisPassword != "" {
+		opts.Password = cfg.RedisPassword
+	}
+	return redis.NewClient(opts)
+}
+
+// redisMsgKey returns Redis key for a message: prefix + Kafka message key.
+func redisMsgKey(prefix, kafkaKey string) string {
+	return prefix + kafkaKey
 }
 
 func runProducer(ctx context.Context, config *Config) {
@@ -245,6 +301,18 @@ func runProducer(ctx context.Context, config *Config) {
 	}
 	schemaRegistryConnectionStatus.Set(1)
 
+	// Redis client for delivery verification (hash + SLO)
+	rdb := newRedisClient(config)
+	if rdb != nil {
+		defer rdb.Close()
+		if err := rdb.Ping(ctx).Err(); err != nil {
+			logger.Warn("Redis ping failed, hash storage disabled", "error", err)
+			rdb = nil
+		} else {
+			logger.Info("Redis connected for hash storage")
+		}
+	}
+
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
 	logger.Info("Producer is ready")
@@ -280,8 +348,9 @@ func runProducer(ctx context.Context, config *Config) {
 			}
 
 			// Prepare Kafka message (schema ID is now embedded in the value)
+			kafkaKey := fmt.Sprintf("key-%d", messageID)
 			kafkaMsg := kafka.Message{
-				Key:   []byte(fmt.Sprintf("key-%d", messageID)),
+				Key:   []byte(kafkaKey),
 				Value: avroData,
 			}
 
@@ -296,6 +365,19 @@ func runProducer(ctx context.Context, config *Config) {
 					kafkaConnectionStatus.WithLabelValues(broker).Set(0)
 				}
 				continue
+			}
+
+			// Store hash in Redis: key = same as Kafka key, value = hash:timestamp_ms (for SLO)
+			if rdb != nil {
+				msgHash := hashValue(avroData)
+				redisKey := redisMsgKey(config.RedisKeyPrefix, kafkaKey)
+				redisVal := msgHash + ":" + strconv.FormatInt(time.Now().UnixMilli(), 10)
+				if err := rdb.Set(ctx, redisKey, redisVal, 0).Err(); err != nil {
+					logger.Warn("Redis SET failed", "key", redisKey, "error", err)
+				}
+				if err := rdb.Incr(ctx, redisKeySentTotal).Err(); err != nil {
+					logger.Warn("Redis INCR sent_total failed", "error", err)
+				}
 			}
 
 			// Update metrics
@@ -362,8 +444,25 @@ func runConsumer(ctx context.Context, config *Config) {
 		Transport: transport,
 	}
 
+	// Redis client for delivery verification and SLO
+	rdb := newRedisClient(config)
+	if rdb != nil {
+		defer rdb.Close()
+		if err := rdb.Ping(ctx).Err(); err != nil {
+			logger.Warn("Redis ping failed, delivery verification disabled", "error", err)
+			rdb = nil
+		} else {
+			logger.Info("Redis connected for delivery verification")
+		}
+	}
+
 	// Start lag metrics updater in background
 	go updateConsumerLag(ctx, adminClient, dialer, config)
+
+	// Start Redis SLO metrics updater (pending count and old-pending count)
+	if rdb != nil && config.RedisSLOSeconds > 0 {
+		go updateRedisSLOMetrics(ctx, rdb, config)
+	}
 
 	// Mark as ready (connected to Kafka and Schema Registry)
 	isReady.Store(true)
@@ -408,6 +507,31 @@ func runConsumer(ctx context.Context, config *Config) {
 			processingDuration := time.Since(readStart).Seconds()
 			consumerMessageProcessingDuration.WithLabelValues(config.Topic, partitionStr).Observe(processingDuration)
 
+			// Delivery verification via Redis: compare hash of value with stored hash, then DEL and INCR
+			if rdb != nil {
+				redisKey := redisMsgKey(config.RedisKeyPrefix, string(msg.Key))
+				stored, err := rdb.Get(ctx, redisKey).Result()
+				if err == nil {
+					parts := strings.SplitN(stored, ":", 2)
+					expectedHash := parts[0]
+					gotHash := hashValue(msg.Value)
+					if gotHash == expectedHash {
+						if err := rdb.Del(ctx, redisKey).Err(); err != nil {
+							logger.Warn("Redis DEL failed", "key", redisKey, "error", err)
+						}
+						if err := rdb.Incr(ctx, redisKeyReceivedTotal).Err(); err != nil {
+							logger.Warn("Redis INCR received_total failed", "error", err)
+						}
+					} else {
+						logger.Warn("Hash mismatch", "key", redisKey, "expected", expectedHash, "got", gotHash)
+						consumerRedisHashMismatchTotal.WithLabelValues(config.Topic, partitionStr).Inc()
+					}
+				} else if err != redis.Nil {
+					logger.Warn("Redis GET failed", "key", redisKey, "error", err)
+				}
+				// If redis.Nil: key not in Redis (e.g. producer didn't use Redis or already deleted)
+			}
+
 			// Calculate end-to-end latency if message has timestamp
 			if decodedMap, ok := decoded.(map[string]interface{}); ok {
 				if timestampVal, ok := decodedMap["timestamp"]; ok {
@@ -442,6 +566,52 @@ func runConsumer(ctx context.Context, config *Config) {
 			consumerMessagesReceivedBytes.WithLabelValues(config.Topic, partitionStr).Add(float64(len(msg.Value)))
 
 			logger.Info("Received message", "key", string(msg.Key), "value", decoded, "partition", msg.Partition, "offset", msg.Offset)
+		}
+	}
+}
+
+// updateRedisSLOMetrics periodically counts pending messages in Redis and those older than SLO threshold.
+func updateRedisSLOMetrics(ctx context.Context, rdb *redis.Client, config *Config) {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	sloThreshold := time.Duration(config.RedisSLOSeconds) * time.Second
+	prefix := config.RedisKeyPrefix
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			var pending, oldPending int
+			iter := rdb.Scan(ctx, 0, prefix+"*", 100).Iterator()
+			for iter.Next(ctx) {
+				key := iter.Val()
+				if key == redisKeySentTotal || key == redisKeyReceivedTotal {
+					continue
+				}
+				pending++
+				val, err := rdb.Get(ctx, key).Result()
+				if err != nil {
+					continue
+				}
+				parts := strings.SplitN(val, ":", 2)
+				if len(parts) != 2 {
+					continue
+				}
+				tsMs, err := strconv.ParseInt(parts[1], 10, 64)
+				if err != nil {
+					continue
+				}
+				if time.Since(time.UnixMilli(tsMs)) > sloThreshold {
+					oldPending++
+				}
+			}
+			if err := iter.Err(); err != nil {
+				logger.Debug("Redis SCAN error", "error", err)
+				continue
+			}
+			redisPendingMessages.Set(float64(pending))
+			redisPendingOldMessages.Set(float64(oldPending))
 		}
 	}
 }
