@@ -1,6 +1,6 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Пошагово разворачивается VictoriaMetrics K8s Stack, Grafana, Strimzi Operator и Kafka-кластер с JMX и Kafka Exporter, Cruise Control Strimzi,  настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Golang producer/consumer с готовыми Helm-чартами.
+Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Разворачивается VictoriaMetrics K8s Stack, Grafana, Strimzi Operator и Kafka-кластер с JMX и Kafka Exporter, Cruise Control Strimzi, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, Kafka UI для управления кластером, Redis для верификации доставки сообщений (Producer → Consumer), VictoriaLogs и victoria-logs-collector для сбора логов, Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.), а также Golang producer/consumer с готовыми Helm-чартами и Grafana дашбордами для мониторинга.
 
 ## Порядок развёртывания (полная последовательность)
 
@@ -15,7 +15,7 @@
 7. VictoriaLogs и victoria-logs-collector
 8. Chaos Mesh — установка (Helm, VMServiceScrape, RBAC/Dashboard)
 9. Импорт дашбордов Grafana
-10. Запуск chaos-тестов — применить все эксперименты последовательно из `chaos-experiments/` с таймаутом между экспериментами (например, 5–10 минут), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
+10. Запуск chaos-тестов — применить все эксперименты последовательно из `chaos-experiments/` с таймаутом между экспериментами (например, 1 минута), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
