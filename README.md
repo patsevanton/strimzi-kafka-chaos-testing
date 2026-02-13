@@ -1,6 +1,6 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования **отказоустойчивости**, **производительности**, **хаос-тестов**, **мониторинга**, **Schema Registry**, **Kafka UI** и **golang app** (producer/consumer) высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
+Проект для тестирования **отказоустойчивости**, **производительности**, **хаос-тестов**, **мониторинга**, **Cruise Control**, **Schema Registry**, **Kafka UI** и **golang app** (producer/consumer) высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
@@ -86,6 +86,33 @@ PodDisruptionBudget гарантирует, что минимум 2 брокер
 ```bash
 kubectl apply -n kafka-cluster -f strimzi/kafka-pdb.yaml
 kubectl get pdb -n kafka-cluster
+```
+
+### Cruise Control
+
+[Cruise Control](https://github.com/linkedin/cruise-control) — компонент для автоматического ребаланса партиций Kafka (распределение реплик по брокерам, цели по загрузке CPU/сети/диска). В **kafka-metrics.yaml** включён **Cruise Control** и **autoRebalance** при масштабировании (add-brokers / remove-brokers): при добавлении или удалении брокеров оператор сам запускает ребаланс по шаблонам.
+
+**Автоматический полный ребаланс в фоне** (все брокеры, все топики) реализован через **CronJob** `strimzi/cruise-control/kafka-rebalance-cronjob.yaml`: раз в час создаётся `KafkaRebalance` и одобряется. Расписание можно изменить в `.spec.schedule` (например `"0 */6 * * *"` — раз в 6 часов). В Strimzi нет встроенного «постоянного» полного ребаланса, поэтому используется периодический запуск.
+
+Порядок применения:
+
+```bash
+# 1. Шаблоны для autoRebalance (нужны до/вместе с Kafka CR)
+kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-templates.yaml
+
+# 2. Kafka с Cruise Control и autoRebalance (уже в kafka-metrics.yaml)
+kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
+
+# 3. CronJob для периодического полного ребаланса (по желанию)
+kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-cronjob.yaml
+```
+
+Ручной полный ребаланс: **strimzi/cruise-control/kafka-rebalance.yaml** (тот же ресурс, что использует CronJob).
+
+```bash
+kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance.yaml
+kubectl annotate kafkarebalance kafka-cluster-rebalance -n kafka-cluster strimzi.io/rebalance=approve
+kubectl get kafkarebalance -n kafka-cluster
 ```
 
 ### Metrics (examples/metrics)

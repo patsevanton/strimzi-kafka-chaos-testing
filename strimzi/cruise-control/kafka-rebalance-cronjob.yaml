@@ -1,0 +1,90 @@
+# Периодический полный ребаланс всех брокеров и топиков (раз в час).
+# Режим "постоянно в фоне": CronJob создаёт KafkaRebalance и одобряет его.
+# Расписание можно изменить в .spec.schedule (например "0 2 * * *" — раз в сутки в 2:00).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-rebalance-manifest
+  namespace: kafka-cluster
+data:
+  rebalance.yaml: |
+    apiVersion: kafka.strimzi.io/v1
+    kind: KafkaRebalance
+    metadata:
+      name: kafka-cluster-rebalance
+      labels:
+        strimzi.io/cluster: kafka-cluster
+    spec: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cruise-control-rebalance-cron
+  namespace: kafka-cluster
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cruise-control-rebalance-cron
+  namespace: kafka-cluster
+rules:
+  - apiGroups: ["kafka.strimzi.io"]
+    resources: ["kafkarebalances"]
+    verbs: ["get", "list", "create", "delete", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["kafka-rebalance-manifest"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cruise-control-rebalance-cron
+  namespace: kafka-cluster
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cruise-control-rebalance-cron
+subjects:
+  - kind: ServiceAccount
+    name: cruise-control-rebalance-cron
+    namespace: kafka-cluster
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kafka-cluster-rebalance
+  namespace: kafka-cluster
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: cruise-control-rebalance-cron
+          restartPolicy: OnFailure
+          containers:
+            - name: rebalance
+              image: bitnami/kubectl:1.31
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  kubectl delete kafkarebalance kafka-cluster-rebalance -n kafka-cluster --ignore-not-found=true --wait=false
+                  sleep 10
+                  kubectl apply -f /manifests/rebalance.yaml -n kafka-cluster
+                  sleep 30
+                  kubectl annotate kafkarebalance kafka-cluster-rebalance -n kafka-cluster strimzi.io/rebalance=approve --overwrite
+          volumes:
+            - name: manifest
+              configMap:
+                name: kafka-rebalance-manifest
+          volumeMounts:
+            - name: manifest
+              mountPath: /manifests
+              readOnly: true

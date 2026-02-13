@@ -1,0 +1,9 @@
+# Ребаланс кластера kafka-cluster (цели по умолчанию Cruise Control).
+# Другие режимы (add-brokers, remove-brokers, goals): см. packaging/examples/cruise-control в Strimzi.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaRebalance
+metadata:
+  name: kafka-cluster-rebalance
+  labels:
+    strimzi.io/cluster: kafka-cluster
+spec: {}

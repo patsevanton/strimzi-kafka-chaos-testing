@@ -1,0 +1,22 @@
+# Шаблоны для autoRebalance при масштабировании (add/remove brokers).
+# Оператор подставляет mode и brokers при запуске.
+# Должны быть применены до/вместе с kafka-metrics.yaml.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaRebalance
+metadata:
+  name: kafka-cluster-rebalance-add-brokers
+  labels:
+    strimzi.io/cluster: kafka-cluster
+  annotations:
+    strimzi.io/rebalance-template: "true"
+spec: {}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaRebalance
+metadata:
+  name: kafka-cluster-rebalance-remove-brokers
+  labels:
+    strimzi.io/cluster: kafka-cluster
+  annotations:
+    strimzi.io/rebalance-template: "true"
+spec: {}
