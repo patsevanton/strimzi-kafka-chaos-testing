@@ -1,6 +1,6 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования **отказоустойчивости**, **производительности**, **хаос-тестов**, **мониторинга**, **Cruise Control**, **Schema Registry**, **Kafka UI** и **golang app** (producer/consumer) высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
+Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Так же используется мониторинг, Cruise Control, Schema Registry, Kafka UI и Golang app (producer/consumer). Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
 
 ## Порядок развёртывания (полная последовательность)
 
