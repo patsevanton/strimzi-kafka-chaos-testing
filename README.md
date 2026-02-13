@@ -652,8 +652,8 @@ kubectl apply -f chaos-experiments/http-chaos.yaml
 sleep 60  # 1 минута таймаут
 
 # 9. DNS chaos (ошибки DNS для брокеров и producer)
-# kubectl apply -f chaos-experiments/dns-chaos.yaml
-# sleep 60  # 1 минута таймаут
+kubectl apply -f chaos-experiments/dns-chaos.yaml
+sleep 60  # 1 минута таймаут
 
 # 10. Network partition (сетевая изоляция)
 # kubectl apply -f chaos-experiments/network-partition.yaml
