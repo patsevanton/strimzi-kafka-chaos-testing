@@ -62,10 +62,8 @@ spec:
             - name: REDIS_KEY_PREFIX
               value: {{ .Values.redis.keyPrefix | quote }}
             {{- end }}
-            {{- if .Values.redis.sloSeconds }}
             - name: REDIS_SLO_SECONDS
-              value: {{ .Values.redis.sloSeconds | quote }}
-            {{- end }}
+              value: {{ (.Values.redis.sloSeconds | default 120) | quote }}
             {{- end }}
             - name: HEALTH_PORT
               value: {{ .Values.health.port | quote }}

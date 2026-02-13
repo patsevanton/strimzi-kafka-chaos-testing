@@ -176,7 +176,7 @@ func loadConfig() *Config {
 	if redisKeyPrefix == "" {
 		redisKeyPrefix = "kafka-msg:"
 	}
-	redisSLOSeconds := 60
+	redisSLOSeconds := 120
 	if s := os.Getenv("REDIS_SLO_SECONDS"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
 			redisSLOSeconds = n

@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.6"
+  tag: "0.2.8"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -70,7 +70,7 @@ redis:
   addr: "c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379"
   password: "strimzi-valkey-test"
   # keyPrefix: "kafka-msg:"
-  # sloSeconds: 60
+  sloSeconds: 120
 
 # Конфигурация проверки здоровья
 health:
