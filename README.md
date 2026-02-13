@@ -8,20 +8,20 @@
 
 1. Установка стека мониторинга (VictoriaMetrics K8s Stack) + Grafana
 2. Strimzi Operator и Strimzi Cruise Control 
-2. Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
-3. настройка сбора метрик через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD,
-3. Schema Registry (Karapace) для Avro
-4. Kafka UI
-5. Redis в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
-6. Golang producer/consumer (Helm)
-7. VictoriaLogs и victoria-logs-collector
-8. Chaos Mesh — установка (Helm, VMServiceScrape, RBAC/Dashboard)
-9. Импорт дашбордов Grafana
-10. Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.)
+3. Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
+4. настройка сбора метрик через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD,
+5. Schema Registry (Karapace) для Avro
+6. Kafka UI
+7. Redis в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
+8. Golang producer/consumer (Helm)
+9. VictoriaLogs и victoria-logs-collector
+10. Chaos Mesh — установка (Helm, VMServiceScrape, RBAC/Dashboard)
+11. Импорт дашбордов Grafana
+12. Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.)
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
-1. Репозиторий Helm для VictoriaMetrics (нужен для VictoriaLogs и других чартов ниже; сам VictoriaMetrics K8s Stack ставится из OCI):
+1. Репозиторий Helm для VictoriaMetrics:
 
 ```bash
 helm repo add vm https://victoriametrics.github.io/helm-charts/
@@ -36,7 +36,7 @@ helm upgrade --install vmks \
   --namespace vmks \
   --create-namespace \
   --wait \
-  --version 0.68.0 \
+  --version 0.70.0 \
   --timeout 15m \
   -f victoriametrics-values.yaml
 ```
@@ -47,7 +47,7 @@ helm upgrade --install vmks \
 kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | base64 --decode; echo
 ```
 
-4. Открыть Grafana: http://grafana.apatsev.org.ru (логин по умолчанию: `admin`). Datasource VictoriaMetrics добавляется автоматически.
+4. Grafana будет доступна по адресу http://grafana.apatsev.org.ru (логин по умолчанию: `admin`).
 
 ### Strimzi
 
@@ -72,7 +72,7 @@ helm upgrade --install strimzi-cluster-operator \
   --version 0.50.0
 ```
 
-Манифесты из [examples](https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples) Strimzi сохранены локально в директории **strimzi/** (kafka-metrics, kafka-topic, kafka-user, VMPodScrape/VMServiceScrape, kube-state-metrics). Вы можете использовать оригинальные манифесты + добавление label или можете использовать манифесты из текущего репозитория.
+Использовались манифесты из [examples](https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples) Strimzi с адаптацией для VictoriaMetrics K8s Stack.
 
 ### Установка Kafka из examples
 
@@ -105,7 +105,7 @@ kubectl get pdb -n kafka-cluster
 
 ### Cruise Control
 
-[Cruise Control](https://github.com/linkedin/cruise-control) — компонент для автоматического ребаланса партиций Kafka (распределение реплик по брокерам, цели по загрузке CPU/сети/диска). В **kafka-metrics.yaml** включён **Cruise Control** и **autoRebalance** при масштабировании (add-brokers / remove-brokers): при добавлении или удалении брокеров оператор сам запускает ребаланс по шаблонам.
+[Cruise Control](https://github.com/linkedin/cruise-control) — компонент для ребаланса партиций Kafka (распределение реплик по брокерам, цели по загрузке CPU/сети/диска). В **kafka-metrics.yaml** включён **Cruise Control** и **autoRebalance** при масштабировании (add-brokers / remove-brokers): при добавлении или удалении брокеров оператор сам запускает ребаланс по шаблонам.
 
 **Автоматический полный ребаланс в фоне** (все брокеры, все топики) реализован через **CronJob** `strimzi/cruise-control/kafka-rebalance-cronjob.yaml`: раз в час создаётся `KafkaRebalance` и одобряется. Расписание можно изменить в `.spec.schedule` (например `"0 */6 * * *"` — раз в 6 часов). В Strimzi нет встроенного «постоянного» полного ребаланса, поэтому используется периодический запуск. Strimzi специально сделан так, потому что rebalance — очень дорогая операция.
 
@@ -482,10 +482,7 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
   --wait \
   --version 0.0.27 \
   --timeout 15m \
-  -f victoria-logs-cluster-values.yaml \
-  --set vlselect.vmServiceScrape.enabled=true \
-  --set vlinsert.vmServiceScrape.enabled=true \
-  --set vlstorage.vmServiceScrape.enabled=true
+  -f victoria-logs-cluster-values.yaml
 ```
 
 Чтобы VMAgent из VictoriaMetrics K8s Stack собирал метрики VictoriaLogs, на VMServiceScrape должен быть label, по которому стэк выбирает цели (например `release: vmks`). Если чарт по умолчанию задаёт другой `release`, добавьте в values или `--set` нужный label для vlselect/vlinsert/vlstorage VMServiceScrape.
@@ -507,12 +504,8 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   --wait \
   --version 0.2.8 \
   --timeout 15m \
-  -f victoria-logs-collector-values.yaml \
-  --set podMonitor.enabled=true \
-  --set podMonitor.vm=true
+  -f victoria-logs-collector-values.yaml
 ```
-
-Параметр `podMonitor.vm=true` создаёт VMPodScrape для сбора метрик коллектора в VictoriaMetrics K8s Stack.
 
 Проверка: `kubectl get pods -n victoria-logs-collector`.
 

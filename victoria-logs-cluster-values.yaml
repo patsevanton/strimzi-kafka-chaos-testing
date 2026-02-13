@@ -1,4 +1,6 @@
 vlselect:
+  vmServiceScrape:
+    enabled: true
   ingress:
     enabled: true
     hosts:
@@ -8,7 +10,13 @@ vlselect:
         port: http
     ingressClassName: nginx
 
+vlinsert:
+  vmServiceScrape:
+    enabled: true
+
 vlstorage:
+  vmServiceScrape:
+    enabled: true
   retentionPeriod: 1d
   persistentVolume:
     size: 20Gi

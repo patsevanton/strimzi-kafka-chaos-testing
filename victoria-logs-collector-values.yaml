@@ -13,3 +13,9 @@ collector:
   msgField:
     - message
     - msg
+
+# Настройки podMonitor для сбора метрик коллектора
+podMonitor:
+  enabled: true
+  # Параметр vm=true создаёт VMPodScrape для сбора метрик коллектора в VictoriaMetrics K8s Stack
+  vm: true
