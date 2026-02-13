@@ -639,51 +639,51 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 ```bash
 # 1. Pod kill (убийство брокера)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 2. Pod failure (симуляция падения пода)
 kubectl apply -f chaos-experiments/pod-failure.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 3. Network delay (сетевые задержки)
 kubectl apply -f chaos-experiments/network-delay.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 4. Network partition (сетевая изоляция)
 kubectl apply -f chaos-experiments/network-partition.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 5. Network loss (потеря пакетов)
 kubectl apply -f chaos-experiments/network-loss.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 6. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 7. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 8. IO chaos (задержки и ошибки дискового I/O)
 kubectl apply -f chaos-experiments/io-chaos.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 9. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 10. DNS chaos (ошибки DNS)
 kubectl apply -f chaos-experiments/dns-chaos.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 11. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 
 # 12. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
-sleep 600  # 10 минут таймаут
+sleep 60  # 10 минут таймаут
 ```
 
 Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
@@ -714,5 +714,3 @@ kubectl delete -f chaos-experiments/
 | **redis-delivery-verification** (`dashboards/redis-delivery-verification.json`) | SLO доставки, pending/old messages; при сбоях доставки — рост старых сообщений в Redis |
 
 Рекомендуемый порядок: перед запуском экспериментов откройте дашборды Strimzi Kafka и kafka-go-app-metrics, установите автообновление (например, 10–30 s). Запускайте эксперименты последовательно с таймаутом между ними (см. выше), наблюдайте метрики во время каждого эксперимента; после каждого эксперимента убедитесь в восстановлении кластера (lag снижается, ошибок нет, latency в норме) перед запуском следующего. После завершения всех экспериментов остановите их командой `kubectl delete -f chaos-experiments/`.
-
-
