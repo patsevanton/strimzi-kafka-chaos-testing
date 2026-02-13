@@ -639,51 +639,51 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 ```bash
 # 1. Pod kill (убийство брокера)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 2. Pod failure (симуляция падения пода)
 kubectl apply -f chaos-experiments/pod-failure.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 3. Network delay (сетевые задержки)
 kubectl apply -f chaos-experiments/network-delay.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 4. Network partition (сетевая изоляция)
 kubectl apply -f chaos-experiments/network-partition.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 5. Network loss (потеря пакетов)
 kubectl apply -f chaos-experiments/network-loss.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 6. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 7. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 8. IO chaos (задержки и ошибки дискового I/O)
 kubectl apply -f chaos-experiments/io-chaos.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 9. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 10. DNS chaos (ошибки DNS)
 kubectl apply -f chaos-experiments/dns-chaos.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 11. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 
 # 12. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
-sleep 60  # 10 минут таймаут
+sleep 60  # 1 минута таймаут
 ```
 
 Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
