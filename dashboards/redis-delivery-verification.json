@@ -182,54 +182,56 @@
       "description": "Число ключей в Redis, ожидающих обработки: сообщение отправлено в Kafka и записано в Redis, но consumer ещё не обработал и не удалил ключ. Рост при отставании consumer (п.4 критикала).",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 100}, {"color": "red", "value": 1000}] },
+          "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}] },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 14 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 14 },
       "id": 107,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
           "editorMode": "code",
-          "expr": "max(redis_pending_messages)",
-          "legendFormat": "pending",
+          "expr": "redis_pending_messages",
+          "legendFormat": "pending {{pod}}",
           "refId": "A"
         }
       ],
       "title": "Pending Messages (in Redis)",
-      "type": "stat"
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
       "description": "Число ожидающих сообщений старше порога REDIS_SLO_SECONDS. Любое значение выше нуля — нарушение SLO по задержке (п.4). Почему не меняется: (1) consumer отстаёт — сообщения ещё не прочитаны из Kafka (смотри Consumer Lag); (2) «сироты» — ключ есть в Redis, но сообщения нет в Kafka (producer упал после Redis до Kafka), тогда ключ никогда не удалится; (3) равновесие — старые обрабатываются, новые успевают становиться old. Проверьте: kafka_consumer_lag, Consumer received rate, логи consumer.",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": { "mode": "palette-classic" },
+          "custom": { "axisCenteredZero": false, "axisLabel": "", "axisPlacement": "auto", "drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } },
           "mappings": [],
           "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}] },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 14 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 14 },
       "id": 108,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
           "editorMode": "code",
-          "expr": "max(redis_pending_old_messages)",
-          "legendFormat": "old (SLO breach)",
+          "expr": "redis_pending_old_messages",
+          "legendFormat": "old (SLO) {{pod}}",
           "refId": "A"
         }
       ],
       "title": "Pending Old (SLO Breach)",
-      "type": "stat"
+      "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
@@ -244,7 +246,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 14 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 14 },
       "id": 109,
       "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "none" } },
       "targets": [
