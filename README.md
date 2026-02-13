@@ -656,17 +656,17 @@ sleep 60  # 1 минута таймаут
 kubectl apply -f chaos-experiments/http-chaos.yaml
 sleep 60  # 1 минута таймаут
 
-# 9. Network partition (сетевая изоляция)
-kubectl apply -f chaos-experiments/network-partition.yaml
-sleep 60  # 1 минута таймаут
+# 9. DNS chaos (ошибки DNS для брокеров и producer)
+# kubectl apply -f chaos-experiments/dns-chaos.yaml
+# sleep 60  # 1 минута таймаут
 
-# 10. Network loss (потеря пакетов)
-kubectl apply -f chaos-experiments/network-loss.yaml
-sleep 60  # 1 минута таймаут
+# 10. Network partition (сетевая изоляция)
+# kubectl apply -f chaos-experiments/network-partition.yaml
+# sleep 60  # 1 минута таймаут
 
-# 11. DNS chaos (ошибки DNS для брокеров и producer)
-kubectl apply -f chaos-experiments/dns-chaos.yaml
-sleep 60  # 1 минута таймаут
+# 11. Network loss (потеря пакетов)
+# kubectl apply -f chaos-experiments/network-loss.yaml
+# sleep 60  # 1 минута таймаут
 
 # Network delay (сетевые задержки) — отладка, по умолчанию не запускаем
 # kubectl apply -f chaos-experiments/network-delay.yaml
