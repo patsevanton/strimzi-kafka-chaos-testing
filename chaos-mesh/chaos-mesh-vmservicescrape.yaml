@@ -1,5 +1,5 @@
-# VMServiceScrape для Chaos Mesh (VictoriaMetrics K8s Stack)
-# В кластере с VictoriaMetrics используются VMServiceScrape, а не ServiceMonitor
+# VMServiceScrape для Chaos Mesh (VictoriaMetrics K8s Stack).
+# Используйте этот манифест вместо Prometheus ServiceMonitor.
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
@@ -7,6 +7,8 @@ metadata:
   name: chaos-mesh-controller-manager
   namespace: chaos-mesh
   labels:
+    app.kubernetes.io/component: controller-manager
+    app.kubernetes.io/name: chaos-mesh
     release: vmks
 spec:
   selector:
@@ -28,6 +30,8 @@ metadata:
   name: chaos-daemon
   namespace: chaos-mesh
   labels:
+    app.kubernetes.io/component: chaos-daemon
+    app.kubernetes.io/name: chaos-mesh
     release: vmks
 spec:
   selector:

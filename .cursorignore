@@ -1,0 +1,17 @@
+.cursorignore
+.git
+.github
+.gitignore
+.terraform
+.terraform.lock.hcl
+LICENSE
+docs
+go.mod
+go.sum
+ip-dns.tf
+k8s.tf
+net.tf
+terraform.tfstate
+terraform.tfstate.backup
+valkey.tf
+versions.tf
