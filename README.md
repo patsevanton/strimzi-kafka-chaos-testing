@@ -593,13 +593,58 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 
 Подробное описание панелей и инструкции по импорту — в **dashboards/README.md**.
 
-## Удаление
+## Запуск chaos-экспериментов и наблюдение за кластером
 
-Инструкции по удалению всех компонентов (Chaos Mesh, VictoriaMetrics K8s Stack, Kafka, Strimzi, namespaces) вынесены в **uninstall.md**. Порядок удаления критичен из‑за finalizers у Strimzi CRD.
+После установки Chaos Mesh и импорта дашбордов в Grafana можно запускать эксперименты из **chaos-experiments/** и смотреть реакцию кластера на графиках.
 
-Автоматизированный скрипт:
+### Запуск экспериментов
+
+Запуск одного эксперимента (например, разовое убийство пода брокера):
 
 ```bash
-./uninstall.sh
+kubectl apply -f chaos-experiments/pod-kill.yaml
 ```
+
+Запуск нескольких экспериментов по очереди (сетевые задержки, затем нагрузка на CPU):
+
+```bash
+kubectl apply -f chaos-experiments/network-delay.yaml
+kubectl apply -f chaos-experiments/cpu-stress.yaml
+```
+
+Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
+
+```bash
+kubectl get podchaos,networkchaos,stresschaos,schedule,httpchaos,jvmchaos -n kafka-cluster
+kubectl describe podchaos -n kafka-cluster  # детали по одному типу
+```
+
+Остановка эксперимента:
+
+```bash
+kubectl delete -f chaos-experiments/pod-kill.yaml
+```
+
+Остановка всех экспериментов из директории:
+
+```bash
+kubectl delete -f chaos-experiments/
+```
+
+Подробности по каждому эксперименту, рискам и ожидаемому поведению — в **chaos-experiments/README.md**.
+
+### Наблюдение за состоянием кластера на дашбордах Grafana
+
+Импортированные дашборды позволяют отслеживать состояние кластера до, во время и после chaos-экспериментов. Откройте Grafana (http://grafana.apatsev.org.ru или ваш Ingress), выберите нужный дашборд и временной диапазон, охватывающий момент запуска и остановки эксперимента.
+
+| Дашборд | Что смотреть при chaos |
+|--------|-------------------------|
+| **Strimzi Kafka / Strimzi KRaft** (импорт из Strimzi) | Состояние брокеров, реплик, under-replicated партиций; полезно при pod-kill, pod-failure, network-* |
+| **Strimzi Kafka Exporter** | Метрики топиков, consumer groups, lag; при сетевых и pod-экспериментах — рост lag, изменение throughput |
+| **Strimzi Operators** | Реконсиляция Cluster Operator, Topic/User Operator; при убийстве подов — всплески активности |
+| **kafka-go-app-metrics** (`dashboards/kafka-go-app-metrics.json`) | Producer/Consumer: сообщения в сек, latency, ошибки, переподключения; при network-delay/loss — рост latency и ошибок |
+| **redis-delivery-verification** (`dashboards/redis-delivery-verification.json`) | SLO доставки, pending/old messages; при сбоях доставки — рост старых сообщений в Redis |
+
+Рекомендуемый порядок: перед запуском эксперимента откройте дашборды Strimzi Kafka и kafka-go-app-metrics, установите автообновление (например, 10–30 s). Запустите эксперимент, наблюдайте метрики; после остановки — убедитесь в восстановлении (lag снижается, ошибок нет, latency в норме).
+
 
