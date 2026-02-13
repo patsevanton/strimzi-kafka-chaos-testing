@@ -69,7 +69,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: rebalance
-              image: bitnami/kubectl:1.31
+              image: alpine/k8s:1.28.0
               volumeMounts:
                 - name: manifest
                   mountPath: /manifests
