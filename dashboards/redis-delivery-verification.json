@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Redis (Yandex Valkey) и верификация доставки по docs/delivery-verification-critique.md: latency и нагрузка на Redis (п.7), ошибки записи/доступность (п.1), SLO по задержке — pending и old (п.4), received и hash mismatch.",
+  "description": "Redis и верификация доставки по docs/delivery-verification-critique.md: latency и нагрузка на Redis (п.7), ошибки записи/доступность (п.1), SLO по задержке — pending и old (п.4), received и hash mismatch.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -25,8 +25,8 @@
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
       "panels": [],
-      "description": "Секция метрик Redis (Yandex Valkey): задержки ответа, нагрузка на инстанс и доступность. См. п.7 и п.1 критикала (docs/delivery-verification-critique.md).",
-      "title": "Redis (Yandex Valkey) — latency, нагрузка, доступность (п.7, п.1)",
+      "description": "Секция метрик Redis: задержки ответа, нагрузка на инстанс и доступность. См. п.7 и п.1 критикала (docs/delivery-verification-critique.md).",
+      "title": "Redis — latency, нагрузка, доступность (п.7, п.1)",
       "type": "row"
     },
     {
@@ -328,7 +328,7 @@
   "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["redis", "valkey", "delivery-verification", "slo", "kafka"],
+  "tags": ["redis", "delivery-verification", "slo", "kafka"],
   "templating": {
     "list": [
       {

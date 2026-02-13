@@ -64,11 +64,10 @@ schemaRegistry:
   # Сервис развёрнут в namespace "schema-registry" в этом репозитории
   url: "http://schema-registry.schema-registry:8081"
 
-# Опционально: Redis для верификации доставки (сверка хеша, счётчики, SLO)
-# Для Yandex Valkey (valkey.tf): тот же addr и password, что у Producer
+# Redis для верификации доставки (получение данных из Redis, сверка хеша, счётчики, SLO)
 redis:
-  addr: "c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379"
-  password: "strimzi-valkey-test"
+  addr: "redis.redis.svc.cluster.local:6379"
+  password: ""
   # keyPrefix: "kafka-msg:"
   sloSeconds: 120
 

@@ -10,11 +10,12 @@
 2. Strimzi Operator и Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
 3. Schema Registry (Karapace)
 4. Kafka UI
-5. Go producer/consumer (Helm)
-6. VictoriaLogs и victoria-logs-collector
-7. **Chaos Mesh** — установка (Helm, VMServiceScrape, RBAC/Dashboard)
-8. Импорт дашбордов Grafana
-9. **Запуск chaos-тестов** — применить **все эксперименты последовательно** из `chaos-experiments/` с таймаутом между экспериментами (например, 5–10 минут), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
+5. **Redis в Kubernetes** (верификация доставки, хеши сообщений Producer → Consumer)
+6. Go producer/consumer (Helm)
+7. VictoriaLogs и victoria-logs-collector
+8. **Chaos Mesh** — установка (Helm, VMServiceScrape, RBAC/Dashboard)
+9. Импорт дашбордов Grafana
+10. **Запуск chaos-тестов** — применить **все эксперименты последовательно** из `chaos-experiments/` с таймаутом между экспериментами (например, 5–10 минут), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
@@ -299,10 +300,10 @@ kubectl get secret myuser -n kafka-producer
 kubectl get secret myuser -n kafka-consumer
 ```
 
+**Перед установкой Producer/Consumer разверните Redis в K8s** (см. [Redis в Kubernetes](#redis-в-kubernetes)). Values по умолчанию используют `redis.redis.svc.cluster.local:6379`.
+
 #### 1) Установить Producer
 ```bash
-# Адрес Valkey (после terraform apply): VALKEY_ADDR=$(terraform output -raw valkey_address)
-# С Valkey: добавьте --set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
@@ -315,7 +316,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 
 #### 2) Установить Consumer
 ```bash
-# С Valkey: --set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"
+# In-cluster Redis (по умолчанию): Consumer получает данные из Redis, сверяет хеши
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-consumer \
   --create-namespace \
@@ -327,48 +328,17 @@ helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --set kafka.existingSecret="myuser"
 ```
 
-**Valkey (Redis) для верификации доставки:** кластер задаётся в `valkey.tf` (Yandex Managed Redis). Настройте провайдер Yandex (`token` или `service_account_key_file`), выполните `terraform apply -auto-approve`, затем `export VALKEY_ADDR=$(terraform output -raw valkey_address)` и добавьте к командам Helm выше: `--set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"`. Либо укажите `redis.addr` и `redis.password` в `values.yaml` (уже заданы для текущего кластера). Чтобы в Grafana отображались метрики Redis и дашборд **redis-delivery-verification**, выполните шаги из подраздела [Redis Exporter и дашборд redis-delivery-verification](#redis-exporter-и-дашборд-redis-delivery-verification) ниже.
-
-Пример вывода Terraform:
-```bash
-$ terraform output external_valkey
-{
-  "host"     = "c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net"
-  "password" = "strimzi-valkey-test"
-  "port"     = 6379
-}
-
-$ terraform output -raw valkey_address
-c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379
-```
-
 ### Redis Exporter и дашборд redis-delivery-verification
 
-Чтобы в дашборде **redis-delivery-verification** (Grafana) отображались метрики Redis/Valkey (latency, нагрузка, SLO верификации доставки), нужно развернуть redis-exporter и настроить сбор метрик. Адрес и пароль Redis возьмите из Terraform (`terraform output external_valkey` / `valkey_address`) или укажите свой инстанс.
-
-1. **Создать Secret с учётными данными Redis** в namespace `vmks` (имя Secret должно быть `valkey-exporter-redis` — его ожидает манифест redis-exporter):
+Метрики Redis для дашборда **redis-delivery-verification** (Grafana):
 
 ```bash
-# Подставьте свой адрес и пароль (например из terraform output -raw valkey_address)
-kubectl create secret generic valkey-exporter-redis -n vmks \
-  --from-literal=REDIS_ADDR='<host>:6379' \
-  --from-literal=REDIS_PASSWORD='<password>'
+kubectl apply -f redis/redis-exporter-in-cluster.yaml
 ```
 
-2. **Применить манифест redis-exporter** (Deployment, Service и VMServiceScrape в одном файле):
+Проверить: `kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter-in-cluster`
 
-```bash
-kubectl apply -f strimzi/redis-exporter.yaml
-```
-
-3. **Проверить, что под redis-exporter запущен** и VMAgent собирает метрики:
-
-```bash
-kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter
-kubectl get vmservicescrape -n vmks redis-exporter
-```
-
-4. **Импортировать дашборд в Grafana** (если ещё не импортирован): Dashboards → Import → загрузить `dashboards/redis-delivery-verification.json`. В качестве источника метрик выберите VictoriaMetrics. После появления данных с redis-exporter панели дашборда начнут отображать метрики Redis и (при включённой верификации доставки) SLO.
+Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик — VictoriaMetrics.
 
 Подробнее о верификации доставки и метриках — [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
 
@@ -473,6 +443,21 @@ kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=300s
 ```
 
 Kafka UI будет доступен по адресу Ingress (в values: `kafka-ui.apatsev.org.ru`). Значения в `helm/kafka-ui-values.yaml` адаптированы под кластер `kafka-cluster` в namespace `kafka-cluster` и Schema Registry в `schema-registry`. Kafka UI подключается под пользователем **kafka-ui-user** с правами только на чтение (Describe, Read на topics и groups).
+
+## Redis в Kubernetes
+
+Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ. Адрес: `redis.redis.svc.cluster.local:6379`.
+
+```bash
+kubectl apply -f redis/redis.yaml
+kubectl rollout status deploy/redis -n redis --timeout=120s
+```
+
+Метрики Redis для дашборда **redis-delivery-verification** (in-cluster Redis):
+
+```bash
+kubectl apply -f redis/redis-exporter-in-cluster.yaml
+```
 
 ## VictoriaLogs
 
@@ -579,13 +564,15 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 |------|----------|
 | `pod-kill.yaml` | Убийство брокера (одноразово + Schedule каждые 5 мин) |
 | `pod-failure.yaml` | Симуляция падения пода |
-| `network-delay.yaml`, `network-partition.yaml`, `network-loss.yaml` | Сетевые задержки, изоляция, потеря пакетов |
+| `network-delay.yaml` | Сетевые задержки 100–500 ms |
 | `cpu-stress.yaml`, `memory-stress.yaml` | Нагрузка на CPU и память |
 | `io-chaos.yaml` | Задержки и ошибки дискового I/O |
 | `time-chaos.yaml` | Смещение системного времени |
-| `dns-chaos.yaml` | Ошибки DNS для брокеров и producer |
 | `jvm-chaos.yaml` | GC, stress и исключения в JVM брокеров |
 | `http-chaos.yaml` | Задержки/ошибки Schema Registry и Kafka UI |
+| `network-partition.yaml` | Сетевая изоляция брокера / partition между брокерами и producer |
+| `network-loss.yaml` | Потеря пакетов 10–30% |
+| `dns-chaos.yaml` | Ошибки DNS для брокеров и producer |
 
 Запуск одного эксперимента:
 
@@ -618,7 +605,7 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 Дашборды в **dashboards/**:
 
 - **kafka-go-app-metrics.json** — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
-- **redis-delivery-verification.json** — Redis (Yandex Valkey), SLO и верификация доставки ([docs/delivery-verification-critique.md](docs/delivery-verification-critique.md))
+- **redis-delivery-verification.json** — Redis, SLO и верификация доставки ([docs/delivery-verification-critique.md](docs/delivery-verification-critique.md))
 
 Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
@@ -645,45 +632,45 @@ sleep 60  # 1 минута таймаут
 kubectl apply -f chaos-experiments/pod-failure.yaml
 sleep 60  # 1 минута таймаут
 
-# 3. Network partition (сетевая изоляция)
-kubectl apply -f chaos-experiments/network-partition.yaml
-sleep 60  # 1 минута таймаут
-
-# 4. Network loss (потеря пакетов)
-kubectl apply -f chaos-experiments/network-loss.yaml
-sleep 60  # 1 минута таймаут
-
-# 5. CPU stress (нагрузка на CPU)
+# 3. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
 sleep 60  # 1 минута таймаут
 
-# 6. Memory stress (нагрузка на память)
+# 4. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
 sleep 60  # 1 минута таймаут
 
-# 7. IO chaos (задержки и ошибки дискового I/O)
+# 5. IO chaos (задержки и ошибки дискового I/O)
 kubectl apply -f chaos-experiments/io-chaos.yaml
 sleep 60  # 1 минута таймаут
 
-# 8. Time chaos (смещение системного времени)
+# 6. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
 sleep 60  # 1 минута таймаут
 
-# 9. DNS chaos (ошибки DNS)
-kubectl apply -f chaos-experiments/dns-chaos.yaml
-sleep 60  # 1 минута таймаут
-
-# 10. JVM chaos (GC, stress и исключения в JVM)
+# 7. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
 sleep 60  # 1 минута таймаут
 
-# 11. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
+# 8. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
 sleep 60  # 1 минута таймаут
 
-# 12. Network delay (сетевые задержки) - отладка. не запускаем
+# 9. Network partition (сетевая изоляция)
+kubectl apply -f chaos-experiments/network-partition.yaml
+sleep 60  # 1 минута таймаут
+
+# 10. Network loss (потеря пакетов)
+kubectl apply -f chaos-experiments/network-loss.yaml
+sleep 60  # 1 минута таймаут
+
+# 11. DNS chaos (ошибки DNS для брокеров и producer)
+kubectl apply -f chaos-experiments/dns-chaos.yaml
+sleep 60  # 1 минута таймаут
+
+# Network delay (сетевые задержки) — отладка, по умолчанию не запускаем
 # kubectl apply -f chaos-experiments/network-delay.yaml
-# sleep 60  # 1 минута таймаут
+# sleep 60
 ```
 
 Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):

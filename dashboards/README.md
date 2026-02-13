@@ -62,7 +62,7 @@
 
 ## Redis & Delivery Verification
 
-Дашборд для мониторинга Redis (Yandex Valkey) и верификации доставки по [docs/delivery-verification-critique.md](../docs/delivery-verification-critique.md).
+Дашборд для мониторинга Redis и верификации доставки по [docs/delivery-verification-critique.md](../docs/delivery-verification-critique.md).
 
 ### Импорт
 
@@ -71,11 +71,11 @@
 
 ### Что на дашборде
 
-- **Redis (Yandex Valkey):** connected clients, commands rate, memory, rejected connections, command latency (п.7, п.1 критикала).
+- **Redis:** connected clients, commands rate, memory, rejected connections, command latency (п.7, п.1 критикала).
 - **Delivery verification (SLO):** pending messages, pending old (нарушение SLO по задержке), received rate, hash mismatch (п.4).
 - **Pending vs Old:** рост pending без роста old — consumer отстаёт, но в рамках SLO.
 
 ### Требования
 
-- Сбор метрик Redis: разверните redis-exporter и VMServiceScrape (см. `strimzi/redis-exporter.yaml`). Перед применением создайте Secret с адресом и паролем Valkey.
+- Сбор метрик Redis: разверните redis-exporter для in-cluster Redis: `kubectl apply -f redis/redis-exporter-in-cluster.yaml`
 - Метрики приложения (`redis_pending_messages`, `redis_pending_old_messages`, `kafka_consumer_redis_hash_mismatch_total` и т.д.) собираются существующими VMServiceScrape для producer/consumer.
