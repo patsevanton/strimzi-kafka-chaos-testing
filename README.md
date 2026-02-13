@@ -69,8 +69,6 @@ helm upgrade --install strimzi-cluster-operator \
   --version 0.50.0
 ```
 
-> **Чем отличаются манифесты от upstream Strimzi:** все VMPodScrape и VMServiceScrape заранее помечены `release: vmks` (VictoriaMetrics K8s Stack 0.70+ не устанавливает Prometheus Operator CRD PodMonitor/ServiceMonitor, используются CRD VictoriaMetrics Operator). Манифест `cluster-operator-metrics` сразу смотрит в namespace `strimzi`, а Service для `strimzi-kube-state-metrics` уже содержит необходимые `app.kubernetes.io/*` метки. Если использовать оригинальные yaml из [официального репозитория Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples/metrics), добавьте эти label вручную (`release: vmks` на VMPodScrape/VMServiceScrape и `app.kubernetes.io/*` на Service) и поправьте `namespaceSelector.matchNames` для `cluster-operator-metrics` на `strimzi`.
-
 Манифесты из [examples](https://github.com/strimzi/strimzi-kafka-operator/tree/main/examples) Strimzi сохранены локально в директории **strimzi/** (kafka-metrics, kafka-topic, kafka-user, VMPodScrape/VMServiceScrape, kube-state-metrics). Вы можете использовать оригинальные манифесты + добавление label или можете использовать манифесты из текущего репозитория.
 
 ### Установка Kafka из examples
