@@ -2,6 +2,20 @@
 
 Проект для тестирования **отказоустойчивости**, **производительности**, **хаос-тестов**, **мониторинга**, **Cruise Control**, **Schema Registry**, **Kafka UI** и **golang app** (producer/consumer) высоконагруженного кластера Apache Strimzi Kafka в Kubernetes. Пошагово разворачивается мониторинг на базе Helm-чарта **VictoriaMetrics K8s Stack**: установка стека и Grafana, Strimzi Operator и Kafka-кластера с JMX и Kafka Exporter, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, а также Go producer/consumer с готовыми Helm-чартами.
 
+## Порядок развёртывания (полная последовательность)
+
+При выполнении README **последовательно** нужно пройти все шаги в указанном порядке. **Chaos-тесты входят в обязательную последовательность** — их нельзя пропускать.
+
+1. Установка стека мониторинга (VictoriaMetrics K8s Stack)
+2. Strimzi Operator и Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
+3. Schema Registry (Karapace)
+4. Kafka UI
+5. Go producer/consumer (Helm)
+6. VictoriaLogs и victoria-logs-collector
+7. **Chaos Mesh** — установка (Helm, VMServiceScrape, RBAC/Dashboard)
+8. Импорт дашбордов Grafana (если ещё не импортированы)
+9. **Запуск chaos-тестов** — применить **все эксперименты последовательно** из `chaos-experiments/` с таймаутом между экспериментами (например, 5–10 минут), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
+
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
 1. Репозиторий Helm для VictoriaMetrics (нужен для VictoriaLogs и других чартов ниже; сам VictoriaMetrics K8s Stack ставится из OCI):
@@ -103,7 +117,7 @@ kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-templat
 # 2. Kafka с Cruise Control и autoRebalance (уже в kafka-metrics.yaml)
 kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
 
-# 3. CronJob для периодического полного ребаланса (по желанию)
+# 3. CronJob для периодического полного ребаланса
 kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-cronjob.yaml
 ```
 
@@ -501,7 +515,7 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
 
 Проверка: `kubectl get pods -n victoria-logs-cluster`. Доступ к UI: по адресу Ingress из values (по умолчанию `victorialogs.apatsev.org.ru`).
 
-### Victoria-logs-collector (опционально)
+### Victoria-logs-collector
 
 **Victoria-logs-collector** — Helm-чарт VictoriaMetrics, разворачивающий агент сбора логов (vlagent) как DaemonSet. Собирает логи со всех контейнеров в кластере и отправляет их в VictoriaLogs (vlinsert).
 
@@ -528,6 +542,8 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
 ## Chaos Mesh
 
 **Chaos Mesh** — платформа для chaos engineering в Kubernetes. Позволяет внедрять сбои (network, pod, I/O, time, DNS, JVM, HTTP) для тестирования отказоустойчивости Kafka и приложений. Манифесты взяты из [strimzi-kafka-chaos-testing](https://github.com/patsevanton/strimzi-kafka-chaos-testing) и адаптированы под namespace `kafka-cluster` и кластер `kafka-cluster`.
+
+**При последовательном выполнении README этот шаг обязателен.** После установки Chaos Mesh нужно обязательно выполнить [запуск chaos-тестов](#запуск-chaos-экспериментов-и-наблюдение-за-кластером) — применить **все эксперименты последовательно** с таймаутом между ними и проверить реакцию кластера. Иначе развёртывание по README не завершено.
 
 ### Установка Chaos Mesh
 
@@ -564,6 +580,8 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 Скопируйте токен и войдите в Chaos Mesh Dashboard. В `chaos-mesh-values.yaml` задан Ingress-хост `chaos-dashboard.apatsev.org.ru` (при необходимости измените под свой домен).
 
 ### Chaos-эксперименты
+
+**При следовании README по шагам chaos-тесты нужно обязательно выполнить:** после установки Chaos Mesh примените **все эксперименты последовательно** из `chaos-experiments/` с таймаутом между ними (5–10 минут), проверьте статус каждого (`kubectl get podchaos,... -n kafka-cluster`) и убедитесь, что кластер реагирует (Grafana, логи). Пропуск этого шага означает неполное развёртывание.
 
 В директории **chaos-experiments/** лежат готовые эксперименты для Kafka, Schema Registry, Kafka UI и producer/consumer:
 
@@ -622,37 +640,70 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 
 ## Запуск chaos-экспериментов и наблюдение за кластером
 
-После установки Chaos Mesh и импорта дашбордов в Grafana можно запускать эксперименты из **chaos-experiments/** и смотреть реакцию кластера на графиках.
+**Обязательный шаг при последовательном развёртывании по README.** После установки Chaos Mesh и импорта дашбордов в Grafana нужно запустить эксперименты из **chaos-experiments/** и наблюдать реакцию кластера на графиках. Если этот шаг пропущен, развёртывание по README не считается завершённым.
 
 ### Запуск экспериментов
 
-Запуск одного эксперимента (например, разовое убийство пода брокера):
+**При последовательном развёртывании по README нужно запустить все эксперименты последовательно с таймаутом между ними.** Порядок запуска и таймауты:
 
 ```bash
+# 1. Pod kill (убийство брокера)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-```
+sleep 600  # 10 минут таймаут
 
-Запуск нескольких экспериментов по очереди (сетевые задержки, затем нагрузка на CPU):
+# 2. Pod failure (симуляция падения пода)
+kubectl apply -f chaos-experiments/pod-failure.yaml
+sleep 600  # 10 минут таймаут
 
-```bash
+# 3. Network delay (сетевые задержки)
 kubectl apply -f chaos-experiments/network-delay.yaml
+sleep 600  # 10 минут таймаут
+
+# 4. Network partition (сетевая изоляция)
+kubectl apply -f chaos-experiments/network-partition.yaml
+sleep 600  # 10 минут таймаут
+
+# 5. Network loss (потеря пакетов)
+kubectl apply -f chaos-experiments/network-loss.yaml
+sleep 600  # 10 минут таймаут
+
+# 6. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
+sleep 600  # 10 минут таймаут
+
+# 7. Memory stress (нагрузка на память)
+kubectl apply -f chaos-experiments/memory-stress.yaml
+sleep 600  # 10 минут таймаут
+
+# 8. IO chaos (задержки и ошибки дискового I/O)
+kubectl apply -f chaos-experiments/io-chaos.yaml
+sleep 600  # 10 минут таймаут
+
+# 9. Time chaos (смещение системного времени)
+kubectl apply -f chaos-experiments/time-chaos.yaml
+sleep 600  # 10 минут таймаут
+
+# 10. DNS chaos (ошибки DNS)
+kubectl apply -f chaos-experiments/dns-chaos.yaml
+sleep 600  # 10 минут таймаут
+
+# 11. JVM chaos (GC, stress и исключения в JVM)
+kubectl apply -f chaos-experiments/jvm-chaos.yaml
+sleep 600  # 10 минут таймаут
+
+# 12. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
+kubectl apply -f chaos-experiments/http-chaos.yaml
+sleep 600  # 10 минут таймаут
 ```
 
 Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
 
 ```bash
-kubectl get podchaos,networkchaos,stresschaos,schedule,httpchaos,jvmchaos -n kafka-cluster
+kubectl get podchaos,networkchaos,stresschaos,schedule,httpchaos,jvmchaos,iochaos,timechaos,dnschaos -n kafka-cluster
 kubectl describe podchaos -n kafka-cluster  # детали по одному типу
 ```
 
-Остановка эксперимента:
-
-```bash
-kubectl delete -f chaos-experiments/pod-kill.yaml
-```
-
-Остановка всех экспериментов из директории:
+Остановка всех экспериментов из директории (выполнить после завершения тестирования):
 
 ```bash
 kubectl delete -f chaos-experiments/
@@ -672,6 +723,6 @@ kubectl delete -f chaos-experiments/
 | **kafka-go-app-metrics** (`dashboards/kafka-go-app-metrics.json`) | Producer/Consumer: сообщения в сек, latency, ошибки, переподключения; при network-delay/loss — рост latency и ошибок |
 | **redis-delivery-verification** (`dashboards/redis-delivery-verification.json`) | SLO доставки, pending/old messages; при сбоях доставки — рост старых сообщений в Redis |
 
-Рекомендуемый порядок: перед запуском эксперимента откройте дашборды Strimzi Kafka и kafka-go-app-metrics, установите автообновление (например, 10–30 s). Запустите эксперимент, наблюдайте метрики; после остановки — убедитесь в восстановлении (lag снижается, ошибок нет, latency в норме).
+Рекомендуемый порядок: перед запуском экспериментов откройте дашборды Strimzi Kafka и kafka-go-app-metrics, установите автообновление (например, 10–30 s). Запускайте эксперименты последовательно с таймаутом между ними (см. выше), наблюдайте метрики во время каждого эксперимента; после каждого эксперимента убедитесь в восстановлении кластера (lag снижается, ошибок нет, latency в норме) перед запуском следующего. После завершения всех экспериментов остановите их командой `kubectl delete -f chaos-experiments/`.
 
 
