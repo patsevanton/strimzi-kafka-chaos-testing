@@ -1,21 +1,23 @@
 # Тестирование Strimzi Kafka под высокой нагрузкой
 
-Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Разворачивается VictoriaMetrics K8s Stack, Grafana, Strimzi Operator и Kafka-кластер с JMX и Kafka Exporter, Cruise Control Strimzi, настройка сбора метрик через VMPodScrape/VMServiceScrape и отдельного kube-state-metrics для Strimzi CRD, Schema Registry (Karapace) для Avro, Kafka UI для управления кластером, Redis для верификации доставки сообщений (Producer → Consumer), VictoriaLogs и victoria-logs-collector для сбора логов, Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.), а также Golang producer/consumer с готовыми Helm-чартами и Grafana дашбордами для мониторинга.
+Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Разворачивается VictoriaMetrics K8s Stack, Grafana, Strimzi Kafka, Schema Registry, Kafka UI, Redis для верификации доставки сообщений (Producer → Consumer), VictoriaLogs и Victoria-logs-collector для сбора логов, Chaos Mesh, а также Golang producer/consumer с готовыми Helm-чартами.
 
 ## Порядок развёртывания (полная последовательность)
 
 При выполнении README последовательно нужно пройти все шаги в указанном порядке. Chaos-тесты входят в обязательную последовательность — их нельзя пропускать.
 
-1. Установка стека мониторинга (VictoriaMetrics K8s Stack)
-2. Strimzi Operator и Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
-3. Schema Registry (Karapace)
+1. Установка стека мониторинга (VictoriaMetrics K8s Stack) + Grafana
+2. Strimzi Operator и Strimzi Cruise Control 
+2. Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
+3. настройка сбора метрик через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD,
+3. Schema Registry (Karapace) для Avro
 4. Kafka UI
 5. Redis в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
-6. Go producer/consumer (Helm)
+6. Golang producer/consumer (Helm)
 7. VictoriaLogs и victoria-logs-collector
 8. Chaos Mesh — установка (Helm, VMServiceScrape, RBAC/Dashboard)
 9. Импорт дашбордов Grafana
-10. Запуск chaos-тестов — применить все эксперименты последовательно из `chaos-experiments/` с таймаутом между экспериментами (например, 1 минута), проверить статус каждого и наблюдение в Grafana. Без этого шага развёртывание по README не считается завершённым.
+10. Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.)
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
