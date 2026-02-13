@@ -288,7 +288,7 @@ helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --set kafka.existingSecret="myuser"
 ```
 
-**Valkey (Redis) для верификации доставки:** кластер задаётся в `valkey.tf` (Yandex Managed Redis). Настройте провайдер Yandex (`token` или `service_account_key_file`), выполните `terraform apply -auto-approve`, затем `export VALKEY_ADDR=$(terraform output -raw valkey_address)` и добавьте к командам Helm выше: `--set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"`. Либо укажите `redis.addr` и `redis.password` в `values.yaml` (уже заданы для текущего кластера). Для сбора метрик Redis (latency, нагрузка) в Grafana разверните redis-exporter и VMServiceScrape из `strimzi/redis-exporter.yaml` (создайте Secret с `REDIS_ADDR` и `REDIS_PASSWORD`), затем импортируйте дашборд `dashboards/redis-delivery-verification.json` (см. [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md)).
+**Valkey (Redis) для верификации доставки:** кластер задаётся в `valkey.tf` (Yandex Managed Redis). Настройте провайдер Yandex (`token` или `service_account_key_file`), выполните `terraform apply -auto-approve`, затем `export VALKEY_ADDR=$(terraform output -raw valkey_address)` и добавьте к командам Helm выше: `--set redis.addr="$VALKEY_ADDR" --set redis.password="strimzi-valkey-test"`. Либо укажите `redis.addr` и `redis.password` в `values.yaml` (уже заданы для текущего кластера). Чтобы в Grafana отображались метрики Redis и дашборд **redis-delivery-verification**, выполните шаги из подраздела [Redis Exporter и дашборд redis-delivery-verification](#redis-exporter-и-дашборд-redis-delivery-verification) ниже.
 
 Пример вывода Terraform:
 ```bash
@@ -302,6 +302,36 @@ $ terraform output external_valkey
 $ terraform output -raw valkey_address
 c-c9qqfhgq1u91e1mq3l5u.rw.mdb.yandexcloud.net:6379
 ```
+
+### Redis Exporter и дашборд redis-delivery-verification
+
+Чтобы в дашборде **redis-delivery-verification** (Grafana) отображались метрики Redis/Valkey (latency, нагрузка, SLO верификации доставки), нужно развернуть redis-exporter и настроить сбор метрик. Адрес и пароль Redis возьмите из Terraform (`terraform output external_valkey` / `valkey_address`) или укажите свой инстанс.
+
+1. **Создать Secret с учётными данными Redis** в namespace `vmks` (имя Secret должно быть `valkey-exporter-redis` — его ожидает манифест redis-exporter):
+
+```bash
+# Подставьте свой адрес и пароль (например из terraform output -raw valkey_address)
+kubectl create secret generic valkey-exporter-redis -n vmks \
+  --from-literal=REDIS_ADDR='<host>:6379' \
+  --from-literal=REDIS_PASSWORD='<password>'
+```
+
+2. **Применить манифест redis-exporter** (Deployment, Service и VMServiceScrape в одном файле):
+
+```bash
+kubectl apply -f strimzi/redis-exporter.yaml
+```
+
+3. **Проверить, что под redis-exporter запущен** и VMAgent собирает метрики:
+
+```bash
+kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter
+kubectl get vmservicescrape -n vmks redis-exporter
+```
+
+4. **Импортировать дашборд в Grafana** (если ещё не импортирован): Dashboards → Import → загрузить `dashboards/redis-delivery-verification.json`. В качестве источника метрик выберите VictoriaMetrics. После появления данных с redis-exporter панели дашборда начнут отображать метрики Redis и (при включённой верификации доставки) SLO.
+
+Подробнее о верификации доставки и метриках — [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
 
 #### 3) Дождаться готовности подов Producer/Consumer
 ```bash
