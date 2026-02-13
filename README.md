@@ -6,10 +6,10 @@
 
 При выполнении README последовательно нужно пройти все шаги в указанном порядке. Chaos-тесты входят в обязательную последовательность — их нельзя пропускать.
 
-1. Установка стека мониторинга (VictoriaMetrics K8s Stack) + Grafana
+1. VictoriaMetrics K8s Stack + Grafana
 2. Strimzi Operator и Strimzi Cruise Control 
-3. Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
-4. настройка сбора метрик через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD,
+3. Strimzi Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
+4. Cбор метрик Kafka через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD
 5. Schema Registry (Karapace) для Avro
 6. Kafka UI
 7. Redis в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
@@ -502,7 +502,7 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   --namespace victoria-logs-collector \
   --create-namespace \
   --wait \
-  --version 0.2.8 \
+  --version 0.2.9 \
   --timeout 15m \
   -f victoria-logs-collector-values.yaml
 ```
