@@ -70,6 +70,10 @@ spec:
           containers:
             - name: rebalance
               image: bitnami/kubectl:1.31
+              volumeMounts:
+                - name: manifest
+                  mountPath: /manifests
+                  readOnly: true
               command:
                 - /bin/sh
                 - -c
@@ -84,7 +88,3 @@ spec:
             - name: manifest
               configMap:
                 name: kafka-rebalance-manifest
-          volumeMounts:
-            - name: manifest
-              mountPath: /manifests
-              readOnly: true

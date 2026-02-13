@@ -72,14 +72,14 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
-    cruiseControl:
-      autoRebalance:
-        - mode: add-brokers
-          template:
-            name: kafka-cluster-rebalance-add-brokers
-        - mode: remove-brokers
-          template:
-            name: kafka-cluster-rebalance-remove-brokers
+  cruiseControl:
+    autoRebalance:
+      - mode: add-brokers
+        template:
+          name: kafka-cluster-rebalance-add-brokers
+      - mode: remove-brokers
+        template:
+          name: kafka-cluster-rebalance-remove-brokers
   kafkaExporter:
     topicRegex: ".*"
     groupRegex: ".*"
