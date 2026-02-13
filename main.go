@@ -367,6 +367,11 @@ func runProducer(ctx context.Context, config *Config) {
 				continue
 			}
 
+			// Mark connection as connected after successful write
+			for _, broker := range config.Brokers {
+				kafkaConnectionStatus.WithLabelValues(broker).Set(1)
+			}
+
 			// Store hash in Redis: key = same as Kafka key, value = hash:timestamp_ms (for SLO)
 			if rdb != nil {
 				msgHash := hashValue(avroData)
@@ -488,6 +493,11 @@ func runConsumer(ctx context.Context, config *Config) {
 				}
 				time.Sleep(1 * time.Second)
 				continue
+			}
+
+			// Mark connection as connected after successful read
+			for _, broker := range config.Brokers {
+				kafkaConnectionStatus.WithLabelValues(broker).Set(1)
 			}
 
 			partitionStr := fmt.Sprintf("%d", msg.Partition)
