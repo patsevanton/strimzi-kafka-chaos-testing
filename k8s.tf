@@ -46,9 +46,10 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
   cluster_id  = yandex_kubernetes_cluster.strimzi.id
   version     = "1.32"
 
+  # 6 нод: равномернее распределение 50 prod + 50 cons, допустимые memory/cores для standard-v2.
   scale_policy {
     fixed_scale {
-      size = 3
+      size = 6
     }
   }
 
@@ -70,9 +71,11 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
       ]
     }
 
+    # 6 нод × (16 cores, 32 GB) = 96 vCPU, 192 Gi. 32 GB — допустимый объём для standard-v2.
+    # Тот же запас под стек, поды лучше расписываются по нодам.
     resources {
-      memory = 20
-      cores  = 4
+      memory = 32
+      cores  = 16
     }
 
     boot_disk {

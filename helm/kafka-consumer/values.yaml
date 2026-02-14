@@ -1,9 +1,10 @@
-replicaCount: 1
+# replicaCount: 50; формула распределения: 120 партиций ÷ 50 подов ≈ 2.4 партиции на под.
+replicaCount: 50
 
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.8"
+  tag: "0.2.9"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -27,13 +28,14 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
+# Формула ресурсов: fetch 100MB + Avro decode + Redis → limits.
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
+    cpu: 2000m    # 2 × 1000m на под (decode + fetch + Redis)
+    memory: 1Gi   # 256Mi base + fetch buffer + Avro + metrics ≈ 1Gi
   requests:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 500m     # 0.5 ядра гарантировано на под
+    memory: 256Mi # база для одного consumer-пода
 
 nodeSelector: {}
 
@@ -43,8 +45,8 @@ affinity: {}
 
 autoscaling:
   enabled: false
-  minReplicas: 1
-  maxReplicas: 10
+  minReplicas: 10   # формула: 120 партиций / целевое число партиций на под
+  maxReplicas: 100  # minReplicas × 10 — запас при autoscaling
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
@@ -69,7 +71,7 @@ redis:
   addr: "redis.redis.svc.cluster.local:6379"
   password: ""
   # keyPrefix: "kafka-msg:"
-  sloSeconds: 120
+  sloSeconds: 120  # формула: допустимая задержка доставки (сек); 120 = 2 мин
 
 # Конфигурация проверки здоровья
 health:

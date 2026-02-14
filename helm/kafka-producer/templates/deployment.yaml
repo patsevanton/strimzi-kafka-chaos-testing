@@ -40,6 +40,14 @@ spec:
               value: {{ .Values.kafka.brokers | quote }}
             - name: KAFKA_TOPIC
               value: {{ .Values.kafka.topic | quote }}
+            {{- with .Values.kafka.producerBatchSize }}
+            - name: KAFKA_PRODUCER_BATCH_SIZE
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.kafka.producerBatchTimeoutMs }}
+            - name: KAFKA_PRODUCER_BATCH_TIMEOUT_MS
+              value: {{ . | quote }}
+            {{- end }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
             {{- if .Values.kafka.existingSecret }}

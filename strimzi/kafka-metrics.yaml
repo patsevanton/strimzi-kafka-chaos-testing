@@ -61,6 +61,13 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
+      # num.network.threads: 12 — формула: (50 prod + 50 cons) / 8 ≈ 12 потоков на соединения.
+      num.network.threads: 12
+      # num.io.threads: 12 — 120 партиций / 10 ≈ 12 потоков на I/O.
+      num.io.threads: 12
+      # socket.*.buffer.bytes: 2^20 = 1048576 (1MB) — меньше syscalls, выше throughput.
+      socket.send.buffer.bytes: 1048576
+      socket.receive.buffer.bytes: 1048576
     authorization:
       type: simple
     metricsConfig:

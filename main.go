@@ -43,6 +43,9 @@ type Config struct {
 	Username          string
 	Password          string
 	GroupID           string
+	// Producer: batch settings (env KAFKA_PRODUCER_BATCH_SIZE, KAFKA_PRODUCER_BATCH_TIMEOUT_MS)
+	ProducerBatchSize    int
+	ProducerBatchTimeout time.Duration
 	// Redis: store hash of message value for delivery verification and SLO
 	RedisAddr       string
 	RedisPassword   string
@@ -183,6 +186,19 @@ func loadConfig() *Config {
 		}
 	}
 
+	producerBatchSize := 50
+	if s := os.Getenv("KAFKA_PRODUCER_BATCH_SIZE"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			producerBatchSize = n
+		}
+	}
+	producerBatchTimeout := 50 * time.Millisecond
+	if s := os.Getenv("KAFKA_PRODUCER_BATCH_TIMEOUT_MS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			producerBatchTimeout = time.Duration(n) * time.Millisecond
+		}
+	}
+
 	return &Config{
 		Mode:              mode,
 		Brokers:           parseBrokers(brokers),
@@ -191,10 +207,12 @@ func loadConfig() *Config {
 		Username:          username,
 		Password:          password,
 		GroupID:           groupID,
-		RedisAddr:         redisAddr,
-		RedisPassword:     redisPassword,
-		RedisKeyPrefix:    redisKeyPrefix,
-		RedisSLOSeconds:   redisSLOSeconds,
+		RedisAddr:             redisAddr,
+		RedisPassword:         redisPassword,
+		RedisKeyPrefix:        redisKeyPrefix,
+		RedisSLOSeconds:       redisSLOSeconds,
+		ProducerBatchSize:     producerBatchSize,
+		ProducerBatchTimeout:  producerBatchTimeout,
 	}
 }
 
@@ -257,6 +275,8 @@ func runProducer(ctx context.Context, config *Config) {
 		Balancer:               &kafka.LeastBytes{},
 		RequiredAcks:           kafka.RequireAll,
 		AllowAutoTopicCreation: true,
+		BatchSize:              config.ProducerBatchSize,
+		BatchTimeout:           config.ProducerBatchTimeout,
 	}
 
 	// Add SASL/SCRAM authentication if credentials provided
@@ -318,7 +338,8 @@ func runProducer(ctx context.Context, config *Config) {
 	logger.Info("Producer is ready")
 
 	messageID := int64(0)
-	ticker := time.NewTicker(1 * time.Second)
+	// 100ms = 10 msg/sec на producer.
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
@@ -422,8 +443,10 @@ func runConsumer(ctx context.Context, config *Config) {
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,
 		GroupID:  config.GroupID,
-		MinBytes: 10e3, // 10KB
-		MaxBytes: 10e6, // 10MB
+		// MinBytes: 100KB — ждать минимум 100KB перед ответом, крупнее fetch = меньше round-trips.
+		// MaxBytes: 100MB — при высокой нагрузке читать до 100MB за раз, выше throughput.
+		MinBytes: 100e3,
+		MaxBytes: 100e6,
 		Dialer:   dialer,
 	})
 	defer reader.Close()
