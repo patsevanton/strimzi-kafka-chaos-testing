@@ -162,9 +162,9 @@ kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-ksm.yaml
 
 Kafka Exporter подключается к брокерам по Kafka API и отдаёт метрики в формате Prometheus.
 
-**kafka-metrics.yaml** уже включает блок **`spec.kafkaExporter`** в ресурсе `Kafka` (CR Strimzi). Этот блок включает Kafka Exporter: без него оператор не создаёт соответствующие ресурсы, а при его наличии — автоматически разворачивает Deployment, Pod и Service в namespace кластера.
+**kafka-metrics.yaml** уже включает блок **`spec.kafkaExporter`** в ресурсе `Kafka` (CR Strimzi). Этот блок включает Kafka Exporter: без него оператор не создаёт соответствующие ресурсы, а при его наличии — автоматически разворачивает Deployment и Pod в namespace кластера.
 
-**VMServiceScrape для Strimzi Kafka Exporter:** Strimzi создаёт Service `kafka-cluster-kafka-exporter` в kafka-cluster. Создайте VMServiceScrape, чтобы VMAgent собирал метрики топиков и consumer groups:
+**Сбор метрик Kafka Exporter:** В Strimzi 0.50 оператор создаёт Deployment и Pod (без отдельного Service). Метрики Kafka Exporter (`kafka_topic_*`, `kafka_consumergroup_*`) собираются через **kafka-resources-metrics** (VMPodScrape) — поды Kafka Exporter имеют label `strimzi.io/kind=Kafka` и уже включены в этот scrape. Дополнительно примените VMServiceScrape для совместимости со старыми/будущими версиями Strimzi, где оператор создаёт Service:
 
 ```bash
 kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
@@ -172,7 +172,7 @@ kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
 
 При указании `kafkaExporter` в CR Strimzi Cluster Operator поднимает **отдельный Deployment** (например, `kafka-cluster-kafka-exporter`) — это не «просто параметр» в поде Kafka, а отдельное приложение, которым управляет оператор.
 
-Kafka Exporter **встроен в Strimzi** как опциональный компонент: образ и конфигурация задаются оператором, он создаёт и обновляет Deployment/Service при изменении CR.
+Kafka Exporter **встроен в Strimzi** как опциональный компонент: образ и конфигурация задаются оператором, он создаёт и обновляет Deployment при изменении CR.
 
 ### Schema Registry (Karapace) для Avro
 
