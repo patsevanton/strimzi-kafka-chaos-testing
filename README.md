@@ -621,51 +621,75 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 ```bash
 # 1. Pod kill (убийство брокера)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control, entity-operator
+sleep 60
+kubectl delete -f chaos-experiments/pod-kill.yaml
 
 # 2. Pod failure (симуляция падения пода)
 kubectl apply -f chaos-experiments/pod-failure.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control
+sleep 60
+kubectl delete -f chaos-experiments/pod-failure.yaml
 
 # 3. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control (CPU, throttling)
+sleep 60
+kubectl delete -f chaos-experiments/cpu-stress.yaml
 
 # 4. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control (OOMKilled, память)
+sleep 60
+kubectl delete -f chaos-experiments/memory-stress.yaml
 
 # 5. IO chaos (задержки и ошибки дискового I/O)
 kubectl apply -f chaos-experiments/io-chaos.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-* (диск, latency, ошибки записи)
+sleep 60
+kubectl delete -f chaos-experiments/io-chaos.yaml
 
 # 6. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-*, kafka-cluster-kafka-0 (время, логи)
+sleep 60
+kubectl delete -f chaos-experiments/time-chaos.yaml
 
 # 7. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster-*-broker-* (JVM, GC, исключения в логах)
+sleep 60
+kubectl delete -f chaos-experiments/jvm-chaos.yaml
 
 # 8. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды Schema Registry (schema-registry ns), Kafka UI (kafka-ui ns)
+sleep 60
+kubectl delete -f chaos-experiments/http-chaos.yaml
 
 # 9. DNS chaos (ошибки DNS для брокеров и producer)
 kubectl apply -f chaos-experiments/dns-chaos.yaml
-sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster (брокеры), kafka-producer (UnknownHostException и т.п.)
+sleep 60
+kubectl delete -f chaos-experiments/dns-chaos.yaml
 
 # 10. Network partition (сетевая изоляция)
-# kubectl apply -f chaos-experiments/network-partition.yaml
-# sleep 60  # 1 минута таймаут
+kubectl apply -f chaos-experiments/network-partition.yaml
+# TODO: смотреть поды kafka-cluster (брокеры, cruise-control), kafka-producer (timeout, недоступность)
+sleep 60
+kubectl delete -f chaos-experiments/network-partition.yaml
 
 # 11. Network loss (потеря пакетов)
 # kubectl apply -f chaos-experiments/network-loss.yaml
-# sleep 60  # 1 минута таймаут
+# TODO: смотреть поды kafka-cluster (брокеры), producer/consumer (потеря пакетов, retry)
+# sleep 60
+# kubectl delete -f chaos-experiments/network-loss.yaml
 
 # Network delay (сетевые задержки) — отладка, по умолчанию не запускаем
 # kubectl apply -f chaos-experiments/network-delay.yaml
+# TODO: смотреть поды kafka-cluster (брокеры), producer/consumer (latency)
 # sleep 60
+# kubectl delete -f chaos-experiments/network-delay.yaml
 ```
 
 Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
