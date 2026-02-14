@@ -159,11 +159,11 @@ var (
 		},
 	)
 
-	// Redis delivery verification and SLO
+	// Redis delivery verification and SLO (body = id+data; timestamp difference is not counted as mismatch)
 	consumerRedisHashMismatchTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "kafka_consumer_redis_hash_mismatch_total",
-			Help: "Total number of messages where body hash did not match Redis stored hash",
+			Help: "Total number of messages where message body (id+data) did not match Redis — data integrity issue",
 		},
 		[]string{"topic", "partition"},
 	)

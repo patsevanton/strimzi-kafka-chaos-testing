@@ -235,10 +235,41 @@ func parseBrokers(brokers string) []string {
 	return result
 }
 
-// hashValue returns SHA256 hex of data (used to verify message integrity via Redis).
+// hashValue returns SHA256 hex of data (used for backward compatibility).
 func hashValue(data []byte) string {
 	h := sha256.Sum256(data)
 	return hex.EncodeToString(h[:])
+}
+
+// hashContent returns SHA256 hex of message body (id + data only). Used for delivery
+// verification so that timestamp differences (retries/duplicates) do not count as mismatch.
+func hashContent(id int64, data string) string {
+	h := sha256.Sum256([]byte(fmt.Sprintf("%d\n%s", id, data)))
+	return hex.EncodeToString(h[:])
+}
+
+// extractIDAndData returns id and data from decoded Avro message for content-hash verification.
+// Returns (nil, "") if decoded is not a map or id/data are missing or have wrong types.
+func extractIDAndData(decoded interface{}) (*int64, string) {
+	m, ok := decoded.(map[string]interface{})
+	if !ok {
+		return nil, ""
+	}
+	var id int64
+	switch v := m["id"].(type) {
+	case int64:
+		id = v
+	case int32:
+		id = int64(v)
+	case int:
+		id = int64(v)
+	case float64:
+		id = int64(v)
+	default:
+		return nil, ""
+	}
+	data, _ := m["data"].(string)
+	return &id, data
 }
 
 const (
@@ -393,11 +424,11 @@ func runProducer(ctx context.Context, config *Config) {
 				kafkaConnectionStatus.WithLabelValues(broker).Set(1)
 			}
 
-			// Store hash in Redis: key = same as Kafka key, value = hash:timestamp_ms (for SLO)
+			// Store content hash in Redis (id+data only, so timestamp retries don't cause mismatch): key = same as Kafka key, value = contentHash:timestamp_ms (for SLO)
 			if rdb != nil {
-				msgHash := hashValue(avroData)
+				contentHash := hashContent(msg.ID, msg.Data)
 				redisKey := redisMsgKey(config.RedisKeyPrefix, kafkaKey)
-				redisVal := msgHash + ":" + strconv.FormatInt(time.Now().UnixMilli(), 10)
+				redisVal := contentHash + ":" + strconv.FormatInt(time.Now().UnixMilli(), 10)
 				if err := rdb.Set(ctx, redisKey, redisVal, 0).Err(); err != nil {
 					logger.Warn("Redis SET failed", "key", redisKey, "error", err)
 				}
@@ -540,24 +571,38 @@ func runConsumer(ctx context.Context, config *Config) {
 			processingDuration := time.Since(readStart).Seconds()
 			consumerMessageProcessingDuration.WithLabelValues(config.Topic, partitionStr).Observe(processingDuration)
 
-			// Delivery verification via Redis: compare hash of value with stored hash, then DEL and INCR
+			// Delivery verification via Redis: compare content hash (id+data only). Match → same message (timestamp difference OK). Mismatch → body changed, data integrity issue.
 			if rdb != nil {
 				redisKey := redisMsgKey(config.RedisKeyPrefix, string(msg.Key))
 				stored, err := rdb.Get(ctx, redisKey).Result()
 				if err == nil {
 					parts := strings.SplitN(stored, ":", 2)
-					expectedHash := parts[0]
-					gotHash := hashValue(msg.Value)
-					if gotHash == expectedHash {
+					expectedStoredHash := parts[0]
+					var contentHashGot string
+					if id, data := extractIDAndData(decoded); id != nil && data != "" {
+						contentHashGot = hashContent(*id, data)
+					}
+					if contentHashGot != "" && contentHashGot == expectedStoredHash {
 						if err := rdb.Del(ctx, redisKey).Err(); err != nil {
 							logger.Warn("Redis DEL failed", "key", redisKey, "error", err)
 						}
 						if err := rdb.Incr(ctx, redisKeyReceivedTotal).Err(); err != nil {
 							logger.Warn("Redis INCR received_total failed", "error", err)
 						}
-					} else {
-						logger.Warn("Hash mismatch", "key", redisKey, "expected", expectedHash, "got", gotHash)
+					} else if contentHashGot != "" {
+						logger.Error("Body mismatch: message body (id+data) does not match Redis", "key", redisKey, "expected", expectedStoredHash, "got", contentHashGot)
 						consumerRedisHashMismatchTotal.WithLabelValues(config.Topic, partitionStr).Inc()
+					} else {
+						// Fallback: no id/data in decoded (e.g. old schema); compare full value hash for backward compat
+						fullHash := hashValue(msg.Value)
+						if fullHash == expectedStoredHash {
+							if err := rdb.Del(ctx, redisKey).Err(); err != nil {
+								logger.Warn("Redis DEL failed", "key", redisKey, "error", err)
+							}
+							if err := rdb.Incr(ctx, redisKeyReceivedTotal).Err(); err != nil {
+								logger.Warn("Redis INCR received_total failed", "error", err)
+							}
+						}
 					}
 				} else if err != redis.Nil {
 					logger.Warn("Redis GET failed", "key", redisKey, "error", err)
