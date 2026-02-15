@@ -3,7 +3,7 @@ replicaCount: 50
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.11"
+  tag: "0.2.12"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -60,7 +60,7 @@ kafka:
   # producerIntervalMs: интервал между сообщениями (ms). 100 = 10 msg/s на под.
   producerIntervalMs: 100    # уменьшить для большей нагрузки (50→20 msg/s, 20→50 msg/s)
   # messagePayloadBytes: дополнять payload до N байт (0 = без padding). Увеличивает MB/s.
-  messagePayloadBytes: 0
+  messagePayloadBytes: 4096
   # Учётные данные KafkaUser — только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
   username: "myuser"
   # Имя Secret в том же namespace, из которого берётся пароль (обязательно для SASL).
