@@ -621,91 +621,87 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 ```bash
 # 1. Pod kill (убийство брокера)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control, entity-operator
+# Затронутые поды: kafka-cluster-cruise-control-66d566d69-* (mode one — один из Kafka-подов убит, в прогоне — cruise-control). Логи (новый под после рестарта): KafkaCruiseControlSampleStore consumer unregistered, Sample loading finished, CruiseControlStateRequest, "GET /kafkacruisecontrol/state HTTP/1.1" 200
 sleep 60
 kubectl delete -f chaos-experiments/pod-kill.yaml
 
 # 2. Pod failure (симуляция падения пода)
 kubectl apply -f chaos-experiments/pod-failure.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control
+# Затронутые поды: kafka-pod-failure (one) — kafka-cluster-kafka-exporter-*; kafka-multi-pod-failure (60%) — kafka-cluster-broker-2, kafka-cluster-kafka-exporter-*, kafka-cluster-cruise-control-*, kafka-cluster-controller-4. Логи (exporter после восстановления): kafka_exporter.go Starting, Error Init Kafka Client: connection refused
 sleep 60
 kubectl delete -f chaos-experiments/pod-failure.yaml
 
 # 3. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control (CPU, throttling)
+# Затронутые поды: kafka-cpu-stress (one) — kafka-cluster-controller-5; kafka-cpu-stress-high (all) — controller-3, controller-4, controller-5, entity-operator/topic-operator. Логи (controller): PartitionChangeBuilder Setting new leader, QuorumController handleBrokerUnfenced, ReplicationControlManager CreateTopics
 sleep 60
 kubectl delete -f chaos-experiments/cpu-stress.yaml
 
 # 4. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-*, cruise-control (OOMKilled, память)
+# Затронутые поды: kafka-memory-stress (one) — kafka-cluster-broker-0; kafka-combined-stress (one) — один из broker/controller. Логи: возможны OOMKilled, в брокере — replication/request timeouts при нехватке памяти
 sleep 60
 kubectl delete -f chaos-experiments/memory-stress.yaml
 
 # 5. IO chaos (задержки и ошибки дискового I/O)
 kubectl apply -f chaos-experiments/io-chaos.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-* (диск, latency, ошибки записи)
+# Затронутые поды: mode one — один из брокеров/контроллеров (broker-0, controller-5 и т.д.). Примечание: может быть FAILED из-за volumePath (например "No such file" если путь не совпадает с реальным). Логи: задержки записи/чтения, I/O errors в логах Kafka
 sleep 60
 kubectl delete -f chaos-experiments/io-chaos.yaml
 
 # 6. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-*, kafka-cluster-kafka-0 (время, логи)
+# Затронутые поды: kafka-time-skew (one) — в прогоне kafka-cluster-controller-4; остальные timechaos — по одному поду из Kafka. Логи: NotControllerException, QuorumController replay, ACL Denied, рассинхрон часов
 sleep 60
 kubectl delete -f chaos-experiments/time-chaos.yaml
 
 # 7. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
-# TODO: смотреть поды kafka-cluster-*-broker-* (JVM, GC, исключения в логах)
+# Затронутые поды: по одному поду на каждый JVMChaos — controller (GC), broker (exception handleProduceRequest, stress, latency append). Логи: GC паузы, IOException Chaos test exception в handleProduceRequest, задержки append
 sleep 60
 kubectl delete -f chaos-experiments/jvm-chaos.yaml
 
 # 8. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
-# TODO: смотреть поды Schema Registry (schema-registry ns), Kafka UI (kafka-ui ns)
+# Затронутые поды: schema-registry-* (все в ns schema-registry), kafka-ui-* (ns kafka-ui). Логи: Karapace heartbeat, Received successful heartbeat response, "GET /subjects HTTP/1.1" 200
 sleep 60
 kubectl delete -f chaos-experiments/http-chaos.yaml
 
 # 9. DNS chaos (ошибки DNS для брокеров и producer)
 kubectl apply -f chaos-experiments/dns-chaos.yaml
-# TODO: смотреть поды kafka-cluster (брокеры), kafka-producer (UnknownHostException и т.п.)
+# Затронутые поды: kafka-cluster (one/all по манифесту) — один или все брокеры/контроллеры; kafka-producer (ns kafka-producer) — поды kafka-producer-*. Логи: UnknownHostException, kafka-dns-error может быть FAILED при неверном pattern
 sleep 60
 kubectl delete -f chaos-experiments/dns-chaos.yaml
 
 # 10. Network partition (сетевая изоляция)
 kubectl apply -f chaos-experiments/network-partition.yaml
-# TODO: смотреть поды kafka-cluster (брокеры, cruise-control), kafka-producer (timeout, недоступность)
+# Затронутые поды: kafka-network-partition (one) — в прогоне kafka-cluster-broker-2; kafka-producer-partition — все брокеры (broker-0, broker-1, ...) и поды kafka-producer в ns kafka-producer. Логи: producer retries, connection timeouts, leader unavailable
 sleep 60
 kubectl delete -f chaos-experiments/network-partition.yaml
 
 # 11. Network loss (потеря пакетов)
-# kubectl apply -f chaos-experiments/network-loss.yaml
-# TODO: смотреть поды kafka-cluster (брокеры), producer/consumer (потеря пакетов, retry)
-# sleep 60
-# kubectl delete -f chaos-experiments/network-loss.yaml
+kubectl apply -f chaos-experiments/network-loss.yaml
+# Затронутые поды: все поды Kafka в kafka-cluster (broker-*, controller-*, cruise-control, entity-operator, kafka-exporter); producer/consumer — потеря пакетов, retry в логах приложений
+sleep 60
+kubectl delete -f chaos-experiments/network-loss.yaml
 
 # Network delay (сетевые задержки) — отладка, по умолчанию не запускаем
-# kubectl apply -f chaos-experiments/network-delay.yaml
-# TODO: смотреть поды kafka-cluster (брокеры), producer/consumer (latency)
-# sleep 60
-# kubectl delete -f chaos-experiments/network-delay.yaml
-```
+kubectl apply -f chaos-experiments/network-delay.yaml
+# Затронутые поды: все поды Kafka в kafka-cluster (mode all); producer/consumer — рост latency в логах и метриках
+sleep 60
+kubectl delete -f chaos-experiments/network-delay.yaml
 
-Проверка статуса экспериментов (в namespace, указанном в манифесте, чаще всего `kafka-cluster`):
+
+**Статус экспериментов** (namespace из манифеста, обычно `kafka-cluster`):
 
 ```bash
 kubectl get podchaos,networkchaos,stresschaos,schedule,httpchaos,jvmchaos,iochaos,timechaos,dnschaos -n kafka-cluster
-kubectl describe podchaos -n kafka-cluster  # детали по одному типу
+kubectl describe podchaos -n kafka-cluster
 ```
 
-Остановка всех экспериментов из директории (выполнить после завершения тестирования):
+**Остановка всех экспериментов:** `kubectl delete -f chaos-experiments/`
 
-```bash
-kubectl delete -f chaos-experiments/
-```
-
-Подробности по каждому эксперименту, рискам и ожидаемому поведению — в **chaos-experiments/README.md**.
+Подробнее по экспериментам — **chaos-experiments/README.md**.
 
 ### Наблюдение за состоянием кластера на дашбордах Grafana
 
