@@ -38,7 +38,7 @@ helm upgrade --install vmks \
   --wait \
   --version 0.70.0 \
   --timeout 15m \
-  -f victoriametrics-values.yaml
+  -f [victoriametrics-values.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoriametrics-values.yaml)
 ```
 
 3. Получить пароль администратора Grafana:
@@ -80,13 +80,13 @@ Kafka разворачивается с **внутренним listener на п�
 
 ```bash
 # Kafka-кластер (KRaft, persistent, listener sasl:9092 с SCRAM-SHA-512, JMX и Kafka Exporter)
-kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml)
 
 # Топик
-kubectl apply -n kafka-cluster -f strimzi/kafka-topic.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-topic.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-topic.yaml)
 
 # Пользователь Kafka (SCRAM-SHA-512; оператор создаёт Secret myuser с паролем)
-kubectl apply -n kafka-cluster -f strimzi/kafka-user.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-user.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user.yaml)
 ```
 
 ```bash
@@ -99,7 +99,7 @@ kubectl wait kafka/kafka-cluster -n kafka-cluster --for=condition=Ready --timeou
 PodDisruptionBudget гарантирует, что минимум 2 брокера всегда доступны во время плановых прерываний (drain ноды, rolling updates).
 
 ```bash
-kubectl apply -n kafka-cluster -f strimzi/kafka-pdb.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-pdb.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-pdb.yaml)
 kubectl get pdb -n kafka-cluster
 ```
 
@@ -113,19 +113,19 @@ kubectl get pdb -n kafka-cluster
 
 ```bash
 # 1. Шаблоны для autoRebalance (нужны до/вместе с Kafka CR)
-kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-templates.yaml
+kubectl apply -n kafka-cluster -f [strimzi/cruise-control/kafka-rebalance-templates.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-templates.yaml)
 
 # 2. Kafka с Cruise Control и autoRebalance (уже в kafka-metrics.yaml)
-kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml)
 
 # 3. CronJob для периодического полного ребаланса
-kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-cronjob.yaml
+kubectl apply -n kafka-cluster -f [strimzi/cruise-control/kafka-rebalance-cronjob.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-cronjob.yaml)
 ```
 
 Ручной полный ребаланс: **strimzi/cruise-control/kafka-rebalance.yaml** (тот же ресурс, что использует CronJob).
 
 ```bash
-kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance.yaml
+kubectl apply -n kafka-cluster -f [strimzi/cruise-control/kafka-rebalance.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance.yaml)
 kubectl annotate kafkarebalance kafka-cluster-rebalance -n kafka-cluster strimzi.io/rebalance=approve
 kubectl get kafkarebalance -n kafka-cluster
 ```
@@ -136,13 +136,13 @@ kubectl get kafkarebalance -n kafka-cluster
 
 ```bash
 # Сбор метрик Strimzi Cluster Operator (состояние оператора, реконсиляция)
-kubectl apply -n vmks -f strimzi/cluster-operator-metrics.yaml
+kubectl apply -n vmks -f [strimzi/cluster-operator-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cluster-operator-metrics.yaml)
 
 # Сбор метрик Entity Operator — Topic Operator и User Operator
-kubectl apply -n vmks -f strimzi/entity-operator-metrics.yaml
+kubectl apply -n vmks -f [strimzi/entity-operator-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/entity-operator-metrics.yaml)
 
 # Сбор JMX-метрик с подов брокеров Kafka
-kubectl apply -n vmks -f strimzi/kafka-resources-metrics.yaml
+kubectl apply -n vmks -f [strimzi/kafka-resources-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-resources-metrics.yaml)
 ```
 
 **Kube-state-metrics для Strimzi CRD** — отдельный экземпляр [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) в режиме `--custom-resource-state-only`: он следит за **кастомными ресурсами Strimzi** (Kafka, KafkaTopic, KafkaUser, KafkaConnect, KafkaConnector и др.) и отдаёт их состояние в формате Prometheus (ready, replicas, topicId, kafka_version и т.д.). Это нужно для дашбордов и алертов по состоянию CR (например, «топик не Ready», «Kafka не на целевой версии»). Обычный kube-state-metrics из VictoriaMetrics K8s Stack таких метрик по Strimzi не даёт.
@@ -152,10 +152,10 @@ kubectl apply -n vmks -f strimzi/kafka-resources-metrics.yaml
 
 ```bash
 # 1. ConfigMap с конфигом метрик по CRD Strimzi
-kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-configmap.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kube-state-metrics-configmap.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-configmap.yaml)
 
 # 2. Deployment, Service, RBAC и VMServiceScrape
-kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-ksm.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kube-state-metrics-ksm.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-ksm.yaml)
 ```
 
 ## Kafka Exporter
@@ -167,7 +167,7 @@ Kafka Exporter подключается к брокерам по Kafka API и о
 **Сбор метрик Kafka Exporter:** В Strimzi 0.50 оператор создаёт Deployment и Pod (без отдельного Service). Метрики Kafka Exporter (`kafka_topic_*`, `kafka_consumergroup_*`) собираются через **kafka-resources-metrics** (VMPodScrape) — поды Kafka Exporter имеют label `strimzi.io/kind=Kafka` и уже включены в этот scrape. Дополнительно примените VMServiceScrape для совместимости со старыми/будущими версиями Strimzi, где оператор создаёт Service:
 
 ```bash
-kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
+kubectl apply -f [strimzi/kafka-exporter-servicemonitor.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-exporter-servicemonitor.yaml)
 ```
 
 При указании `kafkaExporter` в CR Strimzi Cluster Operator поднимает **отдельный Deployment** (например, `kafka-cluster-kafka-exporter`) — это не «просто параметр» в поде Kafka, а отдельное приложение, которым управляет оператор.
@@ -180,9 +180,9 @@ Go-приложение из этого репозитория использу�
 
 Karapace поднимается как обычный HTTP-сервис и хранит схемы в Kafka-топике `_schemas` (как и Confluent SR).
 
-- `strimzi/kafka-topic-schemas.yaml` — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
-- `strimzi/kafka-user-schema-registry.yaml` — отдельный KafkaUser для Karapace с минимальными правами (топик `_schemas`, consumer groups)
-- `schema-registry.yaml` — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). Подключение к Kafka по **SASL SCRAM-SHA-512** (логин/пароль из KafkaUser `schema-registry`). Развёрнуто **2 реплики** для отказоустойчивости (PDB, rolling update без простоя). У всех реплик `KARAPACE_MASTER_ELIGIBILITY=true` (выбор master через Kafka consumer group).
+- [strimzi/kafka-topic-schemas.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-topic-schemas.yaml) — KafkaTopic для `_schemas` (важно при `min.insync.replicas: 2`)
+- [strimzi/kafka-user-schema-registry.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user-schema-registry.yaml) — отдельный KafkaUser для Karapace с минимальными правами (топик `_schemas`, consumer groups)
+- [schema-registry.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/schema-registry.yaml) — Service/Deployment для Karapace (`ghcr.io/aiven-open/karapace:5.0.3`). Подключение к Kafka по **SASL SCRAM-SHA-512** (логин/пароль из KafkaUser `schema-registry`). Развёрнуто **2 реплики** для отказоустойчивости (PDB, rolling update без простоя). У всех реплик `KARAPACE_MASTER_ELIGIBILITY=true` (выбор master через Kafka consumer group).
 
 Файлы `strimzi/` в репозитории используют `namespace: kafka-cluster` и `strimzi.io/cluster: kafka-cluster`. В `schema-registry.yaml` задан `KARAPACE_BOOTSTRAP_URI`: `kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092`. Подставьте свой namespace/кластер, если иные.
 
@@ -192,7 +192,7 @@ Karapace поднимается как обычный HTTP-сервис и хр�
 kubectl create namespace schema-registry --dry-run=client -o yaml | kubectl apply -f -
 
 # Создать KafkaUser для Schema Registry
-kubectl apply -n kafka-cluster -f strimzi/kafka-user-schema-registry.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-user-schema-registry.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user-schema-registry.yaml)
 kubectl wait kafkauser/schema-registry -n kafka-cluster --for=condition=Ready --timeout=60s || true
 # Если таймаут: проверьте kubectl get kafkauser schema-registry -n kafka-cluster; при Ready продолжайте.
 
@@ -203,12 +203,12 @@ kubectl get secret schema-registry -n kafka-cluster -o json | \
   kubectl apply -f -
 
 # Создать топик для схем
-kubectl apply -n kafka-cluster -f strimzi/kafka-topic-schemas.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-topic-schemas.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-topic-schemas.yaml)
 kubectl wait kafkatopic/schemas-topic -n kafka-cluster --for=condition=Ready --timeout=120s || true
 # Если таймаут: проверьте kubectl get kafkatopic schemas-topic -n kafka-cluster; при Ready продолжайте.
 
 # Развернуть Schema Registry
-kubectl apply -f schema-registry.yaml
+kubectl apply -f [schema-registry.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/schema-registry.yaml)
 kubectl rollout status deploy/schema-registry -n schema-registry --timeout=5m || true
 # При таймауте (загрузка образа, выбор master): проверьте kubectl get pods -n schema-registry; дождитесь Ready, затем sleep 120.
 sleep 120
@@ -335,7 +335,7 @@ helm upgrade --install kafka-consumer ./helm/kafka-consumer \
 Метрики Redis для дашборда **redis-delivery-verification** (Grafana):
 
 ```bash
-kubectl apply -f redis/redis-exporter-in-cluster.yaml
+kubectl apply -f [redis/redis-exporter-in-cluster.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 ```
 
 Проверить: `kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter-in-cluster`
@@ -371,10 +371,10 @@ Go-приложение экспортирует метрики Prometheus на 
 
 ```bash
 # Метрики Producer
-kubectl apply -f strimzi/kafka-producer-metrics.yaml
+kubectl apply -f [strimzi/kafka-producer-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-producer-metrics.yaml)
 
 # Метрики Consumer
-kubectl apply -f strimzi/kafka-consumer-metrics.yaml
+kubectl apply -f [strimzi/kafka-consumer-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-consumer-metrics.yaml)
 ```
 
 **Доступные метрики:**Producer метрики:- `kafka_producer_messages_sent_total{topic}` — общее количество отправленных сообщений
@@ -424,7 +424,7 @@ helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
 
 # Kafka UI использует отдельный read-only пользователь kafka-ui-user
-kubectl apply -n kafka-cluster -f strimzi/kafka-user-kafka-ui.yaml
+kubectl apply -n kafka-cluster -f [strimzi/kafka-user-kafka-ui.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user-kafka-ui.yaml)
 kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=60s || true
 # При таймауте: kubectl get kafkauser kafka-ui-user -n kafka-cluster; при Ready продолжайте.
 
@@ -435,10 +435,12 @@ kubectl get secret kafka-ui-user -n kafka-cluster -o json | \
 
 # Установить Kafka UI
 helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
-  -f helm/kafka-ui-values.yaml \
+  -f [helm/kafka-ui-values.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/helm/kafka-ui-values.yaml) \
   --namespace kafka-ui \
   --create-namespace
+```
 
+```bash
 # Дождаться готовности (при первом запуске Kafka UI может потребоваться 2–3 минуты)
 kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=300s
 # При таймауте: kubectl get pods -n kafka-ui; при Running/Ready продолжайте.
@@ -451,14 +453,14 @@ Kafka UI будет доступен по адресу Ingress (в values: `kafk
 Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ. Адрес: `redis.redis.svc.cluster.local:6379`.
 
 ```bash
-kubectl apply -f redis/redis.yaml
+kubectl apply -f [redis/redis.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis.yaml)
 kubectl rollout status deploy/redis -n redis --timeout=120s
 ```
 
 Метрики Redis для дашборда **redis-delivery-verification** (in-cluster Redis):
 
 ```bash
-kubectl apply -f redis/redis-exporter-in-cluster.yaml
+kubectl apply -f [redis/redis-exporter-in-cluster.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 ```
 
 ## VictoriaLogs
@@ -482,7 +484,7 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
   --wait \
   --version 0.0.27 \
   --timeout 15m \
-  -f victoria-logs-cluster-values.yaml
+  -f [victoria-logs-cluster-values.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-cluster-values.yaml)
 ```
 
 Чтобы VMAgent из VictoriaMetrics K8s Stack собирал метрики VictoriaLogs, на VMServiceScrape должен быть label, по которому стэк выбирает цели (например `release: vmks`). Если чарт по умолчанию задаёт другой `release`, добавьте в values или `--set` нужный label для vlselect/vlinsert/vlstorage VMServiceScrape.
@@ -504,7 +506,7 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   --wait \
   --version 0.2.9 \
   --timeout 15m \
-  -f victoria-logs-collector-values.yaml
+  -f [victoria-logs-collector-values.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-collector-values.yaml)
 ```
 
 Проверка: `kubectl get pods -n victoria-logs-collector`.
@@ -524,7 +526,7 @@ helm repo update
 helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --namespace chaos-mesh \
   --create-namespace \
-  -f chaos-mesh/chaos-mesh-values.yaml \
+  -f [chaos-mesh/chaos-mesh-values.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-values.yaml) \
   --version 2.8.1 \
   --wait
 ```
@@ -534,7 +536,7 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
 Для сбора метрик Chaos Mesh через VictoriaMetrics K8s Stack примените VMServiceScrape (в кластере используются CRD VictoriaMetrics, не Prometheus ServiceMonitor):
 
 ```bash
-kubectl apply -f chaos-mesh/chaos-mesh-vmservicescrape.yaml
+kubectl apply -f [chaos-mesh/chaos-mesh-vmservicescrape.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-vmservicescrape.yaml)
 ```
 
 ### Доступ к Dashboard
@@ -542,7 +544,7 @@ kubectl apply -f chaos-mesh/chaos-mesh-vmservicescrape.yaml
 Dashboard использует RBAC-токен. Создайте ServiceAccount и токен:
 
 ```bash
-kubectl apply -f chaos-mesh/chaos-mesh-rbac.yaml
+kubectl apply -f [chaos-mesh/chaos-mesh-rbac.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-rbac.yaml)
 sleep 3
 kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
 ```
@@ -572,12 +574,12 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 Запуск одного эксперимента:
 
 ```bash
-kubectl apply -f chaos-experiments/pod-kill.yaml
+kubectl apply -f [chaos-experiments/pod-kill.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-kill.yaml)
 ```
 
 Проверка: `kubectl get podchaos,networkchaos,stresschaos,schedule -n kafka-cluster`
 
-Остановка: `kubectl delete -f chaos-experiments/pod-kill.yaml` или `kubectl delete -f chaos-experiments/`
+Остановка: `kubectl delete -f [chaos-experiments/pod-kill.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-kill.yaml)` или `kubectl delete -f chaos-experiments/`
 
 Подробное описание экспериментов, рисков и ожидаемого поведения — в **chaos-experiments/README.md**.
 
@@ -620,76 +622,76 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 
 ```bash
 # 1. Pod kill (убийство брокера)
-kubectl apply -f chaos-experiments/pod-kill.yaml
+kubectl apply -f [chaos-experiments/pod-kill.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-kill.yaml)
 # Затронутые поды: kafka-cluster-cruise-control-66d566d69-* (mode one — один из Kafka-подов убит, в прогоне — cruise-control). Логи (новый под после рестарта): KafkaCruiseControlSampleStore consumer unregistered, Sample loading finished, CruiseControlStateRequest, "GET /kafkacruisecontrol/state HTTP/1.1" 200
 sleep 60
-kubectl delete -f chaos-experiments/pod-kill.yaml
+kubectl delete -f [chaos-experiments/pod-kill.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-kill.yaml)
 
 # 2. Pod failure (симуляция падения пода)
-kubectl apply -f chaos-experiments/pod-failure.yaml
+kubectl apply -f [chaos-experiments/pod-failure.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-failure.yaml)
 # Затронутые поды: kafka-pod-failure (one) — kafka-cluster-kafka-exporter-*; kafka-multi-pod-failure (60%) — kafka-cluster-broker-2, kafka-cluster-kafka-exporter-*, kafka-cluster-cruise-control-*, kafka-cluster-controller-4. Логи (exporter после восстановления): kafka_exporter.go Starting, Error Init Kafka Client: connection refused
 sleep 60
-kubectl delete -f chaos-experiments/pod-failure.yaml
+kubectl delete -f [chaos-experiments/pod-failure.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/pod-failure.yaml)
 
 # 3. CPU stress (нагрузка на CPU)
-kubectl apply -f chaos-experiments/cpu-stress.yaml
+kubectl apply -f [chaos-experiments/cpu-stress.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/cpu-stress.yaml)
 # Затронутые поды: kafka-cpu-stress (one) — kafka-cluster-controller-5; kafka-cpu-stress-high (all) — controller-3, controller-4, controller-5, entity-operator/topic-operator. Логи (controller): PartitionChangeBuilder Setting new leader, QuorumController handleBrokerUnfenced, ReplicationControlManager CreateTopics
 sleep 60
-kubectl delete -f chaos-experiments/cpu-stress.yaml
+kubectl delete -f [chaos-experiments/cpu-stress.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/cpu-stress.yaml)
 
 # 4. Memory stress (нагрузка на память)
-kubectl apply -f chaos-experiments/memory-stress.yaml
+kubectl apply -f [chaos-experiments/memory-stress.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/memory-stress.yaml)
 # Затронутые поды: kafka-memory-stress (one) — kafka-cluster-broker-0; kafka-combined-stress (one) — один из broker/controller. Логи: возможны OOMKilled, в брокере — replication/request timeouts при нехватке памяти
 sleep 60
-kubectl delete -f chaos-experiments/memory-stress.yaml
+kubectl delete -f [chaos-experiments/memory-stress.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/memory-stress.yaml)
 
 # 5. IO chaos (задержки и ошибки дискового I/O)
-kubectl apply -f chaos-experiments/io-chaos.yaml
+kubectl apply -f [chaos-experiments/io-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/io-chaos.yaml)
 # Затронутые поды: mode one — один из брокеров/контроллеров (broker-0, controller-5 и т.д.). Примечание: может быть FAILED из-за volumePath (например "No such file" если путь не совпадает с реальным). Логи: задержки записи/чтения, I/O errors в логах Kafka
 sleep 60
-kubectl delete -f chaos-experiments/io-chaos.yaml
+kubectl delete -f [chaos-experiments/io-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/io-chaos.yaml)
 
 # 6. Time chaos (смещение системного времени)
-kubectl apply -f chaos-experiments/time-chaos.yaml
+kubectl apply -f [chaos-experiments/time-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/time-chaos.yaml)
 # Затронутые поды: kafka-time-skew (one) — в прогоне kafka-cluster-controller-4; остальные timechaos — по одному поду из Kafka. Логи: NotControllerException, QuorumController replay, ACL Denied, рассинхрон часов
 sleep 60
-kubectl delete -f chaos-experiments/time-chaos.yaml
+kubectl delete -f [chaos-experiments/time-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/time-chaos.yaml)
 
 # 7. JVM chaos (GC, stress и исключения в JVM)
-kubectl apply -f chaos-experiments/jvm-chaos.yaml
+kubectl apply -f [chaos-experiments/jvm-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/jvm-chaos.yaml)
 # Затронутые поды: по одному поду на каждый JVMChaos — controller (GC), broker (exception handleProduceRequest, stress, latency append). Логи: GC паузы, IOException Chaos test exception в handleProduceRequest, задержки append
 sleep 60
-kubectl delete -f chaos-experiments/jvm-chaos.yaml
+kubectl delete -f [chaos-experiments/jvm-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/jvm-chaos.yaml)
 
 # 8. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
-kubectl apply -f chaos-experiments/http-chaos.yaml
+kubectl apply -f [chaos-experiments/http-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/http-chaos.yaml)
 # Затронутые поды: schema-registry-* (все в ns schema-registry), kafka-ui-* (ns kafka-ui). Логи: Karapace heartbeat, Received successful heartbeat response, "GET /subjects HTTP/1.1" 200
 sleep 60
-kubectl delete -f chaos-experiments/http-chaos.yaml
+kubectl delete -f [chaos-experiments/http-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/http-chaos.yaml)
 
 # 9. DNS chaos (ошибки DNS для брокеров и producer)
-kubectl apply -f chaos-experiments/dns-chaos.yaml
+kubectl apply -f [chaos-experiments/dns-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/dns-chaos.yaml)
 # Затронутые поды: kafka-cluster (one/all по манифесту) — один или все брокеры/контроллеры; kafka-producer (ns kafka-producer) — поды kafka-producer-*. Логи: UnknownHostException, kafka-dns-error может быть FAILED при неверном pattern
 sleep 60
-kubectl delete -f chaos-experiments/dns-chaos.yaml
+kubectl delete -f [chaos-experiments/dns-chaos.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/dns-chaos.yaml)
 
 # 10. Network partition (сетевая изоляция)
-kubectl apply -f chaos-experiments/network-partition.yaml
+kubectl apply -f [chaos-experiments/network-partition.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-partition.yaml)
 # Затронутые поды: kafka-network-partition (one) — в прогоне kafka-cluster-broker-2; kafka-producer-partition — все брокеры (broker-0, broker-1, ...) и поды kafka-producer в ns kafka-producer. Логи: producer retries, connection timeouts, leader unavailable
 sleep 60
-kubectl delete -f chaos-experiments/network-partition.yaml
+kubectl delete -f [chaos-experiments/network-partition.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-partition.yaml)
 
 # 11. Network loss (потеря пакетов)
-kubectl apply -f chaos-experiments/network-loss.yaml
+kubectl apply -f [chaos-experiments/network-loss.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-loss.yaml)
 # Затронутые поды: все поды Kafka в kafka-cluster (broker-*, controller-*, cruise-control, entity-operator, kafka-exporter); producer/consumer — потеря пакетов, retry в логах приложений
 sleep 60
-kubectl delete -f chaos-experiments/network-loss.yaml
+kubectl delete -f [chaos-experiments/network-loss.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-loss.yaml)
 
 # Network delay (сетевые задержки) — отладка, по умолчанию не запускаем
-kubectl apply -f chaos-experiments/network-delay.yaml
+kubectl apply -f [chaos-experiments/network-delay.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-delay.yaml)
 # Затронутые поды: все поды Kafka в kafka-cluster (mode all); producer/consumer — рост latency в логах и метриках
 sleep 60
-kubectl delete -f chaos-experiments/network-delay.yaml
+kubectl delete -f [chaos-experiments/network-delay.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-experiments/network-delay.yaml)
 
 
 **Статус экспериментов** (namespace из манифеста, обычно `kafka-cluster`):
