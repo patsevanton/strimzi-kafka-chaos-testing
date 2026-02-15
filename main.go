@@ -46,6 +46,9 @@ type Config struct {
 	// Producer: batch settings (env KAFKA_PRODUCER_BATCH_SIZE, KAFKA_PRODUCER_BATCH_TIMEOUT_MS)
 	ProducerBatchSize    int
 	ProducerBatchTimeout time.Duration
+	// Producer: message rate and payload size (env PRODUCER_INTERVAL_MS, MESSAGE_PAYLOAD_BYTES)
+	ProducerIntervalMs    int // ms between messages, 100 = 10 msg/s per producer
+	MessagePayloadBytes   int // pad Data to this size (0 = no padding)
 	// Redis: store hash of message value for delivery verification and SLO
 	RedisAddr       string
 	RedisPassword   string
@@ -199,6 +202,19 @@ func loadConfig() *Config {
 		}
 	}
 
+	producerIntervalMs := 100
+	if s := os.Getenv("PRODUCER_INTERVAL_MS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			producerIntervalMs = n
+		}
+	}
+	messagePayloadBytes := 0
+	if s := os.Getenv("MESSAGE_PAYLOAD_BYTES"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			messagePayloadBytes = n
+		}
+	}
+
 	return &Config{
 		Mode:              mode,
 		Brokers:           parseBrokers(brokers),
@@ -213,6 +229,8 @@ func loadConfig() *Config {
 		RedisSLOSeconds:       redisSLOSeconds,
 		ProducerBatchSize:     producerBatchSize,
 		ProducerBatchTimeout:  producerBatchTimeout,
+		ProducerIntervalMs:    producerIntervalMs,
+		MessagePayloadBytes:   messagePayloadBytes,
 	}
 }
 
@@ -369,8 +387,8 @@ func runProducer(ctx context.Context, config *Config) {
 	logger.Info("Producer is ready")
 
 	messageID := int64(0)
-	// 100ms = 10 msg/sec на producer.
-	ticker := time.NewTicker(100 * time.Millisecond)
+	interval := time.Duration(config.ProducerIntervalMs) * time.Millisecond
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {
@@ -381,10 +399,18 @@ func runProducer(ctx context.Context, config *Config) {
 		case <-ticker.C:
 			messageID++
 			msgStartTime := time.Now()
+			data := fmt.Sprintf("Test message #%d", messageID)
+			if config.MessagePayloadBytes > 0 && len(data) < config.MessagePayloadBytes {
+				padding := make([]byte, config.MessagePayloadBytes-len(data))
+				for i := range padding {
+					padding[i] = 'x'
+				}
+				data = data + string(padding)
+			}
 			msg := Message{
 				ID:        messageID,
 				Timestamp: time.Now(),
-				Data:      fmt.Sprintf("Test message #%d", messageID),
+				Data:      data,
 			}
 
 			// Convert message to Avro with Confluent wire format
