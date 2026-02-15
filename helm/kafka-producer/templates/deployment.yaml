@@ -51,7 +51,7 @@ spec:
             - name: PRODUCER_INTERVAL_MS
               value: {{ (.Values.kafka.producerIntervalMs | default 100) | quote }}
             - name: MESSAGE_PAYLOAD_BYTES
-              value: {{ ((.Values.kafka.messagePayloadBytes | default 0) | int) | quote }}
+              value: {{ (.Values.kafka.messagePayloadBytes | int) | quote }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
             {{- if .Values.kafka.existingSecret }}
