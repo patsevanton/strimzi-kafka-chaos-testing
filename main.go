@@ -212,6 +212,8 @@ func loadConfig() *Config {
 	if s := os.Getenv("MESSAGE_PAYLOAD_BYTES"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
 			messagePayloadBytes = n
+		} else if f, err := strconv.ParseFloat(s, 64); err == nil && f >= 0 && f <= 1<<31-1 {
+			messagePayloadBytes = int(f)
 		}
 	}
 

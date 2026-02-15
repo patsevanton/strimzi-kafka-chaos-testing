@@ -253,8 +253,8 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
           "editorMode": "code",
-          "expr": "rate(kafka_consumer_messages_received_total[5m])",
-          "legendFormat": "{{topic}} p{{partition}}",
+          "expr": "sum by (topic) (rate(kafka_consumer_messages_received_total[5m]))",
+          "legendFormat": "{{topic}} (total)",
           "refId": "A"
         }
       ],

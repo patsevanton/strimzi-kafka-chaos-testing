@@ -1,10 +1,10 @@
-# replicaCount: 50; формула распределения: 120 партиций ÷ 50 подов ≈ 2.4 партиции на под.
-replicaCount: 50
+# replicaCount: 25; формула распределения: 120 партиций ÷ 25 подов ≈ 5 партиций на под.
+replicaCount: 25
 
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.12"
+  tag: "0.2.13"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -45,8 +45,8 @@ affinity: {}
 
 autoscaling:
   enabled: false
-  minReplicas: 10   # формула: 120 партиций / целевое число партиций на под
-  maxReplicas: 100  # minReplicas × 10 — запас при autoscaling
+  minReplicas: 25   # формула: 120 партиций / целевое число партиций на под
+  maxReplicas: 50   # запас при autoscaling
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
