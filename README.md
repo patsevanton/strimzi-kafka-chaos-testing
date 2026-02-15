@@ -21,6 +21,8 @@
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
+В этом README под блоками с командами указаны пути к манифестам проекта (`victoriametrics-values.yaml`, `strimzi/kafka-metrics.yaml` и др.) — это **ссылки на исходный код** в репозитории. По ним можно открыть файл в браузере без клонирования репозитория.
+
 1. Репозиторий Helm для VictoriaMetrics:
 
 ```bash
@@ -41,7 +43,7 @@ helm upgrade --install vmks \
   -f victoriametrics-values.yaml
 ```
 
-[`victoriametrics-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoriametrics-values.yaml)
+Ссылка на исходный код: [`victoriametrics-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoriametrics-values.yaml)
 
 3. Получить пароль администратора Grafana:
 
@@ -91,7 +93,7 @@ kubectl apply -n kafka-cluster -f strimzi/kafka-topic.yaml
 kubectl apply -n kafka-cluster -f strimzi/kafka-user.yaml
 ```
 
-[`strimzi/kafka-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml) · [`strimzi/kafka-topic.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-topic.yaml) · [`strimzi/kafka-user.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user.yaml)
+Ссылка на исходный код: [`strimzi/kafka-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml) · [`strimzi/kafka-topic.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-topic.yaml) · [`strimzi/kafka-user.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user.yaml)
 
 ```bash
 # Дождаться готовности Kafka (при первом развёртывании может занять 10–15 минут)
@@ -107,7 +109,7 @@ kubectl apply -n kafka-cluster -f strimzi/kafka-pdb.yaml
 kubectl get pdb -n kafka-cluster
 ```
 
-[`strimzi/kafka-pdb.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-pdb.yaml)
+Ссылка на исходный код: [`strimzi/kafka-pdb.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-pdb.yaml)
 
 ### Cruise Control
 
@@ -128,7 +130,7 @@ kubectl apply -n kafka-cluster -f strimzi/kafka-metrics.yaml
 kubectl apply -n kafka-cluster -f strimzi/cruise-control/kafka-rebalance-cronjob.yaml
 ```
 
-[`strimzi/cruise-control/kafka-rebalance-templates.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-templates.yaml) · [`strimzi/kafka-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml) · [`strimzi/cruise-control/kafka-rebalance-cronjob.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-cronjob.yaml)
+Ссылка на исходный код: [`strimzi/cruise-control/kafka-rebalance-templates.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-templates.yaml) · [`strimzi/kafka-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml) · [`strimzi/cruise-control/kafka-rebalance-cronjob.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance-cronjob.yaml)
 
 Ручной полный ребаланс: **strimzi/cruise-control/kafka-rebalance.yaml** (тот же ресурс, что использует CronJob).
 
@@ -138,7 +140,7 @@ kubectl annotate kafkarebalance kafka-cluster-rebalance -n kafka-cluster strimzi
 kubectl get kafkarebalance -n kafka-cluster
 ```
 
-[`strimzi/cruise-control/kafka-rebalance.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance.yaml)
+Ссылка на исходный код: [`strimzi/cruise-control/kafka-rebalance.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cruise-control/kafka-rebalance.yaml)
 
 ### Metrics (examples/metrics)
 
@@ -155,7 +157,7 @@ kubectl apply -n vmks -f strimzi/entity-operator-metrics.yaml
 kubectl apply -n vmks -f strimzi/kafka-resources-metrics.yaml
 ```
 
-[`strimzi/cluster-operator-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cluster-operator-metrics.yaml) · [`strimzi/entity-operator-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/entity-operator-metrics.yaml) · [`strimzi/kafka-resources-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-resources-metrics.yaml)
+Ссылка на исходный код: [`strimzi/cluster-operator-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/cluster-operator-metrics.yaml) · [`strimzi/entity-operator-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/entity-operator-metrics.yaml) · [`strimzi/kafka-resources-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-resources-metrics.yaml)
 
 **Kube-state-metrics для Strimzi CRD** — отдельный экземпляр [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) в режиме `--custom-resource-state-only`: он следит за **кастомными ресурсами Strimzi** (Kafka, KafkaTopic, KafkaUser, KafkaConnect, KafkaConnector и др.) и отдаёт их состояние в формате Prometheus (ready, replicas, topicId, kafka_version и т.д.). Это нужно для дашбордов и алертов по состоянию CR (например, «топик не Ready», «Kafka не на целевой версии»). Обычный kube-state-metrics из VictoriaMetrics K8s Stack таких метрик по Strimzi не даёт.
 
@@ -170,7 +172,7 @@ kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-configmap.yaml
 kubectl apply -n kafka-cluster -f strimzi/kube-state-metrics-ksm.yaml
 ```
 
-[`strimzi/kube-state-metrics-configmap.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-configmap.yaml) · [`strimzi/kube-state-metrics-ksm.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-ksm.yaml)
+Ссылка на исходный код: [`strimzi/kube-state-metrics-configmap.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-configmap.yaml) · [`strimzi/kube-state-metrics-ksm.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kube-state-metrics-ksm.yaml)
 
 ## Kafka Exporter
 
@@ -184,7 +186,7 @@ Kafka Exporter подключается к брокерам по Kafka API и о
 kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
 ```
 
-[`strimzi/kafka-exporter-servicemonitor.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-exporter-servicemonitor.yaml)
+Ссылка на исходный код: [`strimzi/kafka-exporter-servicemonitor.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-exporter-servicemonitor.yaml)
 
 При указании `kafkaExporter` в CR Strimzi Cluster Operator поднимает **отдельный Deployment** (например, `kafka-cluster-kafka-exporter`) — это не «просто параметр» в поде Kafka, а отдельное приложение, которым управляет оператор.
 
@@ -354,7 +356,7 @@ helm upgrade --install kafka-consumer ./helm/kafka-consumer \
 kubectl apply -f redis/redis-exporter-in-cluster.yaml
 ```
 
-[`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
+Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 
 Проверить: `kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter-in-cluster`
 
@@ -395,7 +397,7 @@ kubectl apply -f strimzi/kafka-producer-metrics.yaml
 kubectl apply -f strimzi/kafka-consumer-metrics.yaml
 ```
 
-[`strimzi/kafka-producer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-producer-metrics.yaml) · [`strimzi/kafka-consumer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-consumer-metrics.yaml)
+Ссылка на исходный код: [`strimzi/kafka-producer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-producer-metrics.yaml) · [`strimzi/kafka-consumer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-consumer-metrics.yaml)
 
 **Доступные метрики:**Producer метрики:- `kafka_producer_messages_sent_total{topic}` — общее количество отправленных сообщений
 - `kafka_producer_messages_sent_bytes_total{topic}` — общий объём отправленных данных (байты)
@@ -460,7 +462,7 @@ helm upgrade --install kafka-ui kafbat-ui/kafka-ui \
   --create-namespace
 ```
 
-[`strimzi/kafka-user-kafka-ui.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user-kafka-ui.yaml) · [`helm/kafka-ui-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/helm/kafka-ui-values.yaml)
+Ссылка на исходный код: [`strimzi/kafka-user-kafka-ui.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-user-kafka-ui.yaml) · [`helm/kafka-ui-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/helm/kafka-ui-values.yaml)
 
 ```bash
 # Дождаться готовности (при первом запуске Kafka UI может потребоваться 2–3 минуты)
@@ -479,7 +481,7 @@ kubectl apply -f redis/redis.yaml
 kubectl rollout status deploy/redis -n redis --timeout=120s
 ```
 
-[`redis/redis.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis.yaml)
+Ссылка на исходный код: [`redis/redis.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis.yaml)
 
 Метрики Redis для дашборда **redis-delivery-verification** (in-cluster Redis):
 
@@ -487,7 +489,7 @@ kubectl rollout status deploy/redis -n redis --timeout=120s
 kubectl apply -f redis/redis-exporter-in-cluster.yaml
 ```
 
-[`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
+Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 
 ## VictoriaLogs
 
@@ -513,7 +515,7 @@ helm upgrade --install victoria-logs-cluster vm/victoria-logs-cluster \
   -f victoria-logs-cluster-values.yaml
 ```
 
-[`victoria-logs-cluster-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-cluster-values.yaml)
+Ссылка на исходный код: [`victoria-logs-cluster-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-cluster-values.yaml)
 
 Чтобы VMAgent из VictoriaMetrics K8s Stack собирал метрики VictoriaLogs, на VMServiceScrape должен быть label, по которому стэк выбирает цели (например `release: vmks`). Если чарт по умолчанию задаёт другой `release`, добавьте в values или `--set` нужный label для vlselect/vlinsert/vlstorage VMServiceScrape.
 
@@ -537,7 +539,7 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
   -f victoria-logs-collector-values.yaml
 ```
 
-[`victoria-logs-collector-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-collector-values.yaml)
+Ссылка на исходный код: [`victoria-logs-collector-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/victoria-logs-collector-values.yaml)
 
 Проверка: `kubectl get pods -n victoria-logs-collector`.
 
@@ -561,7 +563,7 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
   --wait
 ```
 
-[`chaos-mesh/chaos-mesh-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-values.yaml)
+Ссылка на исходный код: [`chaos-mesh/chaos-mesh-values.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-values.yaml)
 
 Проверка: `kubectl get pods -n chaos-mesh`
 
@@ -571,7 +573,7 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
 kubectl apply -f chaos-mesh/chaos-mesh-vmservicescrape.yaml
 ```
 
-[`chaos-mesh/chaos-mesh-vmservicescrape.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-vmservicescrape.yaml)
+Ссылка на исходный код: [`chaos-mesh/chaos-mesh-vmservicescrape.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-vmservicescrape.yaml)
 
 ### Доступ к Dashboard
 
@@ -583,7 +585,7 @@ sleep 3
 kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.token}' | base64 -d; echo
 ```
 
-[`chaos-mesh/chaos-mesh-rbac.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-rbac.yaml)
+Ссылка на исходный код: [`chaos-mesh/chaos-mesh-rbac.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/chaos-mesh/chaos-mesh-rbac.yaml)
 
 Скопируйте токен и войдите в Chaos Mesh Dashboard. В `chaos-mesh-values.yaml` задан Ingress-хост `chaos-dashboard.apatsev.org.ru` (при необходимости измените под свой домен).
 
@@ -613,7 +615,7 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 kubectl apply -f chaos-experiments/pod-kill.yaml
 ```
 
-[chaos-experiments/](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments)
+Ссылка на исходный код: [chaos-experiments/](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments)
 
 Проверка: `kubectl get podchaos,networkchaos,stresschaos,schedule -n kafka-cluster`
 
