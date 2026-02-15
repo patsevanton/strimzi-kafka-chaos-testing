@@ -5,9 +5,8 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  # partitions: 120 — формула: 12 × 10 для параллелизма (каждый consumer читает свою партицию).
-  # 50 подов ÷ 120 партиций ≈ 2.4 партиции на под.
-  partitions: 120
+  # partitions: 30 — формула для параллелизма (каждый consumer читает свою партицию).
+  partitions: 30
   replicas: 3
   config:
     # retention.ms: 2 × 60 × 60 × 1000 = 7200000 (2 часа)

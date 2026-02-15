@@ -1,4 +1,4 @@
-replicaCount: 25
+replicaCount: 30
 
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
@@ -44,7 +44,7 @@ affinity: {}
 
 autoscaling:
   enabled: false
-  minReplicas: 25   # формула: базовый пул (нагрузка / целевой throughput на под)
+  minReplicas: 30   # формула: базовый пул (нагрузка / целевой throughput на под)
   maxReplicas: 50   # запас при autoscaling
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
