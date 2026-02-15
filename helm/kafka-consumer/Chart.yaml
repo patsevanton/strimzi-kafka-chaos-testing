@@ -3,4 +3,4 @@ name: kafka-consumer
 description: Helm chart for Kafka Consumer application
 type: application
 version: 0.2.3
-appVersion: "0.2.13"
+appVersion: "0.2.14"

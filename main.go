@@ -46,9 +46,8 @@ type Config struct {
 	// Producer: batch settings (env KAFKA_PRODUCER_BATCH_SIZE, KAFKA_PRODUCER_BATCH_TIMEOUT_MS)
 	ProducerBatchSize    int
 	ProducerBatchTimeout time.Duration
-	// Producer: message rate and payload size (env PRODUCER_INTERVAL_MS, MESSAGE_PAYLOAD_BYTES)
-	ProducerIntervalMs    int // ms between messages, 100 = 10 msg/s per producer
-	MessagePayloadBytes   int // pad Data to this size (0 = no padding)
+	// Producer: message rate (env PRODUCER_INTERVAL_MS)
+	ProducerIntervalMs int // ms between messages, 100 = 10 msg/s per producer
 	// Redis: store hash of message value for delivery verification and SLO
 	RedisAddr       string
 	RedisPassword   string
@@ -208,14 +207,6 @@ func loadConfig() *Config {
 			producerIntervalMs = n
 		}
 	}
-	messagePayloadBytes := 0
-	if s := os.Getenv("MESSAGE_PAYLOAD_BYTES"); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
-			messagePayloadBytes = n
-		} else if f, err := strconv.ParseFloat(s, 64); err == nil && f >= 0 && f <= 1<<31-1 {
-			messagePayloadBytes = int(f)
-		}
-	}
 
 	return &Config{
 		Mode:              mode,
@@ -232,7 +223,6 @@ func loadConfig() *Config {
 		ProducerBatchSize:     producerBatchSize,
 		ProducerBatchTimeout:  producerBatchTimeout,
 		ProducerIntervalMs:    producerIntervalMs,
-		MessagePayloadBytes:   messagePayloadBytes,
 	}
 }
 
@@ -402,13 +392,6 @@ func runProducer(ctx context.Context, config *Config) {
 			messageID++
 			msgStartTime := time.Now()
 			data := fmt.Sprintf("Test message #%d", messageID)
-			if config.MessagePayloadBytes > 0 && len(data) < config.MessagePayloadBytes {
-				padding := make([]byte, config.MessagePayloadBytes-len(data))
-				for i := range padding {
-					padding[i] = 'x'
-				}
-				data = data + string(padding)
-			}
 			msg := Message{
 				ID:        messageID,
 				Timestamp: time.Now(),
