@@ -2,7 +2,7 @@
 
 Проект для тестирования отказоустойчивости высоконагруженной Strimzi Kafka с помощью хаос-тестов. Используются следующие компоненты: VictoriaMetrics K8s Stack, Grafana, Strimzi Kafka, Schema Registry, Kafka UI, Redis для верификации доставки сообщений (Producer → Consumer), VictoriaLogs и Victoria-logs-collector для сбора логов, Chaos Mesh, а также Golang producer/consumer с готовыми Helm-чартами.
 
-## Порядок развёртывания (полная последовательность)
+## Порядок развёртывания
 
 При выполнении README последовательно нужно пройти все шаги в указанном порядке. Chaos-тесты входят в обязательную последовательность — их нельзя пропускать.
 
