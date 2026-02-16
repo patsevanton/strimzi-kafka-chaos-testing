@@ -8,6 +8,7 @@ RUN go mod download
 
 COPY main.go .
 COPY metrics.go .
+COPY message_template.json .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kafka-app .
 

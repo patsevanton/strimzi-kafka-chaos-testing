@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "messageId": "{{message_id}}",
+    "correlationId": "chaos-test-{{message_id}}-strimzi-delivery",
+    "traceId": "trace-{{message_id}}-abcdef123456",
+    "spanId": "span-{{message_id}}-789",
+    "source": "kafka-chaos-producer",
+    "environment": "chaos-testing",
+    "version": "1.0.0",
+    "schemaVersion": "2024.02",
+    "tags": ["chaos", "strimzi", "kafka", "delivery-verification"]
+  },
+  "payload": {
+    "type": "chaos_test_event",
+    "sequenceNumber": "{{message_id}}",
+    "description": "Chaos testing payload for Strimzi/Kafka delivery verification",
+    "purpose": "Redis hash and SLO checks",
+    "testRun": {
+      "id": "run-{{message_id}}",
+      "scenario": "message_delivery_integrity",
+      "expectedBehavior": "at-least-once delivery with content hash verification",
+      "checks": ["hash_match", "slo_latency", "ordering"]
+    },
+    "content": {
+      "text": "Test message #{{message_id}} — chaos testing payload for Strimzi/Kafka delivery verification",
+      "messageIdRef": "{{message_id}}",
+      "usageNote": "Message ID used for Redis hash and SLO checks"
+    },
+    "attributes": {
+      "priority": "normal",
+      "retention": "ephemeral",
+      "partitionHint": null
+    }
+  },
+  "context": {
+    "broker": "strimzi-kafka",
+    "topic": "test-topic",
+    "partitionKey": "key-{{message_id}}",
+    "headers": {
+      "X-Message-Type": "chaos-test",
+      "X-Sequence": "{{message_id}}"
+    }
+  },
+  "extensions": {
+    "redisHashInput": "id={{message_id}}, data=Test message #{{message_id}}",
+    "sloWindowSeconds": 120,
+    "verificationMethod": "content_hash"
+  }
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -23,9 +24,13 @@ import (
 	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
+//go:embed message_template.json
+var defaultMessageTemplate []byte
+
 const (
 	ModeProducer = "producer"
 	ModeConsumer = "consumer"
+	messageIDPlaceholder = "{{message_id}}"
 )
 
 // Health status for probes
@@ -67,6 +72,24 @@ func init() {
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+}
+
+// loadMessageTemplate returns the message template (from file or embedded default).
+func loadMessageTemplate() string {
+	if path := os.Getenv("MESSAGE_TEMPLATE_FILE"); path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			logger.Warn("Failed to read MESSAGE_TEMPLATE_FILE, using embedded template", "path", path, "error", err)
+			return string(defaultMessageTemplate)
+		}
+		return string(b)
+	}
+	return string(defaultMessageTemplate)
+}
+
+// buildMessageData substitutes placeholders in the template with actual values.
+func buildMessageData(template string, messageID int64) string {
+	return strings.ReplaceAll(template, messageIDPlaceholder, strconv.FormatInt(messageID, 10))
 }
 
 func main() {
@@ -378,6 +401,7 @@ func runProducer(ctx context.Context, config *Config) {
 	isReady.Store(true)
 	logger.Info("Producer is ready")
 
+	messageTemplate := loadMessageTemplate()
 	messageID := int64(0)
 	interval := time.Duration(config.ProducerIntervalMs) * time.Millisecond
 	ticker := time.NewTicker(interval)
@@ -391,7 +415,7 @@ func runProducer(ctx context.Context, config *Config) {
 		case <-ticker.C:
 			messageID++
 			msgStartTime := time.Now()
-			data := fmt.Sprintf("Test message #%d", messageID)
+			data := buildMessageData(messageTemplate, messageID)
 			msg := Message{
 				ID:        messageID,
 				Timestamp: time.Now(),

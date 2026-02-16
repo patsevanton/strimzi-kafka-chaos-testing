@@ -261,10 +261,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.10 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.16 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.10
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.16
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -274,7 +274,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.10"
+  --set image.tag="0.2.16"
 ```
 
 ### Переменные окружения
@@ -327,7 +327,7 @@ kubectl get secret myuser -n kafka-consumer
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
-  --set image.tag="0.2.10" \
+  --set image.tag="0.2.16" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \
@@ -340,7 +340,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-consumer \
   --create-namespace \
-  --set image.tag="0.2.10" \
+  --set image.tag="0.2.16" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \
