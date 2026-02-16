@@ -57,8 +57,8 @@ kafka:
   # producerBatchSize × producerBatchTimeoutMs: батч до 50 сообщений или 50 ms — что раньше.
   producerBatchSize: 50      # формула: throughput × латентность (например 10 msg/s × 5 s)
   producerBatchTimeoutMs: 50 # макс ожидание батча (ms) перед отправкой
-  # producerIntervalMs: интервал между сообщениями (ms). 100 = 10 msg/s на под.
-  producerIntervalMs: 100    # уменьшить для большей нагрузки (50→20 msg/s, 20→50 msg/s)
+  # producerIntervalMs: интервал между сообщениями (ms). 50 = 20 msg/s на под.
+  producerIntervalMs: 50     # уменьшить для большей нагрузки (20→50 msg/s)
   # Учётные данные KafkaUser — только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
   username: "myuser"
   # Имя Secret в том же namespace, из которого берётся пароль (обязательно для SASL).
