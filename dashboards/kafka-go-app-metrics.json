@@ -1190,8 +1190,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p50 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p50 {{topic}}",
           "range": true,
           "refId": "A"
         },
@@ -1201,8 +1201,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p95 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "B"
         },
@@ -1212,8 +1212,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p99 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_message_processing_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p99 {{topic}}",
           "range": true,
           "refId": "C"
         }
@@ -1306,8 +1306,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p50 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p50 {{topic}}",
           "range": true,
           "refId": "A"
         },
@@ -1317,8 +1317,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p95 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "B"
         },
@@ -1328,8 +1328,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p99 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_message_decode_duration_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p99 {{topic}}",
           "range": true,
           "refId": "C"
         }
@@ -1422,8 +1422,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p50 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.50, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p50 {{topic}}",
           "range": true,
           "refId": "A"
         },
@@ -1433,8 +1433,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p95 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.95, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "B"
         },
@@ -1444,8 +1444,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic, partition))",
-          "legendFormat": "p99 {{topic}} - p{{partition}}",
+          "expr": "histogram_quantile(0.99, sum(rate(kafka_consumer_end_to_end_latency_seconds_bucket[5m])) by (le, topic))",
+          "legendFormat": "p99 {{topic}}",
           "range": true,
           "refId": "C"
         }
@@ -1630,8 +1630,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, kafka_consumer_lag[5m])",
-          "legendFormat": "p95 {{topic}} - p{{partition}} - {{group_id}}",
+          "expr": "sum(kafka_consumer_lag) by (topic, group_id)",
+          "legendFormat": "{{topic}} - {{group_id}}",
           "range": true,
           "refId": "A"
         }
