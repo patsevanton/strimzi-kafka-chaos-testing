@@ -2012,7 +2012,7 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "kafka_connection_status",
+          "expr": "max by (broker) (kafka_connection_status)",
           "legendFormat": "{{broker}}",
           "range": true,
           "refId": "A"
@@ -2092,7 +2092,7 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "schema_registry_connection_status",
+          "expr": "max(schema_registry_connection_status)",
           "legendFormat": "Schema Registry",
           "range": true,
           "refId": "A"
