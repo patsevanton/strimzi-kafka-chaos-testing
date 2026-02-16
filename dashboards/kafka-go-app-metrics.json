@@ -1843,7 +1843,7 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, rate(schema_registry_requests_total[5m])[5m])",
+          "expr": "avg by (operation) (quantile_over_time(0.95, rate(schema_registry_requests_total[5m])[5m]))",
           "legendFormat": "p95 {{operation}}",
           "range": true,
           "refId": "A"
