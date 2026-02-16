@@ -48,8 +48,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -107,8 +107,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (rate(kafka_producer_messages_sent_total[5m]))",
-          "legendFormat": "{{topic}} (total)",
+          "expr": "quantile_over_time(0.95, sum by (topic) (rate(kafka_producer_messages_sent_total[5m]))[5m])",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -141,8 +141,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -200,8 +200,8 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (rate(kafka_producer_messages_sent_bytes_total[5m]))",
-          "legendFormat": "{{topic}} (total)",
+          "expr": "quantile_over_time(0.95, sum by (topic) (rate(kafka_producer_messages_sent_bytes_total[5m]))[5m])",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "A"
         }
@@ -426,8 +426,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -542,8 +542,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -658,8 +658,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -717,13 +717,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "rate(kafka_producer_errors_total[5m])",
-          "legendFormat": "{{topic}} - {{error_type}}",
+          "expr": "quantile_over_time(0.95, rate(kafka_producer_errors_total[5m])[5m])",
+          "legendFormat": "p95 {{topic}} - {{error_type}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Распределение ошибок продюсера по типам. Позволяет идентифицировать наиболее частые типы ошибок при отправке сообщений.",
+      "description": "95-й перцентиль скорости ошибок продюсера по типам (окно 5 мин). Позволяет идентифицировать наиболее частые типы ошибок при отправке сообщений.",
       "title": "Producer: Errors by Type",
       "type": "timeseries"
     },
@@ -751,8 +751,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -810,13 +810,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (rate(kafka_consumer_messages_received_total[5m]))",
-          "legendFormat": "{{topic}} (total)",
+          "expr": "quantile_over_time(0.95, sum by (topic) (rate(kafka_consumer_messages_received_total[5m]))[5m])",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Скорость получения сообщений консьюмером из Kafka. Показывает количество сообщений, полученных в секунду по каждому топику и партиции.",
+      "description": "95-й перцентиль скорости получения сообщений консьюмером (окно 5 мин). Показывает количество сообщений, полученных в секунду по каждому топику и партиции.",
       "title": "Consumer: Messages Received Rate",
       "type": "timeseries"
     },
@@ -844,8 +844,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -903,13 +903,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "sum by (topic) (rate(kafka_consumer_messages_received_bytes_total[5m]))",
-          "legendFormat": "{{topic}} (total)",
+          "expr": "quantile_over_time(0.95, sum by (topic) (rate(kafka_consumer_messages_received_bytes_total[5m]))[5m])",
+          "legendFormat": "p95 {{topic}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Скорость получения данных консьюмером из Kafka в байтах в секунду. Показывает объем данных, полученных по каждому топику и партиции.",
+      "description": "95-й перцентиль скорости получения данных консьюмером (окно 5 мин). Показывает объем данных, полученных по каждому топику и партиции.",
       "title": "Consumer: Bytes Received Rate",
       "type": "timeseries"
     },
@@ -1130,8 +1130,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1246,8 +1246,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1362,8 +1362,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1478,8 +1478,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1537,13 +1537,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "rate(kafka_consumer_errors_total[5m])",
-          "legendFormat": "{{topic}} - {{error_type}}",
+          "expr": "quantile_over_time(0.95, rate(kafka_consumer_errors_total[5m])[5m])",
+          "legendFormat": "p95 {{topic}} - {{error_type}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Распределение ошибок консьюмера по типам. Позволяет идентифицировать наиболее частые типы ошибок при получении и обработке сообщений.",
+      "description": "95-й перцентиль скорости ошибок консьюмера по типам (окно 5 мин). Позволяет идентифицировать наиболее частые типы ошибок при получении и обработке сообщений.",
       "title": "Consumer: Errors by Type",
       "type": "timeseries"
     },
@@ -1571,8 +1571,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1630,13 +1630,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "kafka_consumer_lag",
-          "legendFormat": "{{topic}} - p{{partition}} - {{group_id}}",
+          "expr": "quantile_over_time(0.95, kafka_consumer_lag[5m])",
+          "legendFormat": "p95 {{topic}} - p{{partition}} - {{group_id}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Отставание консьюмера от продюсера. Показывает количество необработанных сообщений в партициях топиков для каждой группы консьюмеров.",
+      "description": "Отставание консьюмера от продюсера. 95-й перцентиль лага (окно 5 мин).",
       "title": "Consumer: Lag",
       "type": "timeseries"
     },
@@ -1664,8 +1664,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1723,13 +1723,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "rate(schema_registry_requests_total[5m])",
-          "legendFormat": "{{operation}}",
+          "expr": "quantile_over_time(0.95, rate(schema_registry_requests_total[5m])[5m])",
+          "legendFormat": "p95 {{operation}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Скорость запросов к Schema Registry. Показывает количество запросов в секунду по каждому типу операции (получение схемы, регистрация схемы и т.д.).",
+      "description": "95-й перцентиль скорости запросов к Schema Registry (окно 5 мин). Показывает количество запросов в секунду по каждому типу операции (получение схемы, регистрация схемы и т.д.).",
       "title": "Schema Registry: Request Rate",
       "type": "timeseries"
     },
@@ -1757,8 +1757,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1873,8 +1873,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -1932,13 +1932,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "rate(schema_registry_errors_total[5m])",
-          "legendFormat": "{{operation}} - {{error_type}}",
+          "expr": "quantile_over_time(0.95, rate(schema_registry_errors_total[5m])[5m])",
+          "legendFormat": "p95 {{operation}} - {{error_type}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Распределение ошибок Schema Registry по типам. Позволяет идентифицировать наиболее частые типы ошибок при работе со схемами.",
+      "description": "95-й перцентиль скорости ошибок Schema Registry по типам (окно 5 мин). Позволяет идентифицировать наиболее частые типы ошибок при работе со схемами.",
       "title": "Schema Registry: Errors by Type",
       "type": "timeseries"
     },
@@ -2126,8 +2126,8 @@
               "viz": false,
               "legend": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -2185,13 +2185,13 @@
             "uid": "${DS_VICTORIAMETRICS}"
           },
           "editorMode": "code",
-          "expr": "rate(kafka_reconnections_total[5m])",
-          "legendFormat": "{{broker}}",
+          "expr": "quantile_over_time(0.95, rate(kafka_reconnections_total[5m])[5m])",
+          "legendFormat": "p95 {{broker}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "description": "Скорость переподключений к брокерам Kafka. Высокое значение может указывать на проблемы с сетью или стабильностью брокеров.",
+      "description": "95-й перцентиль скорости переподключений к брокерам Kafka (окно 5 мин). Высокое значение может указывать на проблемы с сетью или стабильностью брокеров.",
       "title": "Kafka Reconnections Rate",
       "type": "timeseries"
     }
