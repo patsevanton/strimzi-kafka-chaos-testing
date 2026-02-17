@@ -31,7 +31,7 @@
 # Один эксперимент
 kubectl apply -f chaos-experiments/pod-kill.yaml
 
-# Все эксперименты (осторожно: высокая нагрузка на кластер)
+# Все эксперименты (осторожно: множество хаос-эффектов одновременно)
 kubectl apply -f chaos-experiments/pod-kill.yaml
 kubectl apply -f chaos-experiments/pod-failure.yaml
 kubectl apply -f chaos-experiments/network-delay.yaml
