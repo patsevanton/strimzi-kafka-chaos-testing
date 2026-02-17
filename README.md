@@ -239,7 +239,7 @@ kubectl get svc -n schema-registry schema-registry
 
 ## Redis в Kubernetes
 
-Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ. Адрес: `redis.redis.svc.cluster.local:6379`.
+Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ.
 
 ```bash
 kubectl apply -f redis/redis.yaml
