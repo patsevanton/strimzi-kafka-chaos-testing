@@ -6,16 +6,16 @@
 
 ## Порядок развёртывания
 
-1. VictoriaMetrics K8s Stack + Grafana
-2. Strimzi Operator и Strimzi Cruise Control 
-3. Strimzi Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
-4. Cбор метрик Kafka через JMX, Kafka Exporter и отдельного kube-state-metrics для Strimzi CRD
-5. Schema Registry (Karapace) для Avro
-6. Kafka UI
-7. Redis в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
+1. [VictoriaMetrics K8s Stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack) + [Grafana](https://grafana.com/)
+2. [Strimzi](https://strimzi.io/) Operator и [Cruise Control](https://github.com/linkedin/cruise-control) (Strimzi)
+3. Strimzi Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, [Kafka Exporter](https://github.com/prometheus-community/kafka_exporter))
+4. Cбор метрик Kafka через JMX, Kafka Exporter и [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) для Strimzi CRD
+5. Schema Registry ([Karapace](https://github.com/aiven/karapace)) для Avro
+6. [Kafka UI](https://github.com/provectus/kafka-ui)
+7. [Redis](https://redis.io/) в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
 8. Golang producer/consumer (Helm)
-9. VictoriaLogs и victoria-logs-collector
-10. Chaos Mesh - установка (Helm, VMServiceScrape, RBAC/Dashboard)
+9. [VictoriaLogs](https://victorialogs.com/) и [victoria-logs-collector](https://github.com/VictoriaMetrics/victoria-logs-collector)
+10. [Chaos Mesh](https://chaos-mesh.org/) — установка (Helm, VMServiceScrape, RBAC/Dashboard)
 11. Импорт дашбордов Grafana
 12. Chaos Mesh для проведения хаос-экспериментов (pod-kill, network-delay, CPU/memory stress, I/O chaos и др.)
 
@@ -55,7 +55,7 @@ kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | b
 
 ### Strimzi
 
-Strimzi — оператор для развёртывания и управления Apache Kafka в Kubernetes; выбран как де-факто стандарт для Kafka в K8s (CNCF-проект, декларативные CRD, активная разработка). Мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
+[Strimzi](https://strimzi.io/) — оператор для развёртывания и управления Apache Kafka в Kubernetes; выбран как де-факто стандарт для Kafka в K8s (CNCF-проект, декларативные CRD, активная разработка). Мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
 
 ### Установка Strimzi
 
