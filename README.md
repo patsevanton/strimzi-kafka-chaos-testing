@@ -144,7 +144,7 @@ kubectl get kafkarebalance -n kafka-cluster
 
 ### Metrics (examples/metrics)
 
-Кластер Kafka задаётся манифестом **kafka-metrics.yaml** (ресурс `Kafka` CR Strimzi) - JMX-метрики (`metricsConfig`) и Kafka Exporter уже включены в манифест. Остаётся применить VMPodScrape для сбора метрик в VMAgent.
+Кластер Kafka задаётся манифестом [kafka-metrics.yaml](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-metrics.yaml) (ресурс `Kafka` CR Strimzi) - JMX-метрики (`metricsConfig`) и Kafka Exporter уже включены в манифест. Остаётся применить VMPodScrape для сбора метрик в VMAgent.
 
 ```bash
 # Сбор метрик Strimzi Cluster Operator (состояние оператора, реконсиляция)
