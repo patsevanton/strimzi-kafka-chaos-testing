@@ -290,7 +290,7 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18
 | `KAFKA_CONSUMER_MAX_BYTES` | Максимум байт за один fetch (Consumer) | `104857600` (100MB) |
 | `KAFKA_CONSUMER_MAX_WAIT_MS` | Макс ожидание при отсутствии данных, ms (Consumer) | `500` |
 
-**Верификация доставки через Redis:** при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash - удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) - ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки. Критика подхода - в [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
+**Верификация доставки через Redis:** при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash - удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) - ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки. Подробнее см. раздел [Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis).
 
 ### Запуск Producer/Consumer в кластере используя Helm
 
@@ -358,7 +358,7 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 
 Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик - VictoriaMetrics.
 
-Подробнее о верификации доставки и метриках - [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
+Подробнее о верификации доставки - раздел [Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis).
 
 #### 3) Дождаться готовности подов Producer/Consumer
 ```bash
@@ -394,51 +394,6 @@ kubectl apply -f strimzi/kafka-consumer-metrics.yaml
 ```
 
 Ссылка на исходный код: [`strimzi/kafka-producer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-producer-metrics.yaml) · [`strimzi/kafka-consumer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-consumer-metrics.yaml)
-
-**Доступные метрики:**
-
-Producer метрики:
-- `kafka_producer_messages_sent_total{topic}` - общее количество отправленных сообщений
-- `kafka_producer_messages_sent_bytes_total{topic}` - общий объём отправленных данных (байты)
-- `kafka_producer_message_send_duration_seconds{topic}` - время отправки сообщения (от создания до подтверждения Kafka)
-- `kafka_producer_message_encode_duration_seconds{topic}` - время кодирования сообщения в Avro
-- `kafka_producer_errors_total{topic,error_type}` - количество ошибок (error_type: encode, send, connection)
-
-**Consumer метрики:**
-- `kafka_consumer_messages_received_total{topic,partition}` - общее количество полученных сообщений
-- `kafka_consumer_messages_received_bytes_total{topic,partition}` - общий объём полученных данных (байты)
-- `kafka_consumer_message_processing_duration_seconds{topic,partition}` - время обработки сообщения (от получения до завершения)
-- `kafka_consumer_message_decode_duration_seconds{topic,partition}` - время декодирования сообщения из Avro
-- `kafka_consumer_end_to_end_latency_seconds{topic,partition}` - end-to-end задержка от создания сообщения (timestamp) до потребления
-- `kafka_consumer_errors_total{topic,error_type}` - количество ошибок (error_type: read, decode, connection)
-- `kafka_consumer_lag{topic,partition,group_id}` - отставание consumer (разница между последним offset и offset consumer)
-
-**Schema Registry метрики:**
-- `schema_registry_requests_total{operation}` - количество запросов к Schema Registry (operation: get_schema, get_latest_schema, create_schema)
-- `schema_registry_request_duration_seconds{operation}` - длительность запросов к Schema Registry
-- `schema_registry_errors_total{operation,error_type}` - количество ошибок (error_type: timeout, not_found, invalid_schema, network)
-
-**Метрики подключения:**
-- `kafka_connection_status{broker}` - статус подключения к Kafka (1 = подключено, 0 = отключено)
-- `kafka_reconnections_total{broker}` - количество переподключений к Kafka
-- `schema_registry_connection_status` - статус подключения к Schema Registry (1 = подключено, 0 = отключено)
-
-**Отличия от метрик Kafka:**
-
-Метрики Kafka (через JMX и Kafka Exporter) показывают состояние на стороне брокера:
-- Количество сообщений, полученных брокером
-- Latency обработки на брокере
-- Размер топиков, количество партиций
-- Lag consumer groups на уровне брокера
-
-Метрики Go-приложения дополняют их данными на уровне приложения:
-- **Application-level latency** - время от создания сообщения до отправки/получения (включая кодирование/декодирование)
-- **End-to-end latency** - полная задержка от создания до потребления (на основе timestamp в сообщении)
-- **Schema Registry метрики** - производительность работы со схемами, кэширование
-- **Ошибки приложения** - ошибки кодирования/декодирования, проблемы подключения на стороне клиента
-- **Размер сообщений** - объём данных, отправляемых/получаемых приложением
-
-Эти метрики помогают диагностировать проблемы производительности на стороне клиента, которые не видны в метриках брокера.
 
 ### Kafka UI
 
@@ -494,6 +449,34 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 ```
 
 Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
+
+## Критика метода проверки доставки через Redis
+
+Реализованная схема: Producer пишет в Kafka и в Redis (ключ = ключ сообщения, значение = **content hash (id+data)** + timestamp). Consumer сверяет только хеш полей id и data; различие по timestamp (ретраи, дубликаты) не считается несовпадением. При совпадении content hash - удаление ключа и счётчик полученных. При несовпадении тела (другие id или data) - ошибка в логе и метрика `kafka_consumer_redis_hash_mismatch_total`. SLO считается по доле сообщений, «оставшихся» в Redis дольше заданного времени.
+
+### Плюсы
+
+- **Проверка целостности**: сравнение хеша позволяет обнаружить искажение тела сообщения в пути (Kafka, сеть, код).
+- **Факт доставки**: удаление из Redis после успешной обработки даёт явный сигнал «сообщение доставлено и проверено».
+- **SLO по задержке доставки**: счётчик «старых» pending-ключей (старше N секунд) даёт метрику нарушения SLO по времени доставки.
+
+### Минусы и риски
+
+**1. Два хранилища (Kafka + Redis)** — запись в Kafka и в Redis не в одной транзакции. Если после успешной отправки в Kafka запись в Redis не удалась (сеть, падение процесса), в Kafka сообщение есть, в Redis - нет. Consumer получит сообщение, не найдёт ключ в Redis и не сможет ни верифицировать, ни удалить «ожидающее» сообщение. Теряется однозначность: «нет в Redis» может означать «ещё не записали» или «уже обработали». Рекомендация: при недоступности Redis на Producer либо не считать сообщение «ожидающим», либо иметь отдельный канал алертов по ошибкам записи в Redis.
+
+**2. Порядок операций Producer** — сейчас: сначала `WriteMessages`, потом Redis SET. Если процесс падает между ними, в Kafka сообщение есть, в Redis - нет. При обратном порядке (сначала Redis, потом Kafka) при падении после Redis и до Kafka в Redis останутся «сироты». Текущий порядок (Kafka → Redis) лучше для консистентности «в Kafka есть ⇒ ожидаем в Redis», но усиливает зависимость от надёжности записи в Redis после Kafka.
+
+**3. Идемпотентность и повторная доставка** — при at-least-once consumer может обработать одно и то же сообщение дважды. При первой обработке ключ удаляется из Redis; при второй ключа уже нет - нельзя отличить «дубликат доставки» от «producer не писал в Redis». Счётчик полученных сообщений может стать больше числа уникальных сообщений. Для идемпотентности нужна отдельная стратегия (дедупликация по ключу в другом хранилище), текущая схема это не решает.
+
+**4. Определение SLO** — «оставшиеся сообщения в Redis дольше N секунд» - хороший индикатор задержки доставки, но: при одном consumer group интерпретация однозначна; при нескольких топиках/приложениях нужны разные префиксы/базы Redis. Рост pending без роста old: если consumer отстаёт, но все сообщения обрабатываются быстрее N секунд, SLO по «old» не нарушен, хотя задержка растёт. Имеет смысл смотреть и общее число pending, и old. Счётчик «received» считает факт обработки, а не уникальные сообщения; при повторной доставке он завышается.
+
+**5. Масштабирование Producer** — ключ сообщения сейчас `key-{messageID}`; при нескольких репликах Producer без координации messageID может пересекаться. Тогда один и тот же Redis-ключ перезаписывается разными сообщениями. Нужен глобально уникальный ключ (например, UUID или namespace + id).
+
+**6. TTL и утечка памяти** — ключи в Redis без TTL накапливаются, если Consumer перестал обрабатывать или часть сообщений никогда не будет потреблена. Имеет смысл задавать TTL (например, 24 часа) как защиту от бесконечного роста. Для SLO лучше явно считать old по timestamp в значении (как сделано) и опционально использовать TTL только для очистки.
+
+**7. Нагрузка на Redis** — каждое сообщение: Producer - SET + INCR; Consumer - GET + DEL + INCR. Плюс периодический SCAN для SLO. При высокой частоте сообщений Redis становится критичным звеном. Стоит мониторить latency Redis и иметь fallback-поведение (продолжать работу без записи в Redis с алертом).
+
+**Итог:** схема полезна для **верификации целостности** и **оценки задержки доставки (SLO)** в тестовых и контролируемых сценариях. Для продакшена важно: уникальные ключи при нескольких producer, TTL или иная очистка «сирот», явная обработка недоступности Redis и понимание, что счётчик received не идемпотентен при повторной доставке.
 
 ## VictoriaLogs
 
@@ -646,7 +629,7 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 Дашборды в **dashboards/**:
 
 - **kafka-go-app-metrics.json** - метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
-- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([docs/delivery-verification-critique.md](docs/delivery-verification-critique.md))
+- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis))
 
 Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
