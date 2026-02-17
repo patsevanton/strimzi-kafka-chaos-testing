@@ -290,6 +290,31 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18
 | `KAFKA_CONSUMER_MAX_BYTES` | Максимум байт за один fetch (Consumer) | `104857600` (100MB) |
 | `KAFKA_CONSUMER_MAX_WAIT_MS` | Макс ожидание при отсутствии данных, ms (Consumer) | `500` |
 
+## Redis в Kubernetes
+
+Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ. Адрес: `redis.redis.svc.cluster.local:6379`.
+
+```bash
+kubectl apply -f redis/redis.yaml
+kubectl rollout status deploy/redis -n redis --timeout=120s
+```
+
+Ссылка на исходный код: [`redis/redis.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis.yaml)
+
+Метрики Redis для дашборда **redis-delivery-verification** (in-cluster Redis):
+
+```bash
+kubectl apply -f redis/redis-exporter-in-cluster.yaml
+```
+
+Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
+
+Проверить: `kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter-in-cluster`
+
+Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик - VictoriaMetrics.
+
+Подробнее о верификации доставки - раздел [Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis).
+
 ### Запуск Producer/Consumer в кластере используя Helm
 
 Для запуска приложений в кластере используйте [Helm](https://helm.sh/) charts из директории `helm`. Kafka использует **SASL SCRAM-SHA-512**; учётные данные KafkaUser передаются **только через Secret** (kind: Secret) - указывается `kafka.existingSecret="myuser"` (Secret создаётся Strimzi при применении `kafka-user.yaml`). Имена приведены к [примерам Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples): `test-topic`, `test-group`, пользователь `myuser`.
@@ -341,22 +366,6 @@ helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --set kafka.groupId="test-group" \
   --set kafka.existingSecret="myuser"
 ```
-
-### Redis Exporter и дашборд redis-delivery-verification
-
-Метрики Redis для дашборда **redis-delivery-verification** (Grafana):
-
-```bash
-kubectl apply -f redis/redis-exporter-in-cluster.yaml
-```
-
-Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
-
-Проверить: `kubectl get pods -n vmks -l app.kubernetes.io/name=redis-exporter-in-cluster`
-
-Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик - VictoriaMetrics.
-
-Подробнее о верификации доставки - раздел [Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis).
 
 #### 3) Дождаться готовности подов Producer/Consumer
 ```bash
@@ -428,25 +437,6 @@ kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=300s
 ```
 
 Kafka UI будет доступен по адресу Ingress (в values: `kafka-ui.apatsev.org.ru`). Значения в `helm/kafka-ui-values.yaml` адаптированы под кластер `kafka-cluster` в namespace `kafka-cluster` и Schema Registry в `schema-registry`. Kafka UI подключается под пользователем **kafka-ui-user** с правами только на чтение (Describe, Read на topics и groups).
-
-## Redis в Kubernetes
-
-Redis используется для верификации доставки сообщений: Producer записывает хеши тел сообщений в Redis, Consumer читает и сверяет хеши, при совпадении удаляет ключ. Адрес: `redis.redis.svc.cluster.local:6379`.
-
-```bash
-kubectl apply -f redis/redis.yaml
-kubectl rollout status deploy/redis -n redis --timeout=120s
-```
-
-Ссылка на исходный код: [`redis/redis.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis.yaml)
-
-Метрики Redis для дашборда **redis-delivery-verification** (in-cluster Redis):
-
-```bash
-kubectl apply -f redis/redis-exporter-in-cluster.yaml
-```
-
-Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 
 ## Верификация доставки сообщений через Redis
 
