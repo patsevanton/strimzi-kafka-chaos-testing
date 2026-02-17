@@ -736,13 +736,6 @@ kubectl apply -f chaos-experiments/network-delay.yaml
 # Затронутые поды: все поды Kafka в kafka-cluster (mode all); producer/consumer - рост latency в логах и метриках
 sleep 60
 kubectl delete -f chaos-experiments/network-delay.yaml
-
-
-**Статус экспериментов** (namespace из манифеста, обычно `kafka-cluster`):
-
-```bash
-kubectl get podchaos,networkchaos,stresschaos,schedule,httpchaos,jvmchaos,iochaos,timechaos,dnschaos -n kafka-cluster
-kubectl describe podchaos -n kafka-cluster
 ```
 
 **Остановка всех экспериментов:** `kubectl delete -f chaos-experiments/`
