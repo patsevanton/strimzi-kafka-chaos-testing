@@ -356,7 +356,7 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 
 Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик - VictoriaMetrics.
 
-Подробнее о верификации доставки - раздел [Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis).
+Подробнее о верификации доставки - раздел [Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis).
 
 #### 3) Дождаться готовности подов Producer/Consumer
 ```bash
@@ -448,7 +448,7 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 
 Ссылка на исходный код: [`redis/redis-exporter-in-cluster.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/redis/redis-exporter-in-cluster.yaml)
 
-## Критика метода проверки доставки через Redis
+## Верификация доставки сообщений через Redis
 
 Верификация доставки через Redis: при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash — удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) — ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки.
 
@@ -633,7 +633,7 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 Дашборды в **dashboards/**:
 
 - **kafka-go-app-metrics.json** - метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
-- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis))
+- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis))
 
 Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
