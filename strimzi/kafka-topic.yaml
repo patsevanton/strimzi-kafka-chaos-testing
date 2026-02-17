@@ -5,11 +5,11 @@ metadata:
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
-  # partitions: 30 — формула для параллелизма (каждый consumer читает свою партицию).
+  # partitions: 30 - формула для параллелизма (каждый consumer читает свою партицию).
   partitions: 30
   replicas: 3
   config:
     # retention.ms: 2 × 60 × 60 × 1000 = 7200000 (2 часа)
     retention.ms: 7200000
-    # unclean.leader.election.enable: false — не выбирать out-of-sync реплику лидером
+    # unclean.leader.election.enable: false - не выбирать out-of-sync реплику лидером
     unclean.leader.election.enable: "false"

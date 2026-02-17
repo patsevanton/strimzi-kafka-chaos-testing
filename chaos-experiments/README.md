@@ -64,4 +64,4 @@ kubectl delete podchaos --all -n kafka-cluster
 kubectl delete -f chaos-experiments/
 ```
 
-Подробное описание рисков и ожидаемого поведения — в [исходном README](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments).
+Подробное описание рисков и ожидаемого поведения - в [исходном README](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments).

@@ -71,7 +71,7 @@ resource "yandex_kubernetes_node_group" "k8s-node-group" {
       ]
     }
 
-    # 6 нод × (16 cores, 32 GB) = 96 vCPU, 192 Gi. 32 GB — допустимый объём для standard-v2.
+    # 6 нод × (16 cores, 32 GB) = 96 vCPU, 192 Gi. 32 GB - допустимый объём для standard-v2.
     # Тот же запас под стек, поды лучше расписываются по нодам.
     resources {
       memory = 32

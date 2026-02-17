@@ -244,7 +244,7 @@ func loadConfig() *Config {
 		}
 	}
 
-	consumerMinBytes := 5000 // 5KB — ждать накопления 5KB перед возвратом данных
+	consumerMinBytes := 5000 // 5KB - ждать накопления 5KB перед возвратом данных
 	if s := os.Getenv("KAFKA_CONSUMER_MIN_BYTES"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
 			consumerMinBytes = n
@@ -546,8 +546,8 @@ func runConsumer(ctx context.Context, config *Config) {
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,
 		GroupID:  config.GroupID,
-		MinBytes: config.ConsumerMinBytes, // 5KB по умолчанию — ждать накопления перед ответом
-		MaxBytes: config.ConsumerMaxBytes, // 100MB — при высокой нагрузке читать до 100MB за раз
+		MinBytes: config.ConsumerMinBytes, // 5KB по умолчанию - ждать накопления перед ответом
+		MaxBytes: config.ConsumerMaxBytes, // 100MB - при высокой нагрузке читать до 100MB за раз
 		MaxWait:  time.Duration(config.ConsumerMaxWaitMs) * time.Millisecond,
 		Dialer:   dialer,
 	})

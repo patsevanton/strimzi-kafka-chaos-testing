@@ -22,7 +22,7 @@
       "checks": ["hash_match", "slo_latency", "ordering"]
     },
     "content": {
-      "text": "Test message #{{message_id}} — chaos testing payload for Strimzi/Kafka delivery verification",
+      "text": "Test message #{{message_id}} - chaos testing payload for Strimzi/Kafka delivery verification",
       "messageIdRef": "{{message_id}}",
       "usageNote": "Message ID used for Redis hash and SLO checks"
     },

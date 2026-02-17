@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Redis и верификация доставки по docs/delivery-verification-critique.md: latency и нагрузка на Redis (п.7), ошибки записи/доступность (п.1), SLO по задержке — pending и old (п.4), received и hash mismatch.",
+  "description": "Redis и верификация доставки по docs/delivery-verification-critique.md: latency и нагрузка на Redis (п.7), ошибки записи/доступность (п.1), SLO по задержке - pending и old (п.4), received и hash mismatch.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -26,7 +26,7 @@
       "id": 100,
       "panels": [],
       "description": "Секция метрик Redis: задержки ответа, нагрузка на инстанс и доступность. См. п.7 и п.1 критикала (docs/delivery-verification-critique.md).",
-      "title": "Redis — latency, нагрузка, доступность (п.7, п.1)",
+      "title": "Redis - latency, нагрузка, доступность (п.7, п.1)",
       "type": "row"
     },
     {
@@ -174,7 +174,7 @@
       "id": 106,
       "panels": [],
       "description": "Секция верификации доставки: счётчики сообщений в Redis (ожидающие, старше SLO), скорость полученных и проверенных по Redis, несовпадения хеша (п.4 критикала).",
-      "title": "Delivery verification — SLO по задержке, pending / old / received (п.4)",
+      "title": "Delivery verification - SLO по задержке, pending / old / received (п.4)",
       "type": "row"
     },
     {
@@ -207,7 +207,7 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_VICTORIAMETRICS}" },
-      "description": "Текущее число ключей в Redis старше порога REDIS_SLO_SECONDS (gauge). Уменьшается, когда consumer забирает сообщение и удаляет ключ из Redis; растёт, когда новые сообщения переходят в «старые». Любое значение > 0 — нарушение SLO (п.4). Один ряд — max по подам (все поды видят один Redis).",
+      "description": "Текущее число ключей в Redis старше порога REDIS_SLO_SECONDS (gauge). Уменьшается, когда consumer забирает сообщение и удаляет ключ из Redis; растёт, когда новые сообщения переходят в «старые». Любое значение > 0 - нарушение SLO (п.4). Один ряд - max по подам (все поды видят один Redis).",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },

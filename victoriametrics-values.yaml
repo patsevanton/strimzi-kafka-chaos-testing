@@ -20,7 +20,7 @@ grafana:
 # --- Источники данных по умолчанию ---
 defaultDatasources:
   extra:
-    # VictoriaLogs — запросы к логам (vlselect)
+    # VictoriaLogs - запросы к логам (vlselect)
     - name: victoriametrics-logs
       access: proxy
       type: victoriametrics-logs-datasource
@@ -28,7 +28,7 @@ defaultDatasources:
       jsonData:
         maxLines: 1000
       version: 1
-    # Chaos Mesh — дашборд и эксперименты
+    # Chaos Mesh - дашборд и эксперименты
     - name: Chaos Mesh
       access: proxy
       type: chaosmeshorg-datasource

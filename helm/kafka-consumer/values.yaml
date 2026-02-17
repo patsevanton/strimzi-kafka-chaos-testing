@@ -62,7 +62,7 @@ kafka:
   maxBytes: 104857600
   # maxWaitMs: макс ожидание при отсутствии данных (ms)
   maxWaitMs: 500
-  # Учётные данные KafkaUser — только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
+  # Учётные данные KafkaUser - только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
   username: "myuser"
   existingSecret: "myuser"
   existingSecretPasswordKey: "password"
