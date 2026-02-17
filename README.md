@@ -6,8 +6,6 @@
 
 ## Порядок развёртывания
 
-При выполнении README последовательно нужно пройти все шаги в указанном порядке. Chaos-тесты входят в обязательную последовательность — их нельзя пропускать.
-
 1. VictoriaMetrics K8s Stack + Grafana
 2. Strimzi Operator и Strimzi Cruise Control 
 3. Strimzi Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, Kafka Exporter)
