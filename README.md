@@ -578,21 +578,22 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 
 **При следовании README по шагам chaos-тесты нужно обязательно выполнить:** после установки Chaos Mesh примените **все эксперименты последовательно** из `chaos-experiments/` с таймаутом между ними (5–10 минут), проверьте статус каждого (`kubectl get podchaos,... -n kafka-cluster`) и убедитесь, что кластер реагирует (Grafana, логи). Пропуск этого шага означает неполное развёртывание.
 
-В директории **chaos-experiments/** лежат готовые эксперименты для Kafka, Schema Registry, Kafka UI и producer/consumer:
+В директории **chaos-experiments/** лежат готовые эксперименты для Kafka, Schema Registry, Kafka UI и producer/consumer (CRD Chaos Mesh):
 
-| Файл | Описание |
-|------|----------|
-| `pod-kill.yaml` | Убийство брокера (одноразово + Schedule каждые 5 мин) |
-| `pod-failure.yaml` | Симуляция падения пода |
-| `network-delay.yaml` | Сетевые задержки 100–500 ms |
-| `cpu-stress.yaml`, `memory-stress.yaml` | Нагрузка на CPU и память |
-| `io-chaos.yaml` | Задержки и ошибки дискового I/O |
-| `time-chaos.yaml` | Смещение системного времени |
-| `jvm-chaos.yaml` | GC, stress и исключения в JVM брокеров |
-| `http-chaos.yaml` | Задержки/ошибки Schema Registry и Kafka UI |
-| `network-partition.yaml` | Сетевая изоляция брокера / partition между брокерами и producer |
-| `network-loss.yaml` | Потеря пакетов 10–30% |
-| `dns-chaos.yaml` | Ошибки DNS для брокеров и producer |
+| Файл | Тип | Описание |
+|------|-----|----------|
+| `pod-kill.yaml` | PodChaos + Schedule | Убийство брокера (одноразово + каждые 5 мин) |
+| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
+| `network-delay.yaml` | NetworkChaos | Сетевые задержки 100–500 ms |
+| `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
+| `memory-stress.yaml` | StressChaos | Нагрузка на память |
+| `io-chaos.yaml` | IOChaos | Задержки и ошибки дискового I/O |
+| `time-chaos.yaml` | TimeChaos | Смещение системного времени |
+| `jvm-chaos.yaml` | JVMChaos | GC, CPU/memory stress, latency, exception в JVM |
+| `http-chaos.yaml` | HTTPChaos | Задержки/ошибки Schema Registry и Kafka UI |
+| `network-partition.yaml` | NetworkChaos | Изоляция брокера / partition между брокерами и producer |
+| `network-loss.yaml` | NetworkChaos | Потеря пакетов 10–30% |
+| `dns-chaos.yaml` | DNSChaos | Ошибки DNS (брокеры, producer) |
 
 Запуск одного эксперимента:
 
@@ -602,11 +603,16 @@ kubectl apply -f chaos-experiments/pod-kill.yaml
 
 Ссылка на исходный код: [chaos-experiments/](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments)
 
-Проверка: `kubectl get podchaos,networkchaos,stresschaos,schedule -n kafka-cluster`
+Проверка статуса (все задействованные namespace):
+
+```bash
+kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,jvmchaos,httpchaos,dnschaos,schedule -n kafka-cluster
+kubectl get dnschaos -n kafka-producer
+kubectl get httpchaos -n schema-registry
+kubectl get httpchaos -n kafka-ui
+```
 
 Остановка: `kubectl delete -f chaos-experiments/pod-kill.yaml` или `kubectl delete -f chaos-experiments/`
-
-Подробное описание экспериментов, рисков и ожидаемого поведения - в **chaos-experiments/README.md**.
 
 ## Импорт дашбордов Grafana
 
@@ -720,8 +726,6 @@ kubectl delete -f chaos-experiments/network-delay.yaml
 ```
 
 **Остановка всех экспериментов:** `kubectl delete -f chaos-experiments/`
-
-Подробнее по экспериментам - **chaos-experiments/README.md**.
 
 ### Наблюдение за состоянием кластера на дашбордах Grafana
 
