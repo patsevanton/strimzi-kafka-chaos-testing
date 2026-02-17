@@ -292,7 +292,7 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18
 
 ### Запуск Producer/Consumer в кластере используя Helm
 
-Для запуска приложений в кластере используйте Helm charts из директории `helm`. Kafka использует **SASL SCRAM-SHA-512**; учётные данные KafkaUser передаются **только через Secret** (kind: Secret) - указывается `kafka.existingSecret="myuser"` (Secret создаётся Strimzi при применении `kafka-user.yaml`). Имена приведены к [примерам Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples): `test-topic`, `test-group`, пользователь `myuser`.
+Для запуска приложений в кластере используйте [Helm](https://helm.sh/) charts из директории `helm`. Kafka использует **SASL SCRAM-SHA-512**; учётные данные KafkaUser передаются **только через Secret** (kind: Secret) - указывается `kafka.existingSecret="myuser"` (Secret создаётся Strimzi при применении `kafka-user.yaml`). Имена приведены к [примерам Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples): `test-topic`, `test-group`, пользователь `myuser`.
 
 **Секрет в namespace Producer/Consumer:** Учётные данные Kafka (Secret `myuser` от Strimzi) должны быть в namespace `kafka-producer` и `kafka-consumer`. Скопируйте Secret из `kafka-cluster` один раз после применения `kafka-user.yaml` и готовности Kafka:
 
