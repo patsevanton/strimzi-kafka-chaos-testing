@@ -290,8 +290,6 @@ podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18
 | `KAFKA_CONSUMER_MAX_BYTES` | Максимум байт за один fetch (Consumer) | `104857600` (100MB) |
 | `KAFKA_CONSUMER_MAX_WAIT_MS` | Макс ожидание при отсутствии данных, ms (Consumer) | `500` |
 
-**Верификация доставки через Redis:** при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash - удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) - ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки. Подробнее см. раздел [Критика метода проверки доставки](#критика-метода-проверки-доставки-через-redis).
-
 ### Запуск Producer/Consumer в кластере используя Helm
 
 Для запуска приложений в кластере используйте Helm charts из директории `helm`. Kafka использует **SASL SCRAM-SHA-512**; учётные данные KafkaUser передаются **только через Secret** (kind: Secret) - указывается `kafka.existingSecret="myuser"` (Secret создаётся Strimzi при применении `kafka-user.yaml`). Имена приведены к [примерам Strimzi](https://github.com/strimzi/strimzi-kafka-operator/tree/main/packaging/examples): `test-topic`, `test-group`, пользователь `myuser`.
@@ -452,7 +450,7 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 
 ## Критика метода проверки доставки через Redis
 
-Реализованная схема: Producer пишет в Kafka и в Redis (ключ = ключ сообщения, значение = **content hash (id+data)** + timestamp). Consumer сверяет только хеш полей id и data; различие по timestamp (ретраи, дубликаты) не считается несовпадением. При совпадении content hash - удаление ключа и счётчик полученных. При несовпадении тела (другие id или data) - ошибка в логе и метрика `kafka_consumer_redis_hash_mismatch_total`. SLO считается по доле сообщений, «оставшихся» в Redis дольше заданного времени.
+Верификация доставки через Redis: при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash — удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) — ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки.
 
 ### Плюсы
 
