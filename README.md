@@ -250,14 +250,14 @@ kubectl get svc -n schema-registry schema-registry
 
 ### Структура исходного кода
 
-- `main.go` - основной код Go-приложения (producer/consumer)
-- `metrics.go` - определение Prometheus-метрик
-- `go.mod`, `go.sum` - файлы зависимостей Go модуля
-- `Dockerfile` - многоэтапная сборка Docker образа
+- [main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/main.go) - основной код Go-приложения (producer/consumer)
+- [metrics.go](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/metrics.go) - определение Prometheus-метрик
+- [go.mod](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/go.mod), [go.sum](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/go.sum) - файлы зависимостей Go модуля
+- [Dockerfile](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/Dockerfile) - многоэтапная сборка Docker образа
 
 ### Сборка и публикация Docker образа
 
-Go-код в [main.go](main.go) можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
+Go-код в [main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/main.go) можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
 
 ```bash
 # Сборка образа (используйте podman или docker)
