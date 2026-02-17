@@ -21,7 +21,7 @@
 
 ## Установка стека мониторинга (VictoriaMetrics K8s Stack)
 
-В этом README под блоками с командами указаны пути к манифестам проекта (`victoriametrics-values.yaml`, `strimzi/kafka-metrics.yaml` и др.) — это **ссылки на исходный код** в репозитории. По ним можно открыть файл в браузере без клонирования репозитория.
+VictoriaMetrics K8s Stack: Готовый стек VictoriaMetrics + Grafana для метрик и дашбордов; совместим с Prometheus (PromQL), экономичен по ресурсам и удобно разворачивается через Helm.
 
 1. Репозиторий Helm для VictoriaMetrics:
 
