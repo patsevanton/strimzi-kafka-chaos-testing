@@ -259,7 +259,7 @@ kubectl get svc -n schema-registry schema-registry
 
 ### Сборка и публикация Docker образа
 
-Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/main.go)` можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
+Go-код в [main.go](main.go) можно изменять под свои нужды. После внесения изменений соберите и опубликуйте Docker образ:
 
 ```bash
 # Сборка образа (используйте podman или docker)
@@ -269,15 +269,7 @@ podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.17 .
 podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.17
 ```
 
-После публикации обновите версию образа в Helm values или передайте через `--set`:
-
-```bash
-helm upgrade --install kafka-producer ./helm/kafka-producer \
-  --namespace kafka-producer \
-  --create-namespace \
-  --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.17"
-```
+После публикации обновите версию образа в Helm values или передайте `--set image.tag="X.Y.Z"` при установке/обновлении Producer (см. [Установить Producer](#1-установить-producer)).
 
 ### Переменные окружения
 
