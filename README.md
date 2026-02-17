@@ -55,7 +55,7 @@ kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | b
 
 ### Strimzi
 
-Strimzi - оператор для управления Kafka в Kubernetes; мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
+Strimzi — оператор для развёртывания и управления Apache Kafka в Kubernetes; выбран как де-факто стандарт для Kafka в K8s (CNCF-проект, декларативные CRD, активная разработка). Мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
 
 ### Установка Strimzi
 
