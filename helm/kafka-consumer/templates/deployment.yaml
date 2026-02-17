@@ -42,6 +42,12 @@ spec:
               value: {{ .Values.kafka.topic | quote }}
             - name: KAFKA_GROUP_ID
               value: {{ .Values.kafka.groupId | quote }}
+            - name: KAFKA_CONSUMER_MIN_BYTES
+              value: {{ (.Values.kafka.minBytes | default 5000) | quote }}
+            - name: KAFKA_CONSUMER_MAX_BYTES
+              value: {{ (.Values.kafka.maxBytes | default 104857600) | quote }}
+            - name: KAFKA_CONSUMER_MAX_WAIT_MS
+              value: {{ (.Values.kafka.maxWaitMs | default 500) | quote }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
             {{- if .Values.kafka.existingSecret }}

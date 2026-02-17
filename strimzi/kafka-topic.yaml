@@ -11,3 +11,5 @@ spec:
   config:
     # retention.ms: 2 × 60 × 60 × 1000 = 7200000 (2 часа)
     retention.ms: 7200000
+    # unclean.leader.election.enable: false — не выбирать out-of-sync реплику лидером
+    unclean.leader.election.enable: "false"

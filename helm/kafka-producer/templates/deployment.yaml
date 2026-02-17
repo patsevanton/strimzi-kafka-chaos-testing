@@ -50,6 +50,8 @@ spec:
             {{- end }}
             - name: PRODUCER_INTERVAL_MS
               value: {{ (.Values.kafka.producerIntervalMs | default 100) | quote }}
+            - name: KAFKA_PRODUCER_MAX_ATTEMPTS
+              value: {{ (.Values.kafka.producerMaxAttempts | default 5) | quote }}
             - name: KAFKA_USERNAME
               value: {{ .Values.kafka.username | quote }}
             {{- if .Values.kafka.existingSecret }}

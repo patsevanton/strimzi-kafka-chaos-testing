@@ -261,10 +261,10 @@ Go-код в `[main.go](https://github.com/patsevanton/strimzi-kafka-chaos-testi
 
 ```bash
 # Сборка образа (используйте podman или docker)
-podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.16 .
+podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.17 .
 
 # Публикация в Docker Hub
-podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.16
+podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.17
 ```
 
 После публикации обновите версию образа в Helm values или передайте через `--set`:
@@ -274,7 +274,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
   --set image.repository="docker.io/antonpatsev/strimzi-kafka-chaos-testing" \
-  --set image.tag="0.2.16"
+  --set image.tag="0.2.17"
 ```
 
 ### Переменные окружения
@@ -293,6 +293,10 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 | `REDIS_PASSWORD` | Пароль Redis (если нужен) | — |
 | `REDIS_KEY_PREFIX` | Префикс ключей сообщений в Redis | `kafka-msg:` |
 | `REDIS_SLO_SECONDS` | Порог в секундах: сообщения в Redis старше этого считаются нарушением SLO | `120` |
+| `KAFKA_PRODUCER_MAX_ATTEMPTS` | Кол-во попыток отправки при ошибке (Producer) | `5` |
+| `KAFKA_CONSUMER_MIN_BYTES` | Минимум байт для fetch — ждать накопления перед ответом (Consumer) | `5000` (5KB) |
+| `KAFKA_CONSUMER_MAX_BYTES` | Максимум байт за один fetch (Consumer) | `104857600` (100MB) |
+| `KAFKA_CONSUMER_MAX_WAIT_MS` | Макс ожидание при отсутствии данных, ms (Consumer) | `500` |
 
 **Верификация доставки через Redis:** при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash — удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) — ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки. Критика подхода — в [docs/delivery-verification-critique.md](docs/delivery-verification-critique.md).
 
@@ -327,7 +331,7 @@ kubectl get secret myuser -n kafka-consumer
 helm upgrade --install kafka-producer ./helm/kafka-producer \
   --namespace kafka-producer \
   --create-namespace \
-  --set image.tag="0.2.16" \
+  --set image.tag="0.2.17" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \
@@ -340,7 +344,7 @@ helm upgrade --install kafka-producer ./helm/kafka-producer \
 helm upgrade --install kafka-consumer ./helm/kafka-consumer \
   --namespace kafka-consumer \
   --create-namespace \
-  --set image.tag="0.2.16" \
+  --set image.tag="0.2.17" \
   --set kafka.brokers="kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092" \
   --set schemaRegistry.url="http://schema-registry.schema-registry:8081" \
   --set kafka.topic="test-topic" \

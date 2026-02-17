@@ -53,6 +53,12 @@ type Config struct {
 	ProducerBatchTimeout time.Duration
 	// Producer: message rate (env PRODUCER_INTERVAL_MS)
 	ProducerIntervalMs int // ms between messages, 100 = 10 msg/s per producer
+	// Producer: max retry attempts (env KAFKA_PRODUCER_MAX_ATTEMPTS)
+	ProducerMaxAttempts int
+	// Consumer: fetch settings (env KAFKA_CONSUMER_MIN_BYTES, MAX_BYTES, MAX_WAIT_MS)
+	ConsumerMinBytes  int
+	ConsumerMaxBytes  int
+	ConsumerMaxWaitMs int
 	// Redis: store hash of message value for delivery verification and SLO
 	RedisAddr       string
 	RedisPassword   string
@@ -231,6 +237,32 @@ func loadConfig() *Config {
 		}
 	}
 
+	producerMaxAttempts := 5
+	if s := os.Getenv("KAFKA_PRODUCER_MAX_ATTEMPTS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			producerMaxAttempts = n
+		}
+	}
+
+	consumerMinBytes := 5000 // 5KB — ждать накопления 5KB перед возвратом данных
+	if s := os.Getenv("KAFKA_CONSUMER_MIN_BYTES"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			consumerMinBytes = n
+		}
+	}
+	consumerMaxBytes := 100 * 1024 * 1024 // 100MB
+	if s := os.Getenv("KAFKA_CONSUMER_MAX_BYTES"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			consumerMaxBytes = n
+		}
+	}
+	consumerMaxWaitMs := 500
+	if s := os.Getenv("KAFKA_CONSUMER_MAX_WAIT_MS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			consumerMaxWaitMs = n
+		}
+	}
+
 	return &Config{
 		Mode:              mode,
 		Brokers:           parseBrokers(brokers),
@@ -246,6 +278,10 @@ func loadConfig() *Config {
 		ProducerBatchSize:     producerBatchSize,
 		ProducerBatchTimeout:  producerBatchTimeout,
 		ProducerIntervalMs:    producerIntervalMs,
+		ProducerMaxAttempts:   producerMaxAttempts,
+		ConsumerMinBytes:      consumerMinBytes,
+		ConsumerMaxBytes:      consumerMaxBytes,
+		ConsumerMaxWaitMs:     consumerMaxWaitMs,
 	}
 }
 
@@ -341,6 +377,7 @@ func runProducer(ctx context.Context, config *Config) {
 		AllowAutoTopicCreation: true,
 		BatchSize:              config.ProducerBatchSize,
 		BatchTimeout:           config.ProducerBatchTimeout,
+		MaxAttempts:            config.ProducerMaxAttempts,
 	}
 
 	// Add SASL/SCRAM authentication if credentials provided
@@ -509,10 +546,9 @@ func runConsumer(ctx context.Context, config *Config) {
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,
 		GroupID:  config.GroupID,
-		// MinBytes: 100KB — ждать минимум 100KB перед ответом, крупнее fetch = меньше round-trips.
-		// MaxBytes: 100MB — при высокой нагрузке читать до 100MB за раз, выше throughput.
-		MinBytes: 100e3,
-		MaxBytes: 100e6,
+		MinBytes: config.ConsumerMinBytes, // 5KB по умолчанию — ждать накопления перед ответом
+		MaxBytes: config.ConsumerMaxBytes, // 100MB — при высокой нагрузке читать до 100MB за раз
+		MaxWait:  time.Duration(config.ConsumerMaxWaitMs) * time.Millisecond,
 		Dialer:   dialer,
 	})
 	defer reader.Close()

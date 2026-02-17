@@ -4,7 +4,7 @@ replicaCount: 30
 image:
   repository: docker.io/antonpatsev/strimzi-kafka-chaos-testing
   pullPolicy: IfNotPresent
-  tag: "0.2.16"
+  tag: "0.2.17"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -56,6 +56,12 @@ kafka:
   brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092"
   topic: "test-topic"
   groupId: "test-group"
+  # minBytes: минимум байт для fetch (5KB = ждать накопления перед ответом)
+  minBytes: 5000
+  # maxBytes: максимум байт за fetch (100MB для высокой нагрузки)
+  maxBytes: 104857600
+  # maxWaitMs: макс ожидание при отсутствии данных (ms)
+  maxWaitMs: 500
   # Учётные данные KafkaUser — только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.
   username: "myuser"
   existingSecret: "myuser"
