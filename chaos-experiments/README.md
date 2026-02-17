@@ -2,13 +2,9 @@
 
 Примеры chaos-экспериментов для тестирования отказоустойчивости Strimzi Kafka кластера. Адаптированы под namespace `kafka-cluster` и кластер `kafka-cluster`.
 
-## Предварительные требования
+**Установка стека, порядок развёртывания и пошаговый запуск экспериментов** — в [основном README](../README.md) (разделы Chaos Mesh, Запуск chaos-экспериментов).
 
-1. Установленный Chaos Mesh (см. основной README.md)
-2. Запущенный Kafka кластер в namespace `kafka-cluster`
-3. Запущенные producer и consumer приложения
-
-## Типы экспериментов
+## Типы экспериментов (CRD Chaos Mesh)
 
 | Файл | Тип | Описание |
 |------|-----|----------|
@@ -25,28 +21,7 @@
 | `network-loss.yaml` | NetworkChaos | Потеря пакетов 10–30% |
 | `dns-chaos.yaml` | DNSChaos | Ошибки DNS (брокеры, producer) |
 
-## Запуск экспериментов
-
-```bash
-# Один эксперимент
-kubectl apply -f chaos-experiments/pod-kill.yaml
-
-# Все эксперименты (осторожно: множество хаос-эффектов одновременно)
-kubectl apply -f chaos-experiments/pod-kill.yaml
-kubectl apply -f chaos-experiments/pod-failure.yaml
-kubectl apply -f chaos-experiments/network-delay.yaml
-kubectl apply -f chaos-experiments/cpu-stress.yaml
-kubectl apply -f chaos-experiments/memory-stress.yaml
-kubectl apply -f chaos-experiments/io-chaos.yaml
-kubectl apply -f chaos-experiments/time-chaos.yaml
-kubectl apply -f chaos-experiments/jvm-chaos.yaml
-kubectl apply -f chaos-experiments/http-chaos.yaml
-kubectl apply -f chaos-experiments/network-partition.yaml
-kubectl apply -f chaos-experiments/network-loss.yaml
-kubectl apply -f chaos-experiments/dns-chaos.yaml
-```
-
-## Проверка статуса
+## Проверка статуса (все задействованные namespace)
 
 ```bash
 kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,jvmchaos,httpchaos,dnschaos,schedule -n kafka-cluster
@@ -54,14 +29,3 @@ kubectl get dnschaos -n kafka-producer
 kubectl get httpchaos -n schema-registry
 kubectl get httpchaos -n kafka-ui
 ```
-
-## Остановка экспериментов
-
-```bash
-kubectl delete -f chaos-experiments/pod-kill.yaml
-# или удалить все по типу:
-kubectl delete podchaos --all -n kafka-cluster
-kubectl delete -f chaos-experiments/
-```
-
-Подробное описание рисков и ожидаемого поведения - в [исходном README](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments).
