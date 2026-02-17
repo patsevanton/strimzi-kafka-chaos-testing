@@ -62,7 +62,7 @@
 
 ## Redis & Delivery Verification
 
-Дашборд для мониторинга Redis и верификации доставки по [docs/delivery-verification-critique.md](../docs/delivery-verification-critique.md).
+Дашборд для мониторинга Redis и верификации доставки. Подробнее о методе и его ограничениях — раздел [Критика метода проверки доставки через Redis](../README.md#критика-метода-проверки-доставки-через-redis) в основном README.
 
 ### Импорт
 
