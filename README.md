@@ -260,8 +260,6 @@ kubectl apply -f redis/redis-exporter-in-cluster.yaml
 
 Импорт дашборда: Grafana → Dashboards → Import → `dashboards/redis-delivery-verification.json`. Источник метрик - VictoriaMetrics.
 
-Подробнее о верификации доставки - раздел [Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis).
-
 ## Producer App и Consumer App
 
 **Producer App и Consumer App** - Go приложение для работы с Apache Kafka через Strimzi. Приложение может работать в режиме producer (отправка сообщений) или consumer (получение сообщений) в зависимости от переменной окружения `MODE`. Сообщения сериализуются в **Avro** с использованием **Schema Registry (Karapace)** - совместимого с Confluent API. Kafka использует **аутентификацию SASL SCRAM-SHA-512**; учётные данные передаются **только через Secret** (kind: Secret, например `myuser` от Strimzi). Перед запуском Producer/Consumer необходимо развернуть Schema Registry (см. раздел «Schema Registry (Karapace) для Avro») и Redis (см. раздел «Redis в Kubernetes») и передать `schemaRegistry.url` и учётные данные Kafka в Helm.
@@ -291,8 +289,6 @@ podman build -t docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18 .
 # Публикация в Docker Hub
 podman push docker.io/antonpatsev/strimzi-kafka-chaos-testing:0.2.18
 ```
-
-После публикации обновите версию образа в Helm values или передайте `--set image.tag="X.Y.Z"` при установке/обновлении Producer (см. [Установить Producer](#1-установить-producer)).
 
 ### Переменные окружения
 
@@ -338,8 +334,6 @@ kubectl get secret myuser -n kafka-cluster -o json | jq 'del(.metadata.resourceV
 kubectl get secret myuser -n kafka-producer
 kubectl get secret myuser -n kafka-consumer
 ```
-
-**Перед установкой Producer/Consumer разверните Redis в K8s** (см. [Redis в Kubernetes](#redis-в-kubernetes)). Values по умолчанию используют `redis.redis.svc.cluster.local:6379`.
 
 #### 1) Установить Producer
 ```bash
@@ -521,8 +515,6 @@ helm upgrade --install victoria-logs-collector vm/victoria-logs-collector \
 
 **Chaos Mesh** - платформа для chaos engineering в Kubernetes. Позволяет внедрять сбои (network, pod, I/O, time, DNS, JVM, HTTP) для тестирования отказоустойчивости Kafka и приложений. Манифесты взяты из [strimzi-kafka-chaos-testing](https://github.com/patsevanton/strimzi-kafka-chaos-testing) и адаптированы под namespace `kafka-cluster` и кластер `kafka-cluster`.
 
-**При последовательном выполнении README этот шаг обязателен.** После установки Chaos Mesh нужно обязательно выполнить [запуск chaos-тестов](#запуск-chaos-экспериментов-и-наблюдение-за-кластером) - применить **все эксперименты последовательно** с таймаутом между ними и проверить реакцию кластера. Иначе развёртывание по README не завершено.
-
 ### Установка Chaos Mesh
 
 ```bash
@@ -633,8 +625,6 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 Подробное описание панелей и инструкции по импорту - в **dashboards/README.md**.
 
 ## Запуск chaos-экспериментов и наблюдение за кластером
-
-**Обязательный шаг при последовательном развёртывании по README.** После установки Chaos Mesh и импорта дашбордов в Grafana нужно запустить эксперименты из **chaos-experiments/** и наблюдать реакцию кластера на графиках. Если этот шаг пропущен, развёртывание по README не считается завершённым.
 
 ### Запуск экспериментов
 
