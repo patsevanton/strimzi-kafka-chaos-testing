@@ -693,7 +693,7 @@ kubectl get httpchaos -n kafka-ui
 
 ### Kafka Go App Metrics (Producer/Consumer)
 
-Ссылка: [`dashboards/kafka-go-app-metrics.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/kafka-go-app-metrics.json) — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
+Ссылка: [`kafka-go-app-metrics.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/kafka-go-app-metrics.json) — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
 
 Дашборд включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
