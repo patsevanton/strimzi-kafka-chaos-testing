@@ -432,6 +432,8 @@ kubectl rollout status deploy/kafka-ui -n kafka-ui --timeout=300s
 
 Kafka UI будет доступен по адресу Ingress (в values: `kafka-ui.apatsev.org.ru`). Значения в `helm/kafka-ui-values.yaml` адаптированы под кластер `kafka-cluster` в namespace `kafka-cluster` и Schema Registry в `schema-registry`. Kafka UI подключается под пользователем **kafka-ui-user** с правами только на чтение (Describe, Read на topics и groups).
 
+![Kafka UI с Schema Registry](kafka-ui-registry.png)
+
 ## Верификация доставки сообщений через Redis
 
 Верификация доставки через Redis: при указании `REDIS_ADDR` Producer записывает в Redis ключ (как у сообщения) и значение = **content hash (id+data)** + timestamp. Consumer сверяет хеш только по полям id и data; различие только по timestamp (ретраи, дубликаты) не считается ошибкой. При совпадении content hash — удаление ключа и счётчик полученных. При несовпадении тела сообщения (id или data другие) — ошибка в логах и метрика `kafka_consumer_redis_hash_mismatch_total` (проблема целостности данных). Метрики `redis_pending_messages` и `redis_pending_old_messages` (старее `REDIS_SLO_SECONDS`) дают SLO по задержке доставки.
@@ -533,6 +535,8 @@ helm upgrade --install chaos-mesh chaos-mesh/chaos-mesh \
 
 Проверка: `kubectl get pods -n chaos-mesh`
 
+![Chaos Mesh](chaos-mesh.png)
+
 Для сбора метрик Chaos Mesh через VictoriaMetrics K8s Stack примените VMServiceScrape (в кластере используются CRD VictoriaMetrics, не Prometheus ServiceMonitor):
 
 ```bash
@@ -609,6 +613,26 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 
 https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
 
+Strimzi Kafka:
+
+![Strimzi Kafka 1](Strimzi-Kafka1.png)
+
+![Strimzi Kafka 2](Strimzi-Kafka2.png)
+
+Strimzi KRaft:
+
+![Strimzi KRaft 1](Strimzi-KRaft1.png)
+
+![Strimzi KRaft 2](Strimzi-KRaft2.png)
+
+Strimzi Kafka Exporter:
+
+![Strimzi Kafka Exporter](Strimzi-Kafka-Exporter.png)
+
+Strimzi Operators:
+
+![Strimzi Operators](Strimzi-Operators.png)
+
 ### Дашборд Go-приложения (Producer/Consumer)
 
 Дашборды в **dashboards/**:
@@ -623,6 +647,18 @@ https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/m
 - **Connection метрики**: статус подключений, переподключения
 
 Подробное описание панелей и инструкции по импорту - в **dashboards/README.md**.
+
+![Kafka Go App Metrics 1](Kafka-Go-App-Metrics1.png)
+
+![Kafka Go App Metrics 2](Kafka-Go-App-Metrics2.png)
+
+![Kafka Go App Metrics 3](Kafka-Go-App-Metrics3.png)
+
+![Kafka Go App Metrics 4](Kafka-Go-App-Metrics4.png)
+
+Redis Delivery Verification:
+
+![Redis Delivery Verification](Redis-Delivery-Verification.png)
 
 ## Запуск chaos-экспериментов и наблюдение за кластером
 
@@ -728,10 +764,10 @@ kubectl delete -f chaos-experiments/network-delay.yaml
 |-----------|---------|-------------------------|----------------------------|-----------|
 | Kafka (controller + broker) | 3 + 3 | по умолчанию Strimzi | по умолчанию Strimzi | 100 Gi на ноду (JBOD) |
 | Топик test-topic | 30 партиций, 3 реплики | - | - | - |
-| Producer | 30 (HPA до 50) | 500m / 2000m на под | 256Mi / 1Gi на под | - |
-| Consumer | 30 (HPA до 50) | 500m / 2000m на под | 256Mi / 1Gi на под | - |
-| Schema Registry (Karapace) | 2 | по умолчанию | 256Mi / 512Mi | - |
-| Redis | 1 | по умолчанию | 128Mi / 256Mi | - |
+| Producer | 30 | 500m / 2000m на под | 256Mi / 1Gi на под | - |
+| Consumer | 30 | 500m / 2000m на под | 256Mi / 1Gi на под | - |
+| Schema Registry (Karapace) | 2 | 100m / 500m | 256Mi / 512Mi | - |
+| Redis | 1 | 50m / 200m | 128Mi / 256Mi | - |
 
 **Целевые показатели производительности (расчёт по конфигу):** Producer: до 20 msg/s на под при `producerIntervalMs: 50` → до **600 msg/s** суммарно при 30 подах. Consumer: 30 партиций, по одной на под, fetch до 100 MB за запрос; потребление ограничено скоростью producer и настройками `minBytes`/`maxWaitMs`. SLO доставки (Redis): сообщения должны быть обработаны consumer в течение **120 с** (`redis.sloSeconds`); старые сообщения выше порога отображаются в дашборде redis-delivery-verification. Фактические throughput и latency зависят от кластера и нагрузки; их можно смотреть в Grafana (дашборды kafka-go-app-metrics, Strimzi Kafka Exporter).
 
