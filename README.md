@@ -713,7 +713,7 @@ kubectl get httpchaos -n kafka-ui
 
 ### Redis Delivery Verification
 
-Ссылка: [`dashboards/redis-delivery-verification.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/redis-delivery-verification.json) — Redis, SLO и верификация доставки ([подробнее](#верификация-доставки-сообщений-через-redis))
+Ссылка: [`redis-delivery-verification.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/redis-delivery-verification.json) — Redis, SLO и верификация доставки ([подробнее](#верификация-доставки-сообщений-через-redis))
 
 ![Redis Delivery Verification](Redis-Delivery-Verification.png)
 
