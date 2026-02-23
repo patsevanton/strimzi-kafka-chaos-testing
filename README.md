@@ -661,52 +661,47 @@ kubectl get httpchaos -n kafka-ui
 
 ## Импорт дашбордов Grafana
 
-### Дашборды Strimzi Kafka
+Импорт: Grafana → Dashboards → Import → загрузить JSON. Источник метрик — VictoriaMetrics.
 
-Импорт JSON дашбордов через UI Grafana:
+### Strimzi Kafka
 
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
-
-Strimzi Kafka:
+Ссылка: [strimzi-kafka.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json)
 
 ![Strimzi Kafka 1](Strimzi-Kafka1.png)
 
 ![Strimzi Kafka 2](Strimzi-Kafka2.png)
 
-Strimzi KRaft:
+### Strimzi KRaft
+
+Ссылка: [strimzi-kraft.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json)
 
 ![Strimzi KRaft 1](Strimzi-KRaft1.png)
 
 ![Strimzi KRaft 2](Strimzi-KRaft2.png)
 
-Strimzi Kafka Exporter:
+### Strimzi Kafka Exporter
+
+Ссылка: [strimzi-kafka-exporter.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json)
 
 ![Strimzi Kafka Exporter](Strimzi-Kafka-Exporter.png)
 
-Strimzi Operators:
+### Strimzi Operators
+
+Ссылка: [strimzi-operators.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json)
 
 ![Strimzi Operators](Strimzi-Operators.png)
 
-### Дашборд Go-приложения (Producer/Consumer)
+### Kafka Go App Metrics (Producer/Consumer)
 
-Дашборды в **dashboards/**:
+Ссылка: [`dashboards/kafka-go-app-metrics.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/kafka-go-app-metrics.json) — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
 
-- **kafka-go-app-metrics.json** - метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
-- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis))
-
-Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
+Дашборд включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
 - **Consumer метрики**: скорость получения сообщений, latency, lag, ошибки
 - **Schema Registry метрики**: запросы, latency, ошибки, кэш
 - **Connection метрики**: статус подключений, переподключения
 
-Подробное описание панелей и инструкции по импорту - в **dashboards/README.md**.
+Подробное описание панелей и инструкции по импорту — в **dashboards/README.md**.
 
 ![Kafka Go App Metrics 1](Kafka-Go-App-Metrics1.png)
 
@@ -716,7 +711,9 @@ Strimzi Operators:
 
 ![Kafka Go App Metrics 4](Kafka-Go-App-Metrics4.png)
 
-Redis Delivery Verification:
+### Redis Delivery Verification
+
+Ссылка: [`dashboards/redis-delivery-verification.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/redis-delivery-verification.json) — Redis, SLO и верификация доставки ([подробнее](#верификация-доставки-сообщений-через-redis))
 
 ![Redis Delivery Verification](Redis-Delivery-Verification.png)
 
