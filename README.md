@@ -667,6 +667,8 @@ kubectl get httpchaos -n kafka-ui
 
 Ссылка: [strimzi-kafka.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json)
 
+**Что смотреть при chaos:** Состояние брокеров, реплик, under-replicated партиций; полезно при pod-kill, pod-failure, network-*
+
 ![Strimzi Kafka 1](Strimzi-Kafka1.png)
 
 ![Strimzi Kafka 2](Strimzi-Kafka2.png)
@@ -674,6 +676,8 @@ kubectl get httpchaos -n kafka-ui
 ### Strimzi KRaft
 
 Ссылка: [strimzi-kraft.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json)
+
+**Что смотреть при chaos:** Состояние брокеров, реплик, under-replicated партиций; полезно при pod-kill, pod-failure, network-*
 
 ![Strimzi KRaft 1](Strimzi-KRaft1.png)
 
@@ -683,17 +687,23 @@ kubectl get httpchaos -n kafka-ui
 
 Ссылка: [strimzi-kafka-exporter.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json)
 
+**Что смотреть при chaos:** Метрики топиков, consumer groups, lag; при сетевых и pod-экспериментах — рост lag, изменение throughput
+
 ![Strimzi Kafka Exporter](Strimzi-Kafka-Exporter.png)
 
 ### Strimzi Operators
 
 Ссылка: [strimzi-operators.json](https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json)
 
+**Что смотреть при chaos:** Реконсиляция Cluster Operator, Topic/User Operator; при убийстве подов — всплески активности
+
 ![Strimzi Operators](Strimzi-Operators.png)
 
 ### Kafka Go App Metrics (Producer/Consumer)
 
 Ссылка: [`kafka-go-app-metrics.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/kafka-go-app-metrics.json) — метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
+
+**Что смотреть при chaos:** Producer/Consumer: сообщения в сек, latency, ошибки, переподключения; при network-delay/loss — рост latency и ошибок
 
 Дашборд включает панели для:
 - **Producer метрики**: скорость отправки сообщений, latency, ошибки
@@ -714,6 +724,8 @@ kubectl get httpchaos -n kafka-ui
 ### Redis Delivery Verification
 
 Ссылка: [`redis-delivery-verification.json`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/dashboards/redis-delivery-verification.json) — Redis, SLO и верификация доставки ([подробнее](#верификация-доставки-сообщений-через-redis))
+
+**Что смотреть при chaos:** SLO доставки, pending/old messages; при сбоях доставки — рост старых сообщений в Redis
 
 ![Redis Delivery Verification](Redis-Delivery-Verification.png)
 
