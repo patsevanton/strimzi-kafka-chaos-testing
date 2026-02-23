@@ -580,91 +580,9 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 | `network-loss.yaml` | NetworkChaos | Потеря пакетов 10–30% |
 | `dns-chaos.yaml` | DNSChaos | Ошибки DNS (брокеры, producer) |
 
-Запуск одного эксперимента:
-
-```bash
-kubectl apply -f chaos-experiments/pod-kill.yaml
-```
-
 Ссылка на исходный код: [chaos-experiments/](https://github.com/patsevanton/strimzi-kafka-chaos-testing/tree/main/chaos-experiments)
 
-Проверка статуса (все задействованные namespace):
-
-```bash
-kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,jvmchaos,httpchaos,dnschaos,schedule -n kafka-cluster
-kubectl get dnschaos -n kafka-producer
-kubectl get httpchaos -n schema-registry
-kubectl get httpchaos -n kafka-ui
-```
-
-Остановка: `kubectl delete -f chaos-experiments/pod-kill.yaml` или `kubectl delete -f chaos-experiments/`
-
-## Импорт дашбордов Grafana
-
-### Дашборды Strimzi Kafka
-
-Импорт JSON дашбордов через UI Grafana:
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json
-
-https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
-
-Strimzi Kafka:
-
-![Strimzi Kafka 1](Strimzi-Kafka1.png)
-
-![Strimzi Kafka 2](Strimzi-Kafka2.png)
-
-Strimzi KRaft:
-
-![Strimzi KRaft 1](Strimzi-KRaft1.png)
-
-![Strimzi KRaft 2](Strimzi-KRaft2.png)
-
-Strimzi Kafka Exporter:
-
-![Strimzi Kafka Exporter](Strimzi-Kafka-Exporter.png)
-
-Strimzi Operators:
-
-![Strimzi Operators](Strimzi-Operators.png)
-
-### Дашборд Go-приложения (Producer/Consumer)
-
-Дашборды в **dashboards/**:
-
-- **kafka-go-app-metrics.json** - метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
-- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis))
-
-Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
-- **Producer метрики**: скорость отправки сообщений, latency, ошибки
-- **Consumer метрики**: скорость получения сообщений, latency, lag, ошибки
-- **Schema Registry метрики**: запросы, latency, ошибки, кэш
-- **Connection метрики**: статус подключений, переподключения
-
-Подробное описание панелей и инструкции по импорту - в **dashboards/README.md**.
-
-![Kafka Go App Metrics 1](Kafka-Go-App-Metrics1.png)
-
-![Kafka Go App Metrics 2](Kafka-Go-App-Metrics2.png)
-
-![Kafka Go App Metrics 3](Kafka-Go-App-Metrics3.png)
-
-![Kafka Go App Metrics 4](Kafka-Go-App-Metrics4.png)
-
-Redis Delivery Verification:
-
-![Redis Delivery Verification](Redis-Delivery-Verification.png)
-
-## Запуск chaos-экспериментов и наблюдение за кластером
-
-### Запуск экспериментов
-
-**При последовательном развёртывании по README нужно запустить все эксперименты последовательно с таймаутом между ними.** Порядок запуска и таймауты:
+Порядок запуска и таймауты:
 
 ```bash
 # 1. Pod kill (убийство брокера)
@@ -740,9 +658,79 @@ sleep 60
 kubectl delete -f chaos-experiments/network-delay.yaml
 ```
 
+Проверка статуса (все задействованные namespace):
+
+```bash
+kubectl get podchaos,networkchaos,stresschaos,iochaos,timechaos,jvmchaos,httpchaos,dnschaos,schedule -n kafka-cluster
+kubectl get dnschaos -n kafka-producer
+kubectl get httpchaos -n schema-registry
+kubectl get httpchaos -n kafka-ui
+```
+
 **Остановка всех экспериментов:** `kubectl delete -f chaos-experiments/`
 
-### Наблюдение за состоянием кластера на дашбордах Grafana
+## Импорт дашбордов Grafana
+
+### Дашборды Strimzi Kafka
+
+Импорт JSON дашбордов через UI Grafana:
+
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka-exporter.json
+
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kafka.json
+
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-kraft.json
+
+https://github.com/strimzi/strimzi-kafka-operator/blob/main/packaging/examples/metrics/grafana-dashboards/strimzi-operators.json
+
+Strimzi Kafka:
+
+![Strimzi Kafka 1](Strimzi-Kafka1.png)
+
+![Strimzi Kafka 2](Strimzi-Kafka2.png)
+
+Strimzi KRaft:
+
+![Strimzi KRaft 1](Strimzi-KRaft1.png)
+
+![Strimzi KRaft 2](Strimzi-KRaft2.png)
+
+Strimzi Kafka Exporter:
+
+![Strimzi Kafka Exporter](Strimzi-Kafka-Exporter.png)
+
+Strimzi Operators:
+
+![Strimzi Operators](Strimzi-Operators.png)
+
+### Дашборд Go-приложения (Producer/Consumer)
+
+Дашборды в **dashboards/**:
+
+- **kafka-go-app-metrics.json** - метрики Go-приложения (Producer/Consumer, Kafka, Schema Registry)
+- **redis-delivery-verification.json** - Redis, SLO и верификация доставки ([Верификация доставки сообщений через Redis](#верификация-доставки-сообщений-через-redis))
+
+Импорт: Grafana → Dashboards → Import → загрузить JSON. Дашборд Go-приложения включает панели для:
+- **Producer метрики**: скорость отправки сообщений, latency, ошибки
+- **Consumer метрики**: скорость получения сообщений, latency, lag, ошибки
+- **Schema Registry метрики**: запросы, latency, ошибки, кэш
+- **Connection метрики**: статус подключений, переподключения
+
+Подробное описание панелей и инструкции по импорту - в **dashboards/README.md**.
+
+![Kafka Go App Metrics 1](Kafka-Go-App-Metrics1.png)
+
+![Kafka Go App Metrics 2](Kafka-Go-App-Metrics2.png)
+
+![Kafka Go App Metrics 3](Kafka-Go-App-Metrics3.png)
+
+![Kafka Go App Metrics 4](Kafka-Go-App-Metrics4.png)
+
+Redis Delivery Verification:
+
+![Redis Delivery Verification](Redis-Delivery-Verification.png)
+
+## Наблюдение за состоянием кластера на дашбордах Grafana
 
 Импортированные дашборды позволяют отслеживать состояние кластера до, во время и после chaos-экспериментов. Откройте Grafana http://grafana.apatsev.org.ru, выберите нужный дашборд и временной диапазон, охватывающий момент запуска и остановки эксперимента.
 
