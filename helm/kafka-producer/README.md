@@ -1,6 +1,6 @@
 # Kafka Producer Helm Chart
 
-Helm чарт для развертывания Go приложения в режиме producer (отправка данных в Kafka).
+Helm-чарт для развёртывания Go-приложения в режиме producer (отправка данных в Kafka).
 
 ## Установка
 

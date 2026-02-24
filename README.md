@@ -9,7 +9,7 @@
 1. [VictoriaMetrics K8s Stack](https://github.com/VictoriaMetrics/helm-charts/tree/master/charts/victoria-metrics-k8s-stack) + [Grafana](https://grafana.com/)
 2. [Strimzi](https://strimzi.io/) Operator и [Cruise Control](https://github.com/linkedin/cruise-control) (Strimzi)
 3. Strimzi Kafka (namespace, Kafka CR, топик, пользователь, PDB, Cruise Control с CronJob для ребаланса, метрики, [Kafka Exporter](https://github.com/prometheus-community/kafka_exporter))
-4. Cбор метрик Kafka через JMX, Kafka Exporter и [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) для Strimzi CRD
+4. Сбор метрик Kafka через JMX, Kafka Exporter и [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) для Strimzi CRD
 5. Schema Registry ([Karapace](https://github.com/aiven/karapace)) для Avro
 6. [Kafka UI](https://github.com/provectus/kafka-ui)
 7. [Redis](https://redis.io/) в Kubernetes (верификация доставки, хеши сообщений Producer → Consumer)
@@ -53,7 +53,7 @@ kubectl get secret vmks-grafana -n vmks -o jsonpath='{.data.admin-password}' | b
 
 4. Grafana будет доступна по адресу http://grafana.apatsev.org.ru (логин по умолчанию: `admin`).
 
-### Strimzi
+## Strimzi
 
 [Strimzi](https://strimzi.io/) — оператор для развёртывания и управления Apache Kafka в Kubernetes; выбран как де-факто стандарт для Kafka в K8s (CNCF-проект, декларативные CRD, активная разработка). Мониторинг вынесен в отдельные компоненты (Kafka Exporter, kube-state-metrics, PodMonitors для брокеров и операторов).
 
@@ -115,7 +115,7 @@ kubectl get pdb -n kafka-cluster
 
 [Cruise Control](https://github.com/linkedin/cruise-control) - компонент для ребаланса партиций Kafka (распределение реплик по брокерам, цели по загрузке CPU/сети/диска). В **kafka-metrics.yaml** включён **Cruise Control** и **autoRebalance** при масштабировании (add-brokers / remove-brokers): при добавлении или удалении брокеров оператор сам запускает ребаланс по шаблонам.
 
-**Автоматический полный ребаланс в фоне** (все брокеры, все топики) реализован через **CronJob** `strimzi/cruise-control/kafka-rebalance-cronjob.yaml`: раз в час создаётся `KafkaRebalance` и одобряется. Расписание можно изменить в `.spec.schedule` (например `"0 */6 * * *"` - раз в 6 часов). В Strimzi нет встроенного «постоянного» полного ребаланса, поэтому используется периодический запуск. Strimzi специально сделан так, потому что rebalance - очень дорогая операция.
+**Автоматический полный ребаланс в фоне** (все брокеры, все топики) реализован через **CronJob** `strimzi/cruise-control/kafka-rebalance-cronjob.yaml`: раз в час создаётся `KafkaRebalance` и одобряется. Расписание можно изменить в `.spec.schedule` (например `"0 */6 * * *"` - раз в 6 часов). В Strimzi нет встроенного «постоянного» полного ребаланса, поэтому используется периодический запуск. Strimzi специально сделан так, потому что ребаланс — очень дорогая операция.
 
 Порядок применения:
 
@@ -192,7 +192,7 @@ kubectl apply -f strimzi/kafka-exporter-servicemonitor.yaml
 
 Kafka Exporter **встроен в Strimzi** как опциональный компонент: образ и конфигурация задаются оператором, он создаёт и обновляет Deployment при изменении CR.
 
-### Schema Registry (Karapace) для Avro
+## Schema Registry (Karapace) для Avro
 
 Go-приложение из этого репозитория использует Avro и Schema Registry API. Для удобства здесь добавлены готовые манифесты для **[Karapace](https://github.com/Aiven-Open/karapace)** - open-source реализации API Confluent Schema Registry (drop-in replacement).
 
@@ -396,7 +396,7 @@ kubectl apply -f strimzi/kafka-consumer-metrics.yaml
 
 Ссылка на исходный код: [`strimzi/kafka-producer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-producer-metrics.yaml) · [`strimzi/kafka-consumer-metrics.yaml`](https://github.com/patsevanton/strimzi-kafka-chaos-testing/blob/main/strimzi/kafka-consumer-metrics.yaml)
 
-### Kafka UI
+## Kafka UI
 
 Web-интерфейс для управления Kafka - просмотр топиков, consumer groups, сообщений. Используется чарт [kafbat-ui/kafka-ui](https://github.com/kafbat/helm-charts).
 
@@ -405,7 +405,7 @@ Web-интерфейс для управления Kafka - просмотр то
 helm repo add kafbat-ui https://kafbat.github.io/helm-charts
 helm repo update
 
-# Kafka UI использует отдельный read-only пользователь kafka-ui-user
+# Kafka UI использует отдельного read-only пользователя kafka-ui-user
 kubectl apply -n kafka-cluster -f strimzi/kafka-user-kafka-ui.yaml
 kubectl wait kafkauser/kafka-ui-user -n kafka-cluster --for=condition=Ready --timeout=60s || true
 # При таймауте: kubectl get kafkauser kafka-ui-user -n kafka-cluster; при Ready продолжайте.
@@ -711,7 +711,7 @@ kubectl get httpchaos -n kafka-ui
 - **Schema Registry метрики**: запросы, latency, ошибки, кэш
 - **Connection метрики**: статус подключений, переподключения
 
-Подробное описание панелей и инструкции по импорту — в **dashboards/README.md**.
+У каждой панели на дашборде есть подробное описание прямо в Grafana.
 
 ![Kafka Go App Metrics 1](Kafka-Go-App-Metrics1.png)
 
