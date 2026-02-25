@@ -558,7 +558,7 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 | Файл | Тип | Описание |
 |------|-----|----------|
 | `pod-kill.yaml` | PodChaos + Schedule | Убийство одного брокера (одноразово + каждые 5 мин) |
-| `pod-failure.yaml` | PodChaos | Сбой 1 брокера (ISR сохраняется) + сбой 2 из 3 (ISR нарушен) |
+| `pod-failure.yaml` | PodChaos | Сбой 1 брокера (ISR сохраняется) + сбой 2 из 3 (ISR нарушен, mode: fixed) |
 | `quorum-controller-loss.yaml` | PodChaos | Потеря кворума: 2 из 3 контроллеров + убийство 1 контроллера |
 | `quorum-broker-loss.yaml` | PodChaos | Потеря 2 из 3 брокеров (ISR нарушен) + убийство 1 брокера |
 | `controller-network-partition.yaml` | NetworkChaos | Изоляция контроллера от Raft-кворума + изоляция контроллеров от брокеров |

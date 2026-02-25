@@ -13,7 +13,7 @@ metadata:
     description: "2 из 3 брокеров недоступны — ISR нарушен, запись блокирована"
 spec:
   action: pod-failure
-  mode: fixed-number
+  mode: fixed
   value: "2"
   duration: "120s"
   selector:
