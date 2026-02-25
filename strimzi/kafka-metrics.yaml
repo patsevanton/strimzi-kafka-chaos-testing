@@ -32,8 +32,14 @@ spec:
     volumes:
       - id: 0
         type: persistent-claim
-        size: 100Gi
+        size: 34Gi
         kraftMetadata: shared
+      - id: 1
+        type: persistent-claim
+        size: 33Gi
+      - id: 2
+        type: persistent-claim
+        size: 33Gi
 ---
 
 apiVersion: kafka.strimzi.io/v1
@@ -61,9 +67,9 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-      # num.network.threads: 12 - формула: (50 prod + 50 cons) / 8 ≈ 12 потоков на соединения.
+      # num.network.threads: 12 - формула: (30 prod + 30 cons + служебные) / 8 ≈ 12 потоков на соединения.
       num.network.threads: 12
-      # num.io.threads: 12 - 120 партиций / 10 ≈ 12 потоков на I/O.
+      # num.io.threads: 12 - 90 реплик партиций (30×3) / 3 брокера / 3 JBOD-диска ≈ 10, округляем до 12.
       num.io.threads: 12
       # socket.*.buffer.bytes: 2^20 = 1048576 (1MB) - меньше syscalls, выше throughput.
       socket.send.buffer.bytes: 1048576

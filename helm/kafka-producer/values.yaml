@@ -27,10 +27,10 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-# Формула ресурсов: 10 msg/s × Avro encode + Redis → limits выше requests.
+# Формула ресурсов: 200 msg/s × Avro encode + Redis → limits выше requests.
 resources:
   limits:
-    cpu: 2000m    # 2 × 1000m на под (encode + сеть)
+    cpu: 2000m    # 2 × 1000m на под (encode + сеть при высокой нагрузке)
     memory: 1Gi   # 256Mi base + Avro buffers + metrics ≈ 1Gi
   requests:
     cpu: 500m     # 0.5 ядра гарантировано на под
@@ -44,7 +44,7 @@ affinity: {}
 
 autoscaling:
   enabled: false
-  minReplicas: 30   # формула: базовый пул (нагрузка / целевой throughput на под)
+  minReplicas: 30   # формула: 30 партиций = 30 подов (1 партиция на под)
   maxReplicas: 50   # запас при autoscaling
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
@@ -54,11 +54,11 @@ kafka:
   # Сервис Strimzi bootstrap (работает между namespace через DNS)
   brokers: "kafka-cluster-kafka-bootstrap.kafka-cluster.svc.cluster.local:9092"
   topic: "test-topic"
-  # producerBatchSize × producerBatchTimeoutMs: батч до 50 сообщений или 50 ms - что раньше.
-  producerBatchSize: 50      # формула: throughput × латентность (например 10 msg/s × 5 s)
-  producerBatchTimeoutMs: 50 # макс ожидание батча (ms) перед отправкой
-  # producerIntervalMs: интервал между сообщениями (ms). 50 = 20 msg/s на под.
-  producerIntervalMs: 50     # уменьшить для большей нагрузки (20→50 msg/s)
+  # producerBatchSize × producerBatchTimeoutMs: батч до 100 сообщений или 20 ms - что раньше.
+  producerBatchSize: 100     # формула: throughput × латентность (200 msg/s × 0.5 s)
+  producerBatchTimeoutMs: 20 # макс ожидание батча (ms) перед отправкой
+  # producerIntervalMs: интервал между сообщениями (ms). 5 = 200 msg/s на под.
+  producerIntervalMs: 5      # 200 msg/s на под × 30 подов = 6000 msg/s суммарно
   # producerMaxAttempts: кол-во попыток отправки при ошибке (default 5)
   producerMaxAttempts: 5
   # Учётные данные KafkaUser - только через Secret (kind: Secret). Strimzi создаёт Secret myuser с ключом password.

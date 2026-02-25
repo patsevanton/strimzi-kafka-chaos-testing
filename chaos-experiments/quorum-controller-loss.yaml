@@ -1,0 +1,41 @@
+# PodChaos: Потеря кворума контроллеров — убийство 2 из 3 KRaft-контроллеров
+# Тестирует: Поведение кластера при потере большинства контроллеров (Raft-кворум = 2 из 3).
+# Ожидаемый результат: Кластер НЕ может выбрать нового лидера контроллеров,
+# метаданные недоступны, запись в топики блокируется до восстановления хотя бы одного контроллера.
+# После восстановления кворума кластер должен автоматически продолжить работу.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-quorum-controller-loss
+  namespace: kafka-cluster
+  annotations:
+    description: "Потеря кворума: 2 из 3 контроллеров недоступны"
+spec:
+  action: pod-failure
+  mode: fixed-number
+  value: "2"
+  duration: "120s"
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: controller
+---
+# PodChaos: Убийство одного контроллера (кворум сохраняется)
+# Тестирует: Отказоустойчивость при потере 1 контроллера — кворум 2/3 жив.
+# Ожидаемый результат: Кластер продолжает работать, лидер переизбирается если нужно.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-controller-single-kill
+  namespace: kafka-cluster
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: controller

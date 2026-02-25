@@ -1,0 +1,63 @@
+# NetworkChaos: Изоляция одного контроллера от остальных контроллеров (split Raft)
+# Тестирует: Сетевая изоляция контроллера от кворума. Изолированный контроллер
+# теряет связь с остальными, но оставшиеся 2 сохраняют кворум.
+# Ожидаемый результат: Если изолирован лидер — переизбрание лидера контроллеров,
+# кратковременная пауза метаданных. Кластер продолжает работу через новый лидер.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-controller-partition
+  namespace: kafka-cluster
+  annotations:
+    description: "Изоляция контроллера от Raft-кворума"
+spec:
+  action: partition
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: controller
+  direction: both
+  target:
+    selector:
+      namespaces:
+        - kafka-cluster
+      labelSelectors:
+        strimzi.io/cluster: kafka-cluster
+        strimzi.io/pool-name: controller
+    mode: all
+  duration: "120s"
+---
+# NetworkChaos: Изоляция всех контроллеров от всех брокеров
+# Тестирует: Брокеры теряют связь с контроллерами (metadata недоступна).
+# Ожидаемый результат: Брокеры не могут обновлять метаданные, новые топики
+# не создаются, но существующие партиции продолжают обслуживать запись/чтение
+# пока кэшированные метаданные актуальны. После восстановления — полная синхронизация.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-controller-broker-partition
+  namespace: kafka-cluster
+  annotations:
+    description: "Полная изоляция контроллеров от брокеров"
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: controller
+  direction: both
+  target:
+    selector:
+      namespaces:
+        - kafka-cluster
+      labelSelectors:
+        strimzi.io/cluster: kafka-cluster
+        strimzi.io/pool-name: broker
+    mode: all
+  duration: "120s"

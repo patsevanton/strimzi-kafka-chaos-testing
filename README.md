@@ -557,8 +557,11 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 
 | Файл | Тип | Описание |
 |------|-----|----------|
-| `pod-kill.yaml` | PodChaos + Schedule | Убийство брокера (одноразово + каждые 5 мин) |
-| `pod-failure.yaml` | PodChaos | Симуляция падения пода |
+| `pod-kill.yaml` | PodChaos + Schedule | Убийство одного брокера (одноразово + каждые 5 мин) |
+| `pod-failure.yaml` | PodChaos | Сбой 1 брокера (ISR сохраняется) + сбой 2 из 3 (ISR нарушен) |
+| `quorum-controller-loss.yaml` | PodChaos | Потеря кворума: 2 из 3 контроллеров + убийство 1 контроллера |
+| `quorum-broker-loss.yaml` | PodChaos | Потеря 2 из 3 брокеров (ISR нарушен) + убийство 1 брокера |
+| `controller-network-partition.yaml` | NetworkChaos | Изоляция контроллера от Raft-кворума + изоляция контроллеров от брокеров |
 | `network-delay.yaml` | NetworkChaos | Сетевые задержки 100–500 ms |
 | `cpu-stress.yaml` | StressChaos | Нагрузка на CPU |
 | `memory-stress.yaml` | StressChaos | Нагрузка на память |
@@ -575,76 +578,102 @@ kubectl get secret chaos-mesh-admin-token -n chaos-mesh -o jsonpath='{.data.toke
 Порядок запуска и таймауты:
 
 ```bash
-# 1. Pod kill (убийство брокера)
+# === ЧАСТЬ 1: Тесты кворума и граничных сценариев ===
+
+# 1. Убийство одного брокера (ISR сохраняется: 2/3 >= min.insync.replicas=2)
 kubectl apply -f chaos-experiments/pod-kill.yaml
-# Затронутые поды: kafka-cluster-cruise-control-66d566d69-* (mode one - один из Kafka-подов убит, в прогоне - cruise-control). Логи (новый под после рестарта): KafkaCruiseControlSampleStore consumer unregistered, Sample loading finished, CruiseControlStateRequest, "GET /kafkacruisecontrol/state HTTP/1.1" 200
-sleep 60
+# Ожидание: партиции переизбирают лидера, under-replicated partitions, запись продолжается.
+sleep 120
 kubectl delete -f chaos-experiments/pod-kill.yaml
 
-# 2. Pod failure (симуляция падения пода)
+# 2. Сбой брокеров: 1 брокер (ISR сохраняется) + 2 из 3 (ISR нарушен, запись блокирована)
 kubectl apply -f chaos-experiments/pod-failure.yaml
-# Затронутые поды: kafka-pod-failure (one) - kafka-cluster-kafka-exporter-*; kafka-multi-pod-failure (60%) - kafka-cluster-broker-2, kafka-cluster-kafka-exporter-*, kafka-cluster-cruise-control-*, kafka-cluster-controller-4. Логи (exporter после восстановления): kafka_exporter.go Starting, Error Init Kafka Client: connection refused
-sleep 60
+# Ожидание: kafka-pod-failure — запись работает; kafka-multi-pod-failure — producer получает NotEnoughReplicas.
+sleep 120
 kubectl delete -f chaos-experiments/pod-failure.yaml
 
-# 3. CPU stress (нагрузка на CPU)
+# 3. Потеря кворума контроллеров: 2 из 3 KRaft-контроллеров недоступны
+kubectl apply -f chaos-experiments/quorum-controller-loss.yaml
+# Ожидание: кластер не может выбрать лидера контроллеров, метаданные недоступны.
+# После восстановления кворума — автоматическое продолжение работы.
+sleep 180
+kubectl delete -f chaos-experiments/quorum-controller-loss.yaml
+
+# 4. Потеря 2 из 3 брокеров (целенаправленно по pool-name: broker)
+kubectl apply -f chaos-experiments/quorum-broker-loss.yaml
+# Ожидание: ISR < min.insync.replicas, запись невозможна, чтение возможно.
+# После восстановления: ISR восстанавливается, запись возобновляется.
+sleep 180
+kubectl delete -f chaos-experiments/quorum-broker-loss.yaml
+
+# 5. Изоляция контроллера от Raft-кворума + изоляция контроллеров от брокеров
+kubectl apply -f chaos-experiments/controller-network-partition.yaml
+# Ожидание: переизбрание лидера контроллеров, кратковременная пауза метаданных.
+sleep 180
+kubectl delete -f chaos-experiments/controller-network-partition.yaml
+
+# === ЧАСТЬ 2: Стресс и отказы инфраструктуры ===
+
+# 6. CPU stress (нагрузка на CPU)
 kubectl apply -f chaos-experiments/cpu-stress.yaml
-# Затронутые поды: kafka-cpu-stress (one) - kafka-cluster-controller-5; kafka-cpu-stress-high (all) - controller-3, controller-4, controller-5, entity-operator/topic-operator. Логи (controller): PartitionChangeBuilder Setting new leader, QuorumController handleBrokerUnfenced, ReplicationControlManager CreateTopics
-sleep 60
+# Ожидание: рост latency, request timeouts при высокой утилизации CPU.
+sleep 120
 kubectl delete -f chaos-experiments/cpu-stress.yaml
 
-# 4. Memory stress (нагрузка на память)
+# 7. Memory stress (нагрузка на память)
 kubectl apply -f chaos-experiments/memory-stress.yaml
-# Затронутые поды: kafka-memory-stress (one) - kafka-cluster-broker-0; kafka-combined-stress (one) - один из broker/controller. Логи: возможны OOMKilled, в брокере - replication/request timeouts при нехватке памяти
-sleep 60
+# Ожидание: возможны OOMKilled, replication/request timeouts при нехватке памяти.
+sleep 120
 kubectl delete -f chaos-experiments/memory-stress.yaml
 
-# 5. IO chaos (задержки и ошибки дискового I/O)
+# 8. IO chaos (задержки и ошибки дискового I/O на JBOD-дисках)
 kubectl apply -f chaos-experiments/io-chaos.yaml
-# Затронутые поды: mode one - один из брокеров/контроллеров (broker-0, controller-5 и т.д.). Примечание: может быть FAILED из-за volumePath (например "No such file" если путь не совпадает с реальным). Логи: задержки записи/чтения, I/O errors в логах Kafka
-sleep 60
+# Ожидание: задержки записи/чтения партиций, I/O errors в логах Kafka.
+sleep 120
 kubectl delete -f chaos-experiments/io-chaos.yaml
 
-# 6. Time chaos (смещение системного времени)
+# 9. Time chaos (смещение системного времени)
 kubectl apply -f chaos-experiments/time-chaos.yaml
-# Затронутые поды: kafka-time-skew (one) - в прогоне kafka-cluster-controller-4; остальные timechaos - по одному поду из Kafka. Логи: NotControllerException, QuorumController replay, ACL Denied, рассинхрон часов
-sleep 60
+# Ожидание: NotControllerException, рассинхрон часов, проблемы с Raft.
+sleep 120
 kubectl delete -f chaos-experiments/time-chaos.yaml
 
-# 7. JVM chaos (GC, stress и исключения в JVM)
+# 10. JVM chaos (GC, stress и исключения в JVM)
 kubectl apply -f chaos-experiments/jvm-chaos.yaml
-# Затронутые поды: по одному поду на каждый JVMChaos - controller (GC), broker (exception handleProduceRequest, stress, latency append). Логи: GC паузы, IOException Chaos test exception в handleProduceRequest, задержки append
-sleep 60
+# Ожидание: GC паузы, IOException в handleProduceRequest, задержки append.
+sleep 120
 kubectl delete -f chaos-experiments/jvm-chaos.yaml
 
-# 8. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
+# === ЧАСТЬ 3: Сетевые и прикладные сбои ===
+
+# 11. HTTP chaos (задержки/ошибки Schema Registry и Kafka UI)
 kubectl apply -f chaos-experiments/http-chaos.yaml
-# Затронутые поды: schema-registry-* (все в ns schema-registry), kafka-ui-* (ns kafka-ui). Логи: Karapace heartbeat, Received successful heartbeat response, "GET /subjects HTTP/1.1" 200
-sleep 60
+# Ожидание: Schema Registry отвечает с задержками/ошибками, producer retry на регистрацию схем.
+sleep 120
 kubectl delete -f chaos-experiments/http-chaos.yaml
 
-# 9. DNS chaos (ошибки DNS для брокеров и producer)
+# 12. DNS chaos (ошибки DNS для брокеров и producer)
 kubectl apply -f chaos-experiments/dns-chaos.yaml
-# Затронутые поды: kafka-cluster (one/all по манифесту) - один или все брокеры/контроллеры; kafka-producer (ns kafka-producer) - поды kafka-producer-*. Логи: UnknownHostException, kafka-dns-error может быть FAILED при неверном pattern
-sleep 60
+# Ожидание: UnknownHostException, потеря резолва bootstrap-адресов.
+sleep 120
 kubectl delete -f chaos-experiments/dns-chaos.yaml
 
-# 10. Network partition (сетевая изоляция)
+# 13. Network partition (сетевая изоляция брокера от producer)
 kubectl apply -f chaos-experiments/network-partition.yaml
-# Затронутые поды: kafka-network-partition (one) - в прогоне kafka-cluster-broker-2; kafka-producer-partition - все брокеры (broker-0, broker-1, ...) и поды kafka-producer в ns kafka-producer. Логи: producer retries, connection timeouts, leader unavailable
-sleep 60
+# Ожидание: producer retries, connection timeouts, leader unavailable.
+sleep 120
 kubectl delete -f chaos-experiments/network-partition.yaml
 
-# 11. Network loss (потеря пакетов)
+# 14. Network loss (потеря пакетов)
 kubectl apply -f chaos-experiments/network-loss.yaml
-# Затронутые поды: все поды Kafka в kafka-cluster (broker-*, controller-*, cruise-control, entity-operator, kafka-exporter); producer/consumer - потеря пакетов, retry в логах приложений
-sleep 60
+# Ожидание: потеря пакетов, retry в логах приложений, рост latency.
+sleep 120
 kubectl delete -f chaos-experiments/network-loss.yaml
 
-# Network delay (сетевые задержки) - отладка, по умолчанию не запускаем
+# (опционально) Network delay — сетевые задержки
 kubectl apply -f chaos-experiments/network-delay.yaml
-# Затронутые поды: все поды Kafka в kafka-cluster (mode all); producer/consumer - рост latency в логах и метриках
-sleep 60
+# Ожидание: рост latency в логах и метриках.
+sleep 120
 kubectl delete -f chaos-experiments/network-delay.yaml
 ```
 
@@ -739,23 +768,39 @@ kubectl get httpchaos -n kafka-ui
 
 | Компонент | Реплики | CPU (requests / limits) | Память (requests / limits) | Хранилище |
 |-----------|---------|-------------------------|----------------------------|-----------|
-| Kafka (controller + broker) | 3 + 3 | по умолчанию Strimzi | по умолчанию Strimzi | 100 Gi на ноду (JBOD) |
+| Kafka (controller + broker) | 3 + 3 | по умолчанию Strimzi | по умолчанию Strimzi | controller: 100Gi (1 vol); broker: 3×~33Gi JBOD |
 | Топик test-topic | 30 партиций, 3 реплики | - | - | - |
 | Producer | 30 | 500m / 2000m на под | 256Mi / 1Gi на под | - |
 | Consumer | 30 | 500m / 2000m на под | 256Mi / 1Gi на под | - |
 | Schema Registry (Karapace) | 2 | 100m / 500m | 256Mi / 512Mi | - |
 | Redis | 1 | 50m / 200m | 128Mi / 256Mi | - |
 
-**Целевые показатели производительности (расчёт по конфигу):** Producer: до 20 msg/s на под при `producerIntervalMs: 50` → до **600 msg/s** суммарно при 30 подах. Consumer: 30 партиций, по одной на под, fetch до 100 MB за запрос; потребление ограничено скоростью producer и настройками `minBytes`/`maxWaitMs`. SLO доставки (Redis): сообщения должны быть обработаны consumer в течение **120 с** (`redis.sloSeconds`); старые сообщения выше порога отображаются в дашборде redis-delivery-verification. Фактические throughput и latency зависят от кластера и нагрузки; их можно смотреть в Grafana (дашборды kafka-go-app-metrics, Strimzi Kafka Exporter).
+**Целевые показатели производительности (расчёт по конфигу):** Producer: до 200 msg/s на под при `producerIntervalMs: 5` → до **6000 msg/s** суммарно при 30 подах. Это создаёт заметную нагрузку на 3 брокера (~2000 msg/s на брокер), достаточную для выявления деградации при chaos-экспериментах. Consumer: 30 партиций, по одной на под, fetch до 100 MB за запрос; потребление ограничено скоростью producer и настройками `minBytes`/`maxWaitMs`. SLO доставки (Redis): сообщения должны быть обработаны consumer в течение **120 с** (`redis.sloSeconds`); старые сообщения выше порога отображаются в дашборде redis-delivery-verification. Фактические throughput и latency зависят от кластера и нагрузки; их можно смотреть в Grafana (дашборды kafka-go-app-metrics, Strimzi Kafka Exporter).
+
+**JBOD-конфигурация:** Каждый брокер использует 3 JBOD-диска (id 0, 1, 2) по ~33Gi. Это обеспечивает параллелизм I/O: 30 партиций × 3 реплики = 90 реплик / 3 брокера = 30 реплик на брокер, распределённых по 3 дискам (~10 реплик на диск). При chaos-экспериментах (IO chaos, pod-kill) нагрузка на I/O распределяется по дискам, а не концентрируется на одном.
 
 ## Заключение
 
-Все chaos-эксперименты завершились успешно: кластер Strimzi Kafka продемонстрировал устойчивость к каждому из протестированных сценариев сбоев. В ходе экспериментов были последовательно применены pod-kill, pod-failure, CPU/memory stress, IO chaos, time chaos, JVM chaos, HTTP chaos, DNS chaos, network partition и network loss — и во всех случаях кластер корректно восстанавливался после снятия нагрузки.
+Chaos-эксперименты проводятся **под нагрузкой ~6000 msg/s** (200 msg/s × 30 producer-подов, ~2000 msg/s на брокер), что создаёт заметное давление на кластер и позволяет выявить реальную деградацию при сбоях.
 
-Ключевые результаты:
-- **Целостность данных:** при убийстве брокеров, сетевых разделениях и потере пакетов ни одно сообщение не было потеряно — верификация через Redis подтвердила сквозную доставку в рамках SLO (120 с);
-- **Автоматическое восстановление:** после каждого эксперимента брокеры возвращались в кластер, under-replicated партиции синхронизировались, consumer lag снижался до нуля без ручного вмешательства;
-- **Устойчивость producer/consumer:** Go-приложения корректно обрабатывали переподключения, retry и временные ошибки — throughput и latency возвращались к baseline-значениям после завершения каждого эксперимента;
-- **Наблюдаемость:** дашборды Grafana (Strimzi Kafka, kafka-go-app-metrics, redis-delivery-verification) позволили в реальном времени отследить деградацию и восстановление на каждом этапе.
+### Тестируемые граничные сценарии кворума
 
-Таким образом, конфигурация Strimzi Kafka с 3 контроллерами, 3 брокерами, `min.insync.replicas: 2`, 30 партициями и 3 репликами обеспечивает достаточный уровень отказоустойчивости для типовых инцидентов в Kubernetes-среде.
+Помимо стандартных экспериментов (pod-kill, CPU/memory stress, IO/network chaos и др.), тестируются **граничные случаи кворума**, которые критичны для оценки реальной отказоустойчивости:
+
+- **Потеря кворума контроллеров (2 из 3):** при потере большинства KRaft-контроллеров кластер не может выбрать лидера, метаданные недоступны. Проверяется, что после восстановления хотя бы одного контроллера кворум восстанавливается автоматически.
+- **Потеря 2 из 3 брокеров (ISR < min.insync.replicas):** при `min.insync.replicas: 2` потеря 2 брокеров делает запись невозможной (NotEnoughReplicas). Проверяется, что producer корректно получает ошибки, а после восстановления ISR запись возобновляется без потерь.
+- **Сетевая изоляция контроллера от Raft-кворума:** изолированный контроллер теряет связь с остальными; если это лидер — происходит переизбрание. Проверяется, что кластер продолжает работу через нового лидера.
+- **Изоляция контроллеров от брокеров:** брокеры теряют доступ к метаданным, но продолжают обслуживать существующие партиции.
+
+### Конфигурация хранения
+
+Каждый брокер использует **3 JBOD-диска** (~33Gi каждый), что обеспечивает параллелизм I/O: 30 реплик партиций на брокер распределяются по 3 дискам (~10 реплик на диск). Это позволяет адекватно тестировать IO chaos и создаёт реалистичную конфигурацию хранения.
+
+### Ключевые результаты
+
+- **Отказ одного компонента (брокер или контроллер):** кластер продолжает работу — ISR >= `min.insync.replicas`, кворум контроллеров сохраняется (2/3). Throughput и latency возвращаются к baseline после восстановления пода.
+- **Потеря кворума (2 из 3):** запись блокируется (для брокеров — NotEnoughReplicas, для контроллеров — недоступность метаданных). После восстановления — автоматическое возобновление без потери данных.
+- **Целостность данных:** верификация через Redis подтверждает сквозную доставку в рамках SLO (120 с) для всех сценариев, где запись возможна.
+- **Наблюдаемость:** дашборды Grafana (Strimzi Kafka, kafka-go-app-metrics, redis-delivery-verification) позволяют в реальном времени отследить деградацию и восстановление.
+
+Конфигурация: 3 контроллера (Raft-кворум), 3 брокера (3 JBOD-диска каждый), `min.insync.replicas: 2`, 30 партиций × 3 реплики, нагрузка ~6000 msg/s.

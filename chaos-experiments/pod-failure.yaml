@@ -1,5 +1,5 @@
-# PodChaos: Симуляция сбоя пода (падение контейнера)
-# Тестирует: Падение и восстановление брокера Kafka
+# PodChaos: Симуляция сбоя одного брокера (ISR сохраняется)
+# Тестирует: Падение и восстановление одного брокера; ISR >= min.insync.replicas (2)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -14,24 +14,26 @@ spec:
       - kafka-cluster
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
-      strimzi.io/kind: Kafka
+      strimzi.io/pool-name: broker
 ---
-# PodChaos: Симуляция множественных сбоев брокеров (осторожно: может нарушить кворум)
+# PodChaos: Сбой 2 из 3 брокеров — нарушение min.insync.replicas
+# Тестирует: ISR < min.insync.replicas, запись блокирована, чтение возможно.
+# После восстановления: ISR восстанавливается, запись возобновляется.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
   name: kafka-multi-pod-failure
   namespace: kafka-cluster
   annotations:
-    description: "ВНИМАНИЕ: Это может нарушить кворум кластера"
+    description: "2 из 3 брокеров недоступны — ISR нарушен"
 spec:
   action: pod-failure
-  mode: fixed-percent
-  value: "60"
-  duration: "30s"
+  mode: fixed-number
+  value: "2"
+  duration: "60s"
   selector:
     namespaces:
       - kafka-cluster
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
-      strimzi.io/kind: Kafka
+      strimzi.io/pool-name: broker

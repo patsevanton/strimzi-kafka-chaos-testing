@@ -1,0 +1,44 @@
+# PodChaos: Потеря 2 из 3 брокеров — нарушение min.insync.replicas
+# Тестирует: При min.insync.replicas=2 и replication.factor=3,
+# потеря 2 брокеров делает запись невозможной (ISR < min.insync.replicas).
+# Ожидаемый результат: Producer получает ошибки NotEnoughReplicas,
+# consumer может дочитать уже записанные данные. После восстановления брокеров
+# ISR восстанавливается, запись возобновляется, потерь данных нет.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-quorum-broker-loss
+  namespace: kafka-cluster
+  annotations:
+    description: "2 из 3 брокеров недоступны — ISR нарушен, запись блокирована"
+spec:
+  action: pod-failure
+  mode: fixed-number
+  value: "2"
+  duration: "120s"
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: broker
+---
+# PodChaos: Убийство одного брокера (ISR сохраняется)
+# Тестирует: При потере 1 из 3 брокеров ISR >= min.insync.replicas (2),
+# запись продолжается. Партиции на погибшем брокере переизбирают лидера.
+# Ожидаемый результат: Кратковременный рост latency, переизбрание лидеров
+# партиций, under-replicated partitions до восстановления, данные не теряются.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: kafka-broker-single-kill
+  namespace: kafka-cluster
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - kafka-cluster
+    labelSelectors:
+      strimzi.io/cluster: kafka-cluster
+      strimzi.io/pool-name: broker

@@ -1,7 +1,7 @@
 # PodChaos: Убийство одного пода брокера Kafka
-# Тестирует: Отказоустойчивость кластера Kafka при падении брокера
-# Ожидаемый результат: Кластер должен продолжать работу с 2/3 брокерами
-# Producer/Consumer должны автоматически переподключиться
+# Тестирует: Отказоустойчивость при потере одного брокера (ISR сохраняется: 2 >= min.insync.replicas)
+# Ожидаемый результат: Партиции переизбирают лидера, producer/consumer переподключаются,
+# under-replicated partitions появляются и исчезают после восстановления пода.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -15,9 +15,9 @@ spec:
       - kafka-cluster
     labelSelectors:
       strimzi.io/cluster: kafka-cluster
-      strimzi.io/kind: Kafka
+      strimzi.io/pool-name: broker
 ---
-# Schedule: Убийство случайного брокера Kafka каждые 5 минут (непрерывный хаос)
+# Schedule: Убийство случайного брокера Kafka каждые 5 минут (непрерывный хаос под нагрузкой)
 apiVersion: chaos-mesh.org/v1alpha1
 kind: Schedule
 metadata:
@@ -34,4 +34,4 @@ spec:
         - kafka-cluster
       labelSelectors:
         strimzi.io/cluster: kafka-cluster
-        strimzi.io/kind: Kafka
+        strimzi.io/pool-name: broker
